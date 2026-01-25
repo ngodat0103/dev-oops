@@ -5,6 +5,8 @@
    lan_ip: "192.168.1.2/32"          # the only allowed source
    docker_subnet: "192.168.30.0/24"  # user-defined bridge subnet (runtime-network)
    lan_iface: "{{ ansible_default_ipv4.interface }}"  # or set explicitly: "eno1" / "eth0"
+   kafka_lxc_ip: "192.168.1.120"
+   loki_container_ip: "192.168.30.21"
   tasks:
   - name: Make sure default policy is deny in forward chain
     ansible.builtin.iptables:
@@ -22,6 +24,18 @@
       state: present
       action: insert
       rule_num: 1   # run before Docker’s own jumps
+  - name: Allow Kafka (using Proxmox ip due to Nat) push log to Loki container
+    ansible.builtin.iptables:
+      table: filter
+      chain: DOCKER-USER
+      in_interface: "{{ lan_iface }}"
+      source: "{{kafka_lxc_ip}}"
+      destination: "{{ loki_container_ip }}"
+      ctstate:
+        - NEW
+      state: present
+      jump: ACCEPT
+      rule_num: 2
   - name: Bypass early raw drops (if any) for my LAN IP → Docker subnet
     ansible.builtin.iptables:
       table: raw
@@ -33,7 +47,17 @@
       state: present
       action: insert
       rule_num: 1
-    notify: "save iptables rules"
+  - name: Bypass early raw drops (if any) for my Kafka LXC (using Proxmox ip due to Nat) → Loki container
+    ansible.builtin.iptables:
+      table: raw
+      chain: PREROUTING
+      in_interface: "{{ lan_iface }}"
+      source: "{{ kafka_lxc_ip }}"
+      destination: "{{ loki_container_ip }}"
+      jump: ACCEPT
+      state: present
+      action: insert
+      rule_num: 2
   - name: Ensure iptables-persistent is installed
     ansible.builtin.apt:
       name: iptables-persistent
