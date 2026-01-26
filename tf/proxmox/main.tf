@@ -2,7 +2,7 @@ terraform {
   required_providers {
     proxmox = {
       source  = "bpg/proxmox"
-      version = "0.82.1"
+      version = "0.92.0"
     }
   }
 }
@@ -13,6 +13,7 @@ locals {
   }
 
   vm_template = {
+    ubuntu_2404 = "https://cloud-images.ubuntu.com/noble/20260108/noble-server-cloudimg-amd64.img"
     #Reference: https://cloud-images.ubuntu.com/jammy/current/
     ubuntu_2204 = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
     debian_13   = "https://cdimage.debian.org/images/cloud/trixie/20251117-2299/debian-13-generic-amd64-20251117-2299.qcow2"
@@ -72,7 +73,7 @@ locals {
   k8s_public_key = file("~/OneDrive/credentials/ssh/k8s/id_rsa.pub")
 }
 module "network_default" {
-  source         = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/network/private?ref=ef2db374546fe4bade20496d79bc50e6776db4cd"
+  source         = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/network/private?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
   for_each       = local.network
   bridge_address = each.value.bridge_address
   node_name      = local.node_name
@@ -88,7 +89,7 @@ resource "proxmox_virtual_environment_download_file" "vm" {
   url          = each.value
 }
 module "ubuntu_server" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=ecc387b5f61e4103fe03ff2c646a6dab5400268e"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   name              = "UbuntuServer"
   tags              = ["production", "file-storage", "public-facing", "reverse-proxy"]
@@ -104,6 +105,7 @@ module "ubuntu_server" {
   boot_disk_size    = 256
   cpu_cores         = 4
   public_key        = file("~/OneDrive/credentials/ssh/akira-ubuntu-server/root/id_rsa.pub")
+  on_boot = true
   network_model     = "e1000e"
   startup_config = {
     order      = 2
@@ -131,7 +133,7 @@ module "ubuntu_server" {
 }
 
 module "teleport" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=f9652095671a8fcdf54c97caffc7bedcc2df3948"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   name              = "Teleport"
   tags              = ["development", "infra-access", "public-facing"]
@@ -174,7 +176,7 @@ resource "proxmox_virtual_environment_download_file" "lxc" {
   upload_timeout = 10
 }
 module "lxc_production" {
-  source                   = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/lxc?ref=1a2c9b342cdee0fc3e257daf09d750d88c0e83c8"
+  source                   = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/lxc?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
   for_each                 = local.lxc
   ip_address               = each.value.ip_address
   gateway                  = each.value.gateway
@@ -193,9 +195,8 @@ module "lxc_production" {
   datastore_id             = "local-lvm"
   mount_volume_name        = "local-lvm"
 }
-
 module "k8s_masters" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=f9652095671a8fcdf54c97caffc7bedcc2df3948"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
   count             = 3
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   hostname          = "master-nodes-${count.index}.local"
@@ -218,7 +219,7 @@ module "k8s_masters" {
   }
 }
 module "k8s_workers" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=f9652095671a8fcdf54c97caffc7bedcc2df3948"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
   count             = 5
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   hostname          = "worker-nodes-${count.index}.local"
@@ -241,7 +242,7 @@ module "k8s_workers" {
   }
 }
 module "vpn_server" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=f9652095671a8fcdf54c97caffc7bedcc2df3948"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["debian_13"].id
   name              = "vpn-server"
   hostname          = "vpn-server.local"
@@ -264,7 +265,7 @@ module "vpn_server" {
 }
 
 module "hephaestus" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=f9652095671a8fcdf54c97caffc7bedcc2df3948"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   name              = "hephaestus"
   tags              = ["Gitlab-runner", "Github-runner", "production"]
@@ -287,7 +288,7 @@ module "hephaestus" {
   }
 }
 module "sonarqube" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=f9652095671a8fcdf54c97caffc7bedcc2df3948"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   name              = "sonarqube"
   tags              = ["Sonarqube", "production"]
@@ -301,6 +302,28 @@ module "sonarqube" {
   boot_disk_size    = 150
   cpu_cores         = 4
   public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCTbsuzpC3Crbmy8bq6NfKqGoJKrxFdSPz4+HSfE/gljWKzMimRQZY46j8JEK3tgZxHkgW8gRewV7cIyOkw0GbOnBjISQIO+zrPJjxJrdXR/odbOFQ+Xqpk6llHoZcNd15dDmVITD34QVyVvdNxm04lnOKKixuvjJ+rLn8FxSFED6oBeLF8H5JWodhn/GsK0ysQEJGHrE1JPfY73V0wr2rnKdAyYEYZvqj4XNcOkDAzGP7minTHQVyJC+b9PNu1SzRPimbkXio/pns/wDonc44lq1+XiBHr7vrny0lqLMZI8APmYfQ6F0lE2yAEnMNEET6c6mR8vpzSHXZH2g7b6N8etoTAZBM3e1ufrw7+E6LxOzULvIAXHzZOMlb8GeKrcrXc8j6KxPGAoHkXGU8evoEtNpd5wuNNNmtENbNtqopR6tpiMkifQSuzlWq2Vw6SX5RQXfQaeeiNc4j2iZpUw3ps8vKLZOB2a1r/QoTXyLKeJJr+EBvsz1SG9CzCC7KxwyM= akira@legion5"
+  network_model     = "e1000e"
+  startup_config = {
+    order      = 1
+    up_delay   = 30
+    down_delay = 1
+  }
+}
+module "suricata" {
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=b33c9a4de0abeadc089bf493c213644d85a9692d"
+  template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2404"].id
+  name              = "suricata"
+  tags              = ["development","IPS","IDS"]
+  hostname          = "suricata.local"
+  node_name         = local.node_name
+  ip_address        = "192.168.1.126/24"
+  bridge_name       = "vmbr0"
+  memory            = 1024 * 4
+  gateway           = local.lan_gateway
+  on_boot           = false
+  boot_disk_size    = 50
+  cpu_cores         = 2
+  public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCUQp5Bms7xwnrkEC/H5fnRI4rD6jSgB0rKc+LnCsqG9FizOz1qpYOwxog9Fzln7OwVStaCPehAUjCQsOK/9QhnCpu1MK2uh2HRrK1zFYRs0/YMrUaGsXpwV1mMRA5rSPfTASFLYuZsb/FG6L7AUFCC1vDqBdyU6EJfdSbh1WrEozoxAAD4cpIgw4vid5WdWwWtdW9uSKhVprlv0L+k9HtvIlGiQHQLEQ7lMFbzmDJCC5Cf9Ag7GLiOVG/fYJ3M7B77Wmh0QHJIJ+a6H5GASMKrOjHN3/qRLq+dVDB3ku9kaCbblQMIeUk/jxqmycdw7Fuai/g/20WDGFoE1Fak9xPcy5WxzqSB6oSlRd2ogQdaz0yaisGkwTIeDmJ+MNbQgoTJS4Qotoaf4ztsGYIWMbw3588hQZgM8oaxc2AYFL4RgrsptYmXGIVJOooPS0V9LlothBq2NYDzC/VrRDSFlXyqSuccjtkhwMJ+OgxTHcZenoJAcjRxt4nf6b1OGIi7YIM= akira@legion5"
   network_model     = "e1000e"
   startup_config = {
     order      = 1
