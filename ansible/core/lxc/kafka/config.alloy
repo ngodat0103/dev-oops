@@ -1,0 +1,76 @@
+// Discovery component to find all log files in the Kafka logs directory
+local.file_match "kafka_logs" {
+  path_targets = [{
+    __path__ = "/home/kafka/kafka_2.12-3.9.1/logs/*.log*",
+  }]
+}
+
+// Component to read and tail the log files
+loki.source.file "kafka_logs" {
+  targets    = local.file_match.kafka_logs.targets
+  forward_to = [loki.process.kafka_logs.receiver]
+}
+
+// Process and add labels to the logs
+loki.process "kafka_logs" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+
+  // Extract log type from filename - PHẢI CÓ source = "filename"
+  stage.match {
+    selector = "{job=\"\"}"  // Match all
+    
+    stage.regex {
+      expression = ".*\\/(?P<log_type>[^\\/]+)\\.log.*"
+      source     = "filename"
+    }
+
+    stage.labels {
+      values = {
+        log_type = "log_type",
+        job      = "kafka",
+        instance = "kafka-lxc",
+        env      = "production",
+      }
+    }
+  }
+
+  // Parse timestamp - OPTIONAL, nếu không match thì vẫn gửi
+  stage.match {
+    selector = "{job=\"kafka\"}"
+    
+    stage.regex {
+      expression = "^\\[(?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})\\]"
+    }
+
+    stage.timestamp {
+      source = "timestamp"
+      format = "2006-01-02 15:04:05,000"
+    }
+  }
+
+  // Extract log level - OPTIONAL
+  stage.match {
+    selector = "{job=\"kafka\"}"
+    
+    stage.regex {
+      expression = "\\] (?P<level>INFO|WARN|ERROR|DEBUG|TRACE)"
+    }
+
+    stage.labels {
+      values = {
+        level = "level",
+      }
+    }
+  }
+}
+
+// Write logs to Loki
+loki.write "loki_endpoint" {
+  endpoint {
+    url = "http://192.168.30.21:3100/loki/api/v1/push"
+    
+  }
+  external_labels = {
+    instance = "kafka-lxc",
+  }
+}

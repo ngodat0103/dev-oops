@@ -56,7 +56,7 @@
    - name: Make sure traefik is running
      ansible.builtin.docker_container:
       name: traefik
-      image: traefik:v3.6.4
+      image: traefik:v3.6.7
       state: started
       memory: "512M"
       cpus: 3

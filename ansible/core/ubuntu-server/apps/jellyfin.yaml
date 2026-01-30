@@ -43,7 +43,7 @@
         traefik.http.routers.jellyfin.entrypoints: "websecure,web"
         traefik.http.routers.jellyfin.tls: "true"
       restart_policy: always
-      image: jellyfin/jellyfin:2025090805@sha256:7bccb878ddcd99a9797f88e2d72c8a389310cb01a03bcb804da98910eac830af
+      image: jellyfin/jellyfin:10.11.6@sha256:333b647716631443a43c7fabac4b0c46b4e2f036bad19547e00958f10f721b85
       networks:
       - name: runtime-network
         ipv4_address: "192.168.30.8"

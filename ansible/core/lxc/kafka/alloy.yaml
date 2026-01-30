@@ -1,0 +1,9 @@
+- name: Install Alloy
+  hosts: postgresql-16
+  become: true
+  tasks:
+  - name: Install Alloy
+    ansible.builtin.include_role:
+      name: grafana.grafana.alloy
+    vars:
+      alloy_config: "{{lookup('file','config.alloy')}}"

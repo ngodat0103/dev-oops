@@ -8,14 +8,17 @@ terraform {
 }
 locals {
   #Source: https://images.linuxcontainers.org/
+  # http://download.proxmox.com/images/system/
   lxc_templates = {
-    ubuntu_2204 = "https://images.linuxcontainers.org/images/ubuntu/jammy/amd64/cloud/20250826_07:42/rootfs.tar.xz"
+    ubuntu_2204 = "https://images.linuxcontainers.org/images/ubuntu/jammy/amd64/cloud/20250826_07:42/rootfs.tar.xz",
+    alpine_3 = "http://download.proxmox.com/images/system/alpine-3.23-default_20260116_amd64.tar.xz"
+
   }
 
   vm_template = {
-    ubuntu_2404 = "https://cloud-images.ubuntu.com/noble/20260108/noble-server-cloudimg-amd64.img"
+    ubuntu_2404 = "https://cloud-images.ubuntu.com/noble/20260108/noble-server-cloudimg-amd64.img",
     #Reference: https://cloud-images.ubuntu.com/jammy/current/
-    ubuntu_2204 = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+    ubuntu_2204 = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
     debian_13   = "https://cdimage.debian.org/images/cloud/trixie/20251117-2299/debian-13-generic-amd64-20251117-2299.qcow2"
   }
   node_name = "pve-master"
@@ -60,6 +63,27 @@ locals {
       node_name                = local.node_name
       mount_volume_size        = 30 #GB
       hostname                 = "kafka.internal"
+      tags                     = ["Production"]
+      protection               = true
+      startup_config = {
+        order      = 2
+        up_delay   = 10
+        down_delay = 10
+      }
+    },
+    core_dns = {
+      ip_address               = "192.168.1.126/24"
+      gateway                  = "192.168.1.1"
+      network_interface_name   = "eth0"
+      network_interface_bridge = "vmbr0"
+      vm_id                    = 316
+      template_file_id         = resource.proxmox_virtual_environment_download_file.lxc["alpine_3"].id
+      on_boot = true
+      cores                    = 1 
+      memory                   = 128
+      node_name                = local.node_name
+      mount_volume_size        = 1 #GB
+      hostname                 = "core-dns.internal"
       tags                     = ["Production"]
       protection               = true
       startup_config = {
@@ -302,28 +326,6 @@ module "sonarqube" {
   boot_disk_size    = 150
   cpu_cores         = 4
   public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCTbsuzpC3Crbmy8bq6NfKqGoJKrxFdSPz4+HSfE/gljWKzMimRQZY46j8JEK3tgZxHkgW8gRewV7cIyOkw0GbOnBjISQIO+zrPJjxJrdXR/odbOFQ+Xqpk6llHoZcNd15dDmVITD34QVyVvdNxm04lnOKKixuvjJ+rLn8FxSFED6oBeLF8H5JWodhn/GsK0ysQEJGHrE1JPfY73V0wr2rnKdAyYEYZvqj4XNcOkDAzGP7minTHQVyJC+b9PNu1SzRPimbkXio/pns/wDonc44lq1+XiBHr7vrny0lqLMZI8APmYfQ6F0lE2yAEnMNEET6c6mR8vpzSHXZH2g7b6N8etoTAZBM3e1ufrw7+E6LxOzULvIAXHzZOMlb8GeKrcrXc8j6KxPGAoHkXGU8evoEtNpd5wuNNNmtENbNtqopR6tpiMkifQSuzlWq2Vw6SX5RQXfQaeeiNc4j2iZpUw3ps8vKLZOB2a1r/QoTXyLKeJJr+EBvsz1SG9CzCC7KxwyM= akira@legion5"
-  network_model     = "e1000e"
-  startup_config = {
-    order      = 1
-    up_delay   = 30
-    down_delay = 1
-  }
-}
-module "suricata" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=b33c9a4de0abeadc089bf493c213644d85a9692d"
-  template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2404"].id
-  name              = "suricata"
-  tags              = ["development","IPS","IDS"]
-  hostname          = "suricata.local"
-  node_name         = local.node_name
-  ip_address        = "192.168.1.126/24"
-  bridge_name       = "vmbr0"
-  memory            = 1024 * 4
-  gateway           = local.lan_gateway
-  on_boot           = false
-  boot_disk_size    = 50
-  cpu_cores         = 2
-  public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCUQp5Bms7xwnrkEC/H5fnRI4rD6jSgB0rKc+LnCsqG9FizOz1qpYOwxog9Fzln7OwVStaCPehAUjCQsOK/9QhnCpu1MK2uh2HRrK1zFYRs0/YMrUaGsXpwV1mMRA5rSPfTASFLYuZsb/FG6L7AUFCC1vDqBdyU6EJfdSbh1WrEozoxAAD4cpIgw4vid5WdWwWtdW9uSKhVprlv0L+k9HtvIlGiQHQLEQ7lMFbzmDJCC5Cf9Ag7GLiOVG/fYJ3M7B77Wmh0QHJIJ+a6H5GASMKrOjHN3/qRLq+dVDB3ku9kaCbblQMIeUk/jxqmycdw7Fuai/g/20WDGFoE1Fak9xPcy5WxzqSB6oSlRd2ogQdaz0yaisGkwTIeDmJ+MNbQgoTJS4Qotoaf4ztsGYIWMbw3588hQZgM8oaxc2AYFL4RgrsptYmXGIVJOooPS0V9LlothBq2NYDzC/VrRDSFlXyqSuccjtkhwMJ+OgxTHcZenoJAcjRxt4nf6b1OGIi7YIM= akira@legion5"
   network_model     = "e1000e"
   startup_config = {
     order      = 1
