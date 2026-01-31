@@ -24,7 +24,7 @@ locals {
   # http://download.proxmox.com/images/system/
   lxc_templates = {
     ubuntu_2204 = "http://download.proxmox.com/images/system/ubuntu-22.04-standard_22.04-1_amd64.tar.zst",
-    alpine_3 = "http://download.proxmox.com/images/system/alpine-3.23-default_20260116_amd64.tar.xz"
+    alpine_3    = "http://download.proxmox.com/images/system/alpine-3.23-default_20260116_amd64.tar.xz"
     ubuntu_2404 = "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64-root.tar.xz",
 
   }
@@ -50,7 +50,7 @@ locals {
       network_interface_name   = "eth0"
       network_interface_bridge = "private"
       template_file_id         = resource.proxmox_virtual_environment_download_file.lxc["ubuntu_2204"].id
-      operating_system_type ="ubuntu"
+      operating_system_type    = "ubuntu"
       cores                    = 1
       memory                   = 1024 * 4
       node_name                = local.node_name
@@ -72,7 +72,7 @@ locals {
       network_interface_bridge = "private"
       vm_id                    = 315
       template_file_id         = resource.proxmox_virtual_environment_download_file.lxc["ubuntu_2204"].id
-      operating_system_type ="ubuntu"
+      operating_system_type    = "ubuntu"
       cores                    = 4
       memory                   = 1024 * 8
       node_name                = local.node_name
@@ -93,9 +93,9 @@ locals {
       network_interface_bridge = "vmbr0"
       vm_id                    = 316
       template_file_id         = resource.proxmox_virtual_environment_download_file.lxc["alpine_3"].id
-      operating_system_type ="alpine"
-      on_boot = true
-      cores                    = 1 
+      operating_system_type    = "alpine"
+      on_boot                  = true
+      cores                    = 1
       memory                   = 128
       node_name                = local.node_name
       mount_volume_size        = 1 #GB
@@ -115,14 +115,14 @@ locals {
       network_interface_bridge = "vmbr0"
       vm_id                    = 317
       template_file_id         = resource.proxmox_virtual_environment_download_file.lxc["ubuntu_2204"].id
-      operating_system_type = "ubuntu"
-      on_boot = true
-      cores                    = 1 
-      memory                   = 1024*1
+      operating_system_type    = "ubuntu"
+      on_boot                  = true
+      cores                    = 1
+      memory                   = 1024 * 1
       node_name                = local.node_name
       mount_volume_size        = 10 #GB
       hostname                 = "crowsec-detection-engine.local"
-      tags                     = ["WAF", "production","security"]
+      tags                     = ["WAF", "production", "security"]
       protection               = true
       startup_config = {
         order      = 1
@@ -151,11 +151,11 @@ resource "proxmox_virtual_environment_download_file" "vm" {
   url          = each.value
 }
 resource "proxmox_virtual_environment_download_file" "lxc" {
-  for_each       = local.lxc_templates
-  datastore_id   = "local"
-  content_type   = "vztmpl"
-  node_name      = local.node_name
-  url            = each.value
+  for_each     = local.lxc_templates
+  datastore_id = "local"
+  content_type = "vztmpl"
+  node_name    = local.node_name
+  url          = each.value
 }
 module "ubuntu_server" {
   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
@@ -174,7 +174,7 @@ module "ubuntu_server" {
   boot_disk_size    = 256
   cpu_cores         = 4
   public_key        = file("~/OneDrive/credentials/ssh/akira-ubuntu-server/root/id_rsa.pub")
-  on_boot = true
+  on_boot           = true
   network_model     = "e1000e"
   startup_config = {
     order      = 2
@@ -243,7 +243,7 @@ module "lxc_production" {
   gateway                  = each.value.gateway
   network_interface_name   = each.value.network_interface_name
   template_file_id         = each.value.template_file_id
-  operating_system_type = each.value.operating_system_type
+  operating_system_type    = each.value.operating_system_type
   network_interface_bridge = each.value.network_interface_bridge
   cores                    = each.value.cores
   memory                   = each.value.memory
@@ -371,25 +371,3 @@ module "sonarqube" {
     down_delay = 1
   }
 }
-# module "crowdsec-detection-engine" {
-#   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
-#   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
-#   name              = "crowsec-detection-engine"
-#   tags              = ["WAF", "production","security","crowdsec-components"]
-#   hostname          = "crowdsec.local"
-#   node_name         = local.node_name
-#   ip_address        = "192.168.1.127/24"
-#   bridge_name       = "vmbr0"
-#   memory            = 1024 * 1
-#   gateway           = local.lan_gateway
-#   on_boot           = true
-#   boot_disk_size    = 10
-#   cpu_cores         = 1
-#   public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCTbsuzpC3Crbmy8bq6NfKqGoJKrxFdSPz4+HSfE/gljWKzMimRQZY46j8JEK3tgZxHkgW8gRewV7cIyOkw0GbOnBjISQIO+zrPJjxJrdXR/odbOFQ+Xqpk6llHoZcNd15dDmVITD34QVyVvdNxm04lnOKKixuvjJ+rLn8FxSFED6oBeLF8H5JWodhn/GsK0ysQEJGHrE1JPfY73V0wr2rnKdAyYEYZvqj4XNcOkDAzGP7minTHQVyJC+b9PNu1SzRPimbkXio/pns/wDonc44lq1+XiBHr7vrny0lqLMZI8APmYfQ6F0lE2yAEnMNEET6c6mR8vpzSHXZH2g7b6N8etoTAZBM3e1ufrw7+E6LxOzULvIAXHzZOMlb8GeKrcrXc8j6KxPGAoHkXGU8evoEtNpd5wuNNNmtENbNtqopR6tpiMkifQSuzlWq2Vw6SX5RQXfQaeeiNc4j2iZpUw3ps8vKLZOB2a1r/QoTXyLKeJJr+EBvsz1SG9CzCC7KxwyM= akira@legion5"
-#   network_model     = "e1000e"
-#   startup_config = {
-#     order      = 1
-#     up_delay   = 30
-#     down_delay = 1
-#   }
-# }

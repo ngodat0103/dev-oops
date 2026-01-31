@@ -60,7 +60,7 @@
       state: started
       memory: "512M"
       cpus: 3
-      user: "{{id}}:{{docker_group_id}}"
+      # user: "{{id}}:{{docker_group_id}}"
       log_driver: 'json-file'
       log_options:
        max-size: 512m
