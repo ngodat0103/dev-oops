@@ -200,29 +200,6 @@ module "ubuntu_server" {
     }
   }
 }
-
-module "teleport" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
-  template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
-  name              = "Teleport"
-  tags              = ["development", "infra-access", "public-facing"]
-  node_name         = local.node_name
-  ip_address        = "192.168.1.122/24"
-  hostname          = "teleport.local"
-  bridge_name       = "vmbr0"
-  memory            = 1024 * 2
-  gateway           = local.lan_gateway
-  protection        = false
-  boot_disk_size    = 30
-  cpu_cores         = 1
-  public_key        = file("~/OneDrive/credentials/ssh/teleport/id_rsa.pub")
-  network_model     = "e1000e"
-  startup_config = {
-    order      = 3
-    up_delay   = 60
-    down_delay = 60
-  }
-}
 #Push metrics to influxdb hosted in Ubuntu vm
 resource "proxmox_virtual_environment_metrics_server" "influxdb_server" {
   count               = var.influxdb_token == null ? 0 : 1
@@ -258,13 +235,13 @@ module "lxc_production" {
   mount_volume_name        = "local-lvm"
 }
 module "k8s_masters" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=d4dde1601140cd3e1e86d1f170f45b84593c9002"
   count             = 3
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   hostname          = "master-nodes-${count.index}.local"
   name              = "master-nodes-${count.index}"
   public_key        = local.k8s_public_key
-  ip_address        = "192.168.1.13${count.index}/24"
+  ip_address        = "192.168.1.18${count.index}/24"
   tags              = ["development", "kubernetes-masters"]
   gateway           = "192.168.1.1"
   memory            = 4096
@@ -273,30 +250,28 @@ module "k8s_masters" {
   boot_disk_size    = 50
   datastore_id      = "local-lvm"
   bridge_name       = "vmbr0"
-  vm_id             = 300 + count.index
   startup_config = {
     order      = 3
-    up_delay   = 3
+    up_delay   = 30
     down_delay = 30
   }
 }
 module "k8s_workers" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
-  count             = 5
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=d4dde1601140cd3e1e86d1f170f45b84593c9002"
+  count             = 4
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   hostname          = "worker-nodes-${count.index}.local"
   name              = "worker-nodes-${count.index}"
   public_key        = local.k8s_public_key
-  ip_address        = "192.168.1.14${count.index}/24"
+  ip_address        = "192.168.1.19${count.index}/24"
   tags              = ["development", "kubernetes-workers"]
-  boot_disk_size    = 200
+  boot_disk_size    = 100
   gateway           = "192.168.1.1"
   memory            = 1024 * 5
   cpu_cores         = 4
   node_name         = local.node_name
   datastore_id      = "local-lvm"
   bridge_name       = "vmbr0"
-  vm_id             = 310 + count.index
   startup_config = {
     order      = 4
     up_delay   = 10
