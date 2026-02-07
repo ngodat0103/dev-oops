@@ -77,10 +77,11 @@ loki.process "parse_docker_level" {
 otelcol.exporter.kafka "to_kafka" {
   protocol_version = "2.0.0"
   brokers          = ["192.168.1.171:9092"] 
-  topic            = "docker_logs_otlp"
-  encoding         = "otlp_proto" 
   timeout          = "10s"
-  
+  logs {
+    topic            = "docker_logs_otlp"
+    encoding         = "otlp_json" 
+  }
   // Add retry configuration
   retry_on_failure {
     enabled         = true

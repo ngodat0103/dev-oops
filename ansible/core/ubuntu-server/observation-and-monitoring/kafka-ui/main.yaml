@@ -1,0 +1,22 @@
+---
+- name: Deploy Kafka UI
+  hosts: ubuntu-server
+  tasks:
+  - name: Start Kafka UI Container
+    ansible.builtin.docker_container:
+      name: kafka-ui
+      image: provectuslabs/kafka-ui:latest
+      memory: 1024M
+      state: started
+      restart_policy: unless-stopped
+      exposed_ports:
+      - 8080
+      networks:
+      - name: runtime-network
+        ipv4_address: "192.168.30.22"
+      env:
+        KAFKA_CLUSTERS_0_NAME: kafka-local
+        KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 192.168.1.171:9092
+        DYNAMIC_CONFIG_ENABLED: 'true'
+        LOGGING_LEVEL_ROOT: WARN
+        LOGGING_LEVEL_COM_PROVECTUS: WARN
