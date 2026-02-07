@@ -73,173 +73,47 @@ loki.process "parse_docker_level" {
   forward_to = [loki.write.local.receiver]
 }
 
+// --- OTEL Kafka Exporter ---
+otelcol.exporter.kafka "to_kafka" {
+  protocol_version = "2.0.0"
+  brokers          = ["192.168.1.171:9092"] 
+  topic            = "docker_logs_otlp"
+  encoding         = "otlp_proto" 
+  timeout          = "10s"
+  
+  // Add retry configuration
+  retry_on_failure {
+    enabled         = true
+    initial_interval = "5s"
+    max_interval    = "30s"
+    max_elapsed_time = "300s"
+  }
+  sending_queue {
+    enabled      = true
+    num_consumers = 20
+    queue_size   = 10000
+  }
+  
+}
+
+// --- OTEL Receiver Bridge ---
+otelcol.receiver.loki "bridge" {
+  output {
+    logs = [otelcol.exporter.kafka.to_kafka.input]
+  }
+}
+
 // --- Read Docker logs ---
 loki.source.docker "default" {
   host          = "unix:///var/run/docker.sock"
   targets       = discovery.docker.linux.targets
   relabel_rules = discovery.relabel.logs_integrations_docker.rules
-  forward_to    = [loki.process.parse_docker_level.receiver]
-}
-
-// #### Ubuntu System Logs Collection ####
-
-local.file_match "syslog" {
-  path_targets = [{
-    __path__ = "/var/log/syslog",
-    job      = "syslog",
-    instance = constants.hostname,
-    log_type = "system",
-  }]
-}
-
-local.file_match "kernel" {
-  path_targets = [{
-    __path__ = "/var/log/kern.log",
-    job      = "kernel",
-    instance = constants.hostname,
-    log_type = "kernel",
-  }]
-}
-
-local.file_match "auth" {
-  path_targets = [{
-    __path__ = "/var/log/auth.log",
-    job      = "auth",
-    instance = constants.hostname,
-    log_type = "auth",
-  }]
-}
-
-loki.process "parse_syslog" {
-  stage.regex {
-    expression = "^(?P<timestamp>\\w+\\s+\\d+\\s+\\d+:\\d+:\\d+)\\s+(?P<hostname>\\S+)\\s+(?P<service>\\w+)(\\[(?P<pid>\\d+)\\])?:\\s+(?P<message>.*)"
-  }
-
-  stage.regex {
-    source    = "message"
-    expression = "(?i)\\b(?P<log_level>emerg|alert|crit|critical|err|error|warn|warning|notice|info|debug)\\b"
-  }
-
-  stage.regex {
-    expression = "(?i)(?P<service>systemd|kernel|sshd|sudo|cron|docker).*?(?P<log_level>error|warning|info|debug|critical|fatal)"
-  }
-
-  stage.labels {
-    values = {
-      hostname   = "",
-      service    = "",
-      pid        = "",
-      log_level  = "",
-      job        = "",
-      instance   = "",
-      log_type   = "",
-    }
-  }
-
-  forward_to = [loki.write.local.receiver]
-}
-
-loki.process "parse_kernel" {
-  stage.regex {
-    expression = "^(?P<timestamp>\\w+\\s+\\d+\\s+\\d+:\\d+:\\d+)\\s+(?P<hostname>\\S+)\\s+kernel:\\s+\\[\\s*(?P<kernel_time>[\\d\\.]+)\\]\\s+(?P<message>.*)"
-  }
-
-  stage.regex {
-    source    = "message"
-    expression = "^<(?P<priority>\\d)>|(?i)\\b(?P<log_level>emerg|alert|crit|err|warn|notice|info|debug)\\b"
-  }
-
-  stage.template {
-    source   = "priority"
-    template = "{{ if eq .priority \"0\" }}emerg{{ else if eq .priority \"1\" }}alert{{ else if eq .priority \"2\" }}crit{{ else if eq .priority \"3\" }}err{{ else if eq .priority \"4\" }}warn{{ else if eq .priority \"5\" }}notice{{ else if eq .priority \"6\" }}info{{ else }}debug{{ end }}"
-  }
-
-  stage.labels {
-    values = {
-      hostname    = "",
-      kernel_time = "",
-      log_level   = "",
-      priority    = "",
-      job         = "",
-      instance    = "",
-      log_type    = "",
-    }
-  }
-
-  forward_to = [loki.write.local.receiver]
-}
-
-loki.source.file "syslog" {
-  targets    = local.file_match.syslog.targets
-  forward_to = [loki.process.parse_syslog.receiver]
-}
-
-loki.source.file "kernel" {
-  targets    = local.file_match.kernel.targets
-  forward_to = [loki.process.parse_kernel.receiver]
-}
-
-loki.source.file "auth" {
-  targets    = local.file_match.auth.targets
-  forward_to = [loki.process.parse_syslog.receiver]
-}
-
-loki.source.journal "dmesg" {
-  format_as_json = true
-  max_age        = "12h"
-  matches        = "_TRANSPORT=kernel"
-  
-  labels = {
-    job      = "dmesg",
-    instance = constants.hostname,
-    log_type = "kernel",
-  }
-
-  forward_to = [loki.process.parse_journald.receiver]
-}
-
-loki.process "parse_journald" {
-  stage.json {
-    expressions = {
-      message       = "MESSAGE",
-      priority      = "PRIORITY",
-      syslog_id     = "SYSLOG_IDENTIFIER",
-      systemd_unit  = "_SYSTEMD_UNIT",
-      hostname      = "_HOSTNAME",
-    }
-  }
-
-  stage.template {
-    source   = "priority"
-    template = "{{ if eq .priority \"0\" }}emerg{{ else if eq .priority \"1\" }}alert{{ else if eq .priority \"2\" }}crit{{ else if eq .priority \"3\" }}err{{ else if eq .priority \"4\" }}warn{{ else if eq .priority \"5\" }}notice{{ else if eq .priority \"6\" }}info{{ else }}debug{{ end }}"
-  }
-
-  stage.labels {
-    values = {
-      log_level    = "",
-      syslog_id    = "",
-      systemd_unit = "",
-      hostname     = "",
-      job          = "",
-      instance     = "",
-      log_type     = "",
-    }
-  }
-
-  forward_to = [loki.write.local.receiver]
-}
-
-loki.source.file "vaultwarden_backup" {
-  targets = [
-    {
-      __path__ = "/var/log/vaultwarden-backup.log",
-      job      = "vaultwarden-backup",
-      service = "cronjob",
-    },
+  forward_to    = [
+    loki.process.parse_docker_level.receiver,
+    otelcol.receiver.loki.bridge.receiver,
   ]
-  forward_to = [loki.write.local.receiver]
 }
-
+// --- Loki Local Writer ---
 loki.write "local" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
