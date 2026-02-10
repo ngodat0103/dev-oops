@@ -1,112 +1,71 @@
-### 1. Architecture Decision Record (ADR)
+## ADR-001: Network Traffic Interception & Access Control Strategy
 
-**Title:** Homelab Sentry: Side-Arm Traffic Inspection via ARP Spoofing
 **Status:** Accepted
-**Date:** January 11, 2026
-**Context:** Proxmox Homelab Environment (Arch Linux)
+**Date:** February 10, 2026
+**Project:** Homelab Sentry ("The Over-Engineered Nanny")
 
-#### Context
+### 1. Context
 
-The user requires a system to inspect, block, or redirect network traffic for specific devices (e.g., children's tablets, IoT devices) based on MAC addresses and time schedules.
+The objective is to implement time-based internet access restrictions (e.g., "1 AM Curfew") for specific client devices (iPad, Android) on a shared residential LAN.
 
-* **Constraint 1 (Stability):** The solution must **not** act as the primary physical gateway/router. If the Proxmox server restarts or the code crashes, the home internet must remain functional for other users (Fail-Open preferred, or Quick-Recovery).
-* **Constraint 2 (Hardware):** No new hardware purchases. Must use existing TP-Link router and Proxmox server.
+**Constraints:**
 
-#### Decision
+* **Hardware:** Proxmox VE environment (x86_64).
+* **Network:** Standard consumer router; no enterprise VLAN/Radius support.
+* **Target Devices:** Unmanaged mobile devices (iOS/Android) with no ability to install root CAs.
+* **User Experience:** Prioritize effective blocking for HTTPS apps (YouTube, TikTok) while attempting to display a blocking page via captive portal triggers.
+* **Risk:** System failure must not result in a permanent network outage (requires "fail-open" or graceful recovery).
 
-We will implement a **"Side-Arm" (Man-in-the-Middle)** architecture using **ARP Cache Poisoning** (Unicast).
+### 2. Decision
 
-* **Mechanism:** A Go-based agent running on an Arch Linux VM will "claim" the IP of the router to the target device, and the IP of the target device to the router.
-* **Traffic Flow:** `Target Device` -> `Sentry VM (Go)` -> `Real Router` -> `Internet`.
-* **Safety Protocol:** The system will strictly use **Unicast ARP packets** (targeting specific MACs) to avoid flooding the network or affecting non-target devices.
-* **Recovery:** The agent will implement a "Graceful Shutdown" signal that floods the network with correct ARP mappings upon exit to instantly restore normal routing.
+A custom **Go-based Man-in-the-Middle (MITM) Controller** will be implemented, running in an LXC container or VM.
 
-#### Consequences
+The architecture relies on a **Hybrid Interception Strategy**:
 
-* **Positive:** Zero physical rewiring required. High granularity (per-device control). "Fail-Safe" (network self-heals in ~60s if the agent dies).
-* **Negative:** Adds a network hop (slight latency increase). High CPU usage on the VM if the target consumes high bandwidth (e.g., 4K streaming).
-* **Risks:** Potential for IP conflicts if the code accidentally broadcasts ARP packets.
+1. **Layer 2 (The Hook): ARP Spoofing**
+* Uses `github.com/mdlayher/arp` or `google/gopacket` to broadcast unsolicited ARP Replies.
+* The Sentry VM claims to be the Gateway (Router) to the Target Device.
+* The Sentry VM claims to be the Target Device to the Gateway.
+* **Safety Mechanism:** A "Watchdog" goroutine captures `SIGINT/SIGTERM` signals to broadcast correct ARP mappings (healing the network) before process exit.
+
+
+2. **Layer 4 (The Filter): SNI Peeking**
+* No attempt at full TLS termination (decrypting traffic) due to HSTS and Certificate Pinning.
+* Inspects the **TLS Client Hello** packet to read the **SNI (Server Name Indication)** extension.
+* **Logic:**
+* If SNI matches a blocked domain (e.g., `youtube.com`) during curfew: **DROP PACKET**.
+* If SNI is allowed: **FORWARD** packet to real Gateway.
+
+
+
+
+3. **Layer 7 (The Notification): Captive Portal Spoofing**
+* Spoofs OS connectivity checks to trigger a UI popup.
+* **DNS:** Intercepts queries for `captive.apple.com` and `connectivitycheck.gstatic.com`, resolving them to the Sentry VM IP.
+* **HTTP:** A lightweight Go HTTP server on Port 80 returns a `302 Redirect` to a local "Bedtime" page for these specific check URLs.
+
+
+
+### 3. Consequences
+
+**Positive:**
+
+* **Zero-Touch Client Config:** No need to install profiles or manually configure proxies on the target devices.
+* **App-Level Blocking:** SNI inspection effectively blocks modern apps that ignore system proxies.
+* **Psychological Impact:** The Captive Portal trick forces a UI popup on network reconnect.
+
+**Negative:**
+
+* **Performance Overhead:** All traffic for the target device must pass through the Sentry VM, adding latency.
+* **Fragility:** MAC Randomization on target devices can break the ARP targeting unless disabled for the home SSID.
+
+### 4. Component Diagram (C4 Level 2)
+
+### 5. Action Items
+
+1. **Develop `arp_spoofer.go`:** Implement the "Poison" and "Heal" loop.
+2. **Develop `sni_inspector.go`:** Use `gopacket/layers` to parse TLS headers.
+3. **Develop `portal_server.go`:** HTTP server for `generate_204` and `hotspot-detect` redirects.
+4. **Ops:** Configure Proxmox bridge to allow Promiscuous Mode.
 
 ---
-
-### 2. High-Level Architecture
-
-The system operates on the "Triangle" principle. Instead of traffic flowing in a straight line, we force it to detour through your Sentry VM.
-
-**The Three Components:**
-
-1. **The Spoofer (Go Routine):**
-* Continuously whispers to the **Target**: *"I am the Router."*
-* Continuously whispers to the **Router**: *"I am the Target."*
-
-
-2. **The Forwarder (Packet Engine):**
-* Receives the stolen packets.
-* **Policy Check:** Is it 1 AM? Does the packet contain forbidden keywords?
-* **Action:** If Allowed -> Rewrite MAC destination -> Send to Real Router. If Blocked -> Drop.
-
-
-3. **The Controller (Telegram Bot):**
-* Listens for alerts from the Forwarder.
-* Accepts commands (e.g., `/allow 1h`) to update the Policy Engine dynamically.
-
-
-
----
-
-### 3. Implementation Plan (Step-by-Step)
-
-#### Phase 1: Reconnaissance (Discovery)
-
-*Goal: Identify the actors on your network.*
-
-1. **Map the Network:** Run `sudo arp-scan --localnet` or `ip neighbor` on your Arch VM.
-2. **Lock Targets:** Record the MAC addresses of:
-* **The Victim:** (e.g., The iPad) `AA:BB:CC:DD:EE:FF`
-* **The Gateway:** (The TP-Link) `11:22:33:44:55:66`
-* **The Sentry:** (Your VM) `DE:AD:BE:EF:00:01`
-
-
-3. **Environment Check:** Ensure `sysctl net.ipv4.ip_forward` is set to `0` (Disabled). *We want our Go code to handle forwarding, not the Linux Kernel, to ensure we can block packets logicially.*
-
-#### Phase 2: The "Sentry" Core (Go Development)
-
-*Goal: Build the packet interceptor.*
-
-1. **Setup Project:** Initialize a new Go module `go mod init homelab-sentry`.
-2. **Dependencies:** `go get github.com/google/gopacket`.
-3. **Develop Spoofer:** Implement the `spoofLoop` function (from the code provided earlier). **Crucial:** Verify it uses `DstMAC` (Unicast) and NOT Broadcast.
-4. **Develop Forwarder:** Implement the packet reading loop. Initially, just forward *everything* to verify connectivity works.
-* *Test:* Run the Sentry -> Check if Target can browse the web.
-
-
-
-#### Phase 3: The Logic Engine (DLP & Rules)
-
-*Goal: Add intelligence to the forwarding.*
-
-1. **Time Policy:** Add a check `if time.Now().Hour() >= 1` inside the packet loop.
-2. **DNS Sinkholing (Optional):** Detect UDP traffic on Port 53. If blocked, replace the DNS Response IP with your Sentry IP (to show a block page).
-3. **Payload Inspection (DLP):** Convert the Application Layer payload to string and check for keywords (Note: Only works on HTTP/Unencrypted traffic).
-
-#### Phase 4: Operations & Safety
-
-*Goal: Ensure WAF (Wife Acceptance Factor).*
-
-1. **Watchdog:** Implement the `signal.Notify` (Ctrl+C) handler to run the `cleanUp()` function.
-2. **Deployment:** Create a `systemd` service file for your app so it starts automatically with the VM.
-* *Draft Service File:*
-```ini
-[Unit]
-Description=Homelab Sentry DLP
-After=network.target
-
-[Service]
-ExecStart=/usr/local/bin/homelab-sentry
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-
-```
