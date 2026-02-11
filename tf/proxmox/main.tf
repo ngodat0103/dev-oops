@@ -119,7 +119,7 @@ locals {
     },
   }
   lan_gateway    = "192.168.1.1"
-  k8s_public_key = file("~/OneDrive/credentials/ssh/k8s/id_rsa.pub")
+  k8s_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCxraGdlzJDPInNQ4zbyr1usD3nSbeofvjx+kRTN/7lFmEoCujn8UyEfaQfe6k/shGQyH8ghb61XzISkDv3Dcir+apQ1x4ajALZX6m+miF4G0R7tOTObj+2MCdOCZ1iklFolhjSJ/wPunoQD5x9jz8mnmr03zZcCr+xVQzMPDHPCeMZlXN0mDg2AJj4+RxolZeW7T9/v0h2l300ZFYbpbUWG+WkJWAy2iqpf2z3TRt74sCyby0sPPeLbg3G9XqWVpx+lVrI/XfG3mirGx+NgEcGBQNNM7HcobHuJ3IejFsVCCenQHiPrMjMk8XhflJ4Vk8ydTTaMNHY5kn9qSyJIA9JxlWypqmIhJYilUADjPCMYt97ahQR8C8BTFxcFGTH8Nf27db6C9rFaZ/WPlbkWOdmW+IFKTVmqyw6l+KBAIKu1pl3wLbY9eot0kQCODlk6ZSbn5yy6e2HU7zpPCbMVGVqwbiOUlVfcTjTEDrlFUZgVhAp5Z/vu9FjdMeDrTQppKE= akira@legion5"
 }
 module "network_default" {
   source         = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/network/private?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
@@ -308,7 +308,7 @@ module "k8s_masters" {
   bridge_name       = "vmbr0"
   startup_config = {
     order      = 3
-    up_delay   = 30
+    up_delay   = 5
     down_delay = 30
   }
 }
@@ -330,40 +330,40 @@ module "k8s_workers" {
   bridge_name       = "vmbr0"
   startup_config = {
     order      = 4
-    up_delay   = 10
+    up_delay   = 5
     down_delay = 30
   }
 }
-module "traefik" {
+module "k3s" {
   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
-  template_image_id = resource.proxmox_virtual_environment_download_file.vm["debian_13"].id
-  name              = "traefik"
-  tags              = ["reverse-proxy","public-facing", "production"]
-  hostname          = "traefik.local"
+  template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
+  name              = "k3s"
+  tags              = ["reverse-proxy","public-facing", "production","k3s","master-node","worker-node"]
+  hostname          = "k3s.local"
   node_name         = local.node_name
-  ip_address        = "192.168.1.190/24"
+  ip_address        = "192.168.1.201/24"
   bridge_name       = "vmbr0"
-  memory            = 1024 * 1
+  memory            = 1024 * 16
   gateway           = local.lan_gateway
   on_boot           = true
-  boot_disk_size    = 10
-  cpu_cores         = 1
+  boot_disk_size    = 100
+  cpu_type = "host"
+  cpu_cores         = 4
   public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCUYCDG/W1ykGWPoNfh9Y2BapIXe+q6BA2tTqhWM6+BV4XymxK30aLnG4SftI8OWFhrOVZbyz9UBU3Dm5pRu1BxLO+u8tMu6WfDY6XiI2AH020EZXlD8T5rg3jeteXmjh0Cp7+tyLFu0na2WNeQ++0fSi2mFq2hcniS5BHf3+5KdS+y793Z/r8ox094tulqLui6nNG5rxQxK39FNsX17HfWd9ctoiT7Y0ehL32CiDhKvjgB9HjCb4UVG2Ny/lxSUvNoqr3TUa5cgNeqH5g9GY+F5odf/HakgHS2wOy2IkQ0ETNxMNDpugCMeCtzPtvyQ7gAhYb1oP8ricUIXKoT426hF6cENNnrWTy/j1Ryp3YjzKLDfWxSSkwx4FTBKE4sx4jK9uCawzkXqNNPGi2yVU+bnH9RKTb4hT+vPjvUADw90PMO5TegvGLqkSWJ3mIl0Wlwla5lc2ZYsTzs+y+TzxWotslJvVH27am9A0rqLLfzVGrlyjqjQvM30KN9XJT4wHM= akira@legion5"
   network_model     = "e1000e"
   startup_config = {
     order      = 1
-    up_delay   = 30
+    up_delay   = 1
     down_delay = 1
   }
 }
-
-# output "lxc_default" {
-#   value     = module.lxc_production
-#   sensitive = true
-# }
-# output "k8s-masters" {
-#   value = module.k8s_masters
-# }
-# output "k8s-workers" {
-#   value = module.k8s_workers
-# }
+output "lxc_default" {
+  value     = module.lxc_production
+  sensitive = true
+}
+output "k8s-masters" {
+  value = module.k8s_masters
+}
+output "k8s-workers" {
+  value = module.k8s_workers
+}
