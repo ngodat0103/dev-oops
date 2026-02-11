@@ -7,13 +7,13 @@
 helm_enabled: false
 
 # Registry deployment
-registry_enabled: false
+registry_enabled: true
 # registry_namespace: kube-system
 # registry_storage_class: ""
 # registry_disk_size: "10Gi"
 
 # Metrics Server deployment
-metrics_server_enabled: false
+metrics_server_enabled: true
 # metrics_server_container_port: 10250
 # metrics_server_kubelet_insecure_tls: true
 # metrics_server_metric_resolution: 15s
@@ -22,7 +22,7 @@ metrics_server_enabled: false
 # metrics_server_replicas: 1
 
 # Rancher Local Path Provisioner
-local_path_provisioner_enabled: false
+local_path_provisioner_enabled: true
 # local_path_provisioner_namespace: "local-path-storage"
 # local_path_provisioner_storage_class: "local-path"
 # local_path_provisioner_reclaim_policy: Delete
@@ -34,7 +34,7 @@ local_path_provisioner_enabled: false
 # local_path_provisioner_helper_image_tag: "latest"
 
 # Local volume provisioner deployment
-local_volume_provisioner_enabled: false
+local_volume_provisioner_enabled: true
 # local_volume_provisioner_namespace: kube-system
 # local_volume_provisioner_nodelabels:
 #   - kubernetes.io/hostname
@@ -145,7 +145,7 @@ cert_manager_enabled: false
 #   - "--dns01-recursive-nameservers=1.1.1.1:53,8.8.8.8:53"
 
 # MetalLB deployment
-metallb_enabled: false
+metallb_enabled: true
 metallb_speaker_enabled: "{{ metallb_enabled }}"
 metallb_namespace: "metallb-system"
 # metallb_protocol: "layer2"
@@ -208,7 +208,7 @@ metallb_namespace: "metallb-system"
 #           address_pool:
 #             - pool2
 
-argocd_enabled: false
+argocd_enabled: true
 # argocd_namespace: argocd
 # Default password:
 #   - https://argo-cd.readthedocs.io/en/stable/getting_started/#4-login-using-the-cli
@@ -226,7 +226,7 @@ argocd_enabled: false
 kube_vip_enabled: true
 kube_proxy_strict_arp: true
 kube_vip_controlplane_enabled: true
-kube_vip_address: 192.168.1.135 
+kube_vip_address: 192.168.1.185 
 
 # loadbalancer_apiserver:
 #   address: "{{ kube_vip_address }}"

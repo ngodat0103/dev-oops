@@ -4,7 +4,7 @@ http:
       plugin:
         bouncer:
           enabled: true
-          logLevel: DEBUG
+          logLevel: INFO
           updateIntervalSeconds: 60
           updateMaxFailure: 0
           defaultDecisionSeconds: 60

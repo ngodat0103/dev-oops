@@ -6,19 +6,6 @@ terraform {
     }
   }
 }
-
-moved {
-  from = module.lxc_production["kafka"].proxmox_virtual_environment_container.ubuntu_container
-  to   = module.lxc_production["kafka"].proxmox_virtual_environment_container.container
-}
-moved {
-  from = module.lxc_production["postgresql_16"].proxmox_virtual_environment_container.ubuntu_container
-  to   = module.lxc_production["postgresql_16"].proxmox_virtual_environment_container.container
-}
-moved {
-  from = module.lxc_production["core_dns"].proxmox_virtual_environment_container.ubuntu_container
-  to   = module.lxc_production["core_dns"].proxmox_virtual_environment_container.container
-}
 locals {
   #Source: https://images.linuxcontainers.org/
   # http://download.proxmox.com/images/system/
@@ -32,7 +19,7 @@ locals {
     ubuntu_2404 = "https://cloud-images.ubuntu.com/noble/20260108/noble-server-cloudimg-amd64.img",
     #Reference: https://cloud-images.ubuntu.com/jammy/current/
     ubuntu_2204 = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
-    debian_13   = "https://cdimage.debian.org/images/cloud/trixie/20251117-2299/debian-13-generic-amd64-20251117-2299.qcow2"
+    debian_13   = "https://cdimage.debian.org/images/cloud/trixie/latest/debian-13-generic-amd64.qcow2"
   }
   node_name = "pve-master"
   network = {
@@ -66,10 +53,10 @@ locals {
       }
     },
     kafka = {
-      ip_address               = "192.168.99.2/24"
-      gateway                  = "192.168.99.1"
+      ip_address               = "192.168.1.171/24"
+      gateway                  = "192.168.1.1"
       network_interface_name   = "eth0"
-      network_interface_bridge = "private"
+      network_interface_bridge = "vmbr0"
       vm_id                    = 315
       template_file_id         = resource.proxmox_virtual_environment_download_file.lxc["ubuntu_2204"].id
       operating_system_type    = "ubuntu"
@@ -132,7 +119,7 @@ locals {
     },
   }
   lan_gateway    = "192.168.1.1"
-  k8s_public_key = file("~/OneDrive/credentials/ssh/k8s/id_rsa.pub")
+  k8s_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCxraGdlzJDPInNQ4zbyr1usD3nSbeofvjx+kRTN/7lFmEoCujn8UyEfaQfe6k/shGQyH8ghb61XzISkDv3Dcir+apQ1x4ajALZX6m+miF4G0R7tOTObj+2MCdOCZ1iklFolhjSJ/wPunoQD5x9jz8mnmr03zZcCr+xVQzMPDHPCeMZlXN0mDg2AJj4+RxolZeW7T9/v0h2l300ZFYbpbUWG+WkJWAy2iqpf2z3TRt74sCyby0sPPeLbg3G9XqWVpx+lVrI/XfG3mirGx+NgEcGBQNNM7HcobHuJ3IejFsVCCenQHiPrMjMk8XhflJ4Vk8ydTTaMNHY5kn9qSyJIA9JxlWypqmIhJYilUADjPCMYt97ahQR8C8BTFxcFGTH8Nf27db6C9rFaZ/WPlbkWOdmW+IFKTVmqyw6l+KBAIKu1pl3wLbY9eot0kQCODlk6ZSbn5yy6e2HU7zpPCbMVGVqwbiOUlVfcTjTEDrlFUZgVhAp5Z/vu9FjdMeDrTQppKE= akira@legion5"
 }
 module "network_default" {
   source         = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/network/private?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
@@ -200,29 +187,6 @@ module "ubuntu_server" {
     }
   }
 }
-
-module "teleport" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
-  template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
-  name              = "Teleport"
-  tags              = ["development", "infra-access", "public-facing"]
-  node_name         = local.node_name
-  ip_address        = "192.168.1.122/24"
-  hostname          = "teleport.local"
-  bridge_name       = "vmbr0"
-  memory            = 1024 * 2
-  gateway           = local.lan_gateway
-  protection        = false
-  boot_disk_size    = 30
-  cpu_cores         = 1
-  public_key        = file("~/OneDrive/credentials/ssh/teleport/id_rsa.pub")
-  network_model     = "e1000e"
-  startup_config = {
-    order      = 3
-    up_delay   = 60
-    down_delay = 60
-  }
-}
 #Push metrics to influxdb hosted in Ubuntu vm
 resource "proxmox_virtual_environment_metrics_server" "influxdb_server" {
   count               = var.influxdb_token == null ? 0 : 1
@@ -256,52 +220,6 @@ module "lxc_production" {
   startup_config           = each.value.startup_config
   datastore_id             = "local-lvm"
   mount_volume_name        = "local-lvm"
-}
-module "k8s_masters" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
-  count             = 3
-  template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
-  hostname          = "master-nodes-${count.index}.local"
-  name              = "master-nodes-${count.index}"
-  public_key        = local.k8s_public_key
-  ip_address        = "192.168.1.13${count.index}/24"
-  tags              = ["development", "kubernetes-masters"]
-  gateway           = "192.168.1.1"
-  memory            = 4096
-  cpu_cores         = 2
-  node_name         = local.node_name
-  boot_disk_size    = 50
-  datastore_id      = "local-lvm"
-  bridge_name       = "vmbr0"
-  vm_id             = 300 + count.index
-  startup_config = {
-    order      = 3
-    up_delay   = 3
-    down_delay = 30
-  }
-}
-module "k8s_workers" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
-  count             = 5
-  template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
-  hostname          = "worker-nodes-${count.index}.local"
-  name              = "worker-nodes-${count.index}"
-  public_key        = local.k8s_public_key
-  ip_address        = "192.168.1.14${count.index}/24"
-  tags              = ["development", "kubernetes-workers"]
-  boot_disk_size    = 200
-  gateway           = "192.168.1.1"
-  memory            = 1024 * 5
-  cpu_cores         = 4
-  node_name         = local.node_name
-  datastore_id      = "local-lvm"
-  bridge_name       = "vmbr0"
-  vm_id             = 310 + count.index
-  startup_config = {
-    order      = 4
-    up_delay   = 10
-    down_delay = 30
-  }
 }
 module "vpn_server" {
   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
@@ -370,4 +288,82 @@ module "sonarqube" {
     up_delay   = 30
     down_delay = 1
   }
+}
+
+module "k8s_masters" {
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
+  count             = 3
+  template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
+  hostname          = "master-nodes-${count.index}.local"
+  name              = "master-nodes-${count.index}"
+  public_key        = local.k8s_public_key
+  ip_address        = "192.168.1.18${count.index}/24"
+  tags              = ["development", "kubernetes-masters"]
+  gateway           = "192.168.1.1"
+  memory            = 4096
+  cpu_cores         = 2
+  node_name         = local.node_name
+  boot_disk_size    = 50
+  datastore_id      = "local-lvm"
+  bridge_name       = "vmbr0"
+  startup_config = {
+    order      = 3
+    up_delay   = 5
+    down_delay = 30
+  }
+}
+module "k8s_workers" {
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
+  count             = 4
+  template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
+  hostname          = "worker-nodes-${count.index}.local"
+  name              = "worker-nodes-${count.index}"
+  public_key        = local.k8s_public_key
+  ip_address        = "192.168.1.19${count.index}/24"
+  tags              = ["development", "kubernetes-workers"]
+  boot_disk_size    = 100
+  gateway           = "192.168.1.1"
+  memory            = 1024 * 5
+  cpu_cores         = 4
+  node_name         = local.node_name
+  datastore_id      = "local-lvm"
+  bridge_name       = "vmbr0"
+  startup_config = {
+    order      = 4
+    up_delay   = 5
+    down_delay = 30
+  }
+}
+module "k3s" {
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
+  template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
+  name              = "k3s"
+  tags              = ["reverse-proxy","public-facing", "production","k3s","master-node","worker-node"]
+  hostname          = "k3s.local"
+  node_name         = local.node_name
+  ip_address        = "192.168.1.201/24"
+  bridge_name       = "vmbr0"
+  memory            = 1024 * 16
+  gateway           = local.lan_gateway
+  on_boot           = true
+  boot_disk_size    = 100
+  cpu_type = "host"
+  cpu_cores         = 4
+  public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCUYCDG/W1ykGWPoNfh9Y2BapIXe+q6BA2tTqhWM6+BV4XymxK30aLnG4SftI8OWFhrOVZbyz9UBU3Dm5pRu1BxLO+u8tMu6WfDY6XiI2AH020EZXlD8T5rg3jeteXmjh0Cp7+tyLFu0na2WNeQ++0fSi2mFq2hcniS5BHf3+5KdS+y793Z/r8ox094tulqLui6nNG5rxQxK39FNsX17HfWd9ctoiT7Y0ehL32CiDhKvjgB9HjCb4UVG2Ny/lxSUvNoqr3TUa5cgNeqH5g9GY+F5odf/HakgHS2wOy2IkQ0ETNxMNDpugCMeCtzPtvyQ7gAhYb1oP8ricUIXKoT426hF6cENNnrWTy/j1Ryp3YjzKLDfWxSSkwx4FTBKE4sx4jK9uCawzkXqNNPGi2yVU+bnH9RKTb4hT+vPjvUADw90PMO5TegvGLqkSWJ3mIl0Wlwla5lc2ZYsTzs+y+TzxWotslJvVH27am9A0rqLLfzVGrlyjqjQvM30KN9XJT4wHM= akira@legion5"
+  network_model     = "e1000e"
+  startup_config = {
+    order      = 1
+    up_delay   = 1
+    down_delay = 1
+  }
+}
+output "lxc_default" {
+  value     = module.lxc_production
+  sensitive = true
+}
+output "k8s-masters" {
+  value = module.k8s_masters
+}
+output "k8s-workers" {
+  value = module.k8s_workers
 }
