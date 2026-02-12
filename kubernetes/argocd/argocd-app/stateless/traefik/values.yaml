@@ -813,7 +813,7 @@ service:
   ## -- Single service is using `MixedProtocolLBService` feature gate.
   ## -- When set to false, it will create two Service, one for TCP and one for UDP.
   single: true
-  type: ClusterIP
+  type: LoadBalancer
   # -- Additional annotations applied to both TCP and UDP services (e.g. for cloud provider specific config)
   annotations: {}
   # -- Additional annotations for TCP service only
@@ -884,9 +884,8 @@ persistence:
   enabled: true
   name: data
   existingClaim: ""
-  accessMode: ReadWriteMany
+  accessMode: ReadWriteOnce
   size: 128Mi
-  storageClass: "longhorn"
   volumeName: ""
   path: /data
   annotations: {}
@@ -906,7 +905,7 @@ certificatesResolvers:
 # To prevent unschedulable pods due to port collisions, if hostNetwork=true
 # and replicas>1, a pod anti-affinity is recommended and will be set if the
 # affinity is left as default.
-hostNetwork: true
+hostNetwork: false
 
 # -- Whether Role Based Access Control objects like roles and rolebindings should be created
 rbac:
