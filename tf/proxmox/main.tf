@@ -13,6 +13,7 @@ locals {
     ubuntu_2204 = "http://download.proxmox.com/images/system/ubuntu-22.04-standard_22.04-1_amd64.tar.zst",
     alpine_3    = "http://download.proxmox.com/images/system/alpine-3.23-default_20260116_amd64.tar.xz"
     ubuntu_2404 = "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64-root.tar.xz",
+    debian_12   = "http://download.proxmox.com/images/system/debian-12-standard_12.12-1_amd64.tar.zst"
 
   }
   vm_template = {
@@ -39,7 +40,7 @@ locals {
       template_file_id         = resource.proxmox_virtual_environment_download_file.lxc["ubuntu_2204"].id
       operating_system_type    = "ubuntu"
       cores                    = 1
-      memory                   = 1024 * 4
+      memory                   = 1024 * 2
       node_name                = local.node_name
       mount_volume_size        = 50 #GB
       vm_id                    = 100
@@ -110,6 +111,28 @@ locals {
       mount_volume_size        = 10 #GB
       hostname                 = "crowsec-detection-engine.local"
       tags                     = ["WAF", "production", "security"]
+      protection               = true
+      startup_config = {
+        order      = 1
+        up_delay   = 10
+        down_delay = 10
+      }
+    },
+    mongodb = {
+      ip_address               = "192.168.99.3/24"
+      gateway                  = "192.168.1.1"
+      network_interface_name   = "eth0"
+      network_interface_bridge = "private"
+      vm_id                    = 318
+      template_file_id         = resource.proxmox_virtual_environment_download_file.lxc["debian_12"].id
+      operating_system_type    = "debian"
+      on_boot                  = true
+      cores                    = 1
+      memory                   = 1024 * 2
+      node_name                = local.node_name
+      mount_volume_size        = 30 #GB
+      hostname                 = "mongodb.internal"
+      tags                     = ["Production", "Database"]
       protection               = true
       startup_config = {
         order      = 1
@@ -338,7 +361,7 @@ module "k3s" {
   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   name              = "k3s"
-  tags              = ["reverse-proxy","public-facing", "production","k3s","master-node","worker-node"]
+  tags              = ["reverse-proxy", "public-facing", "production", "k3s", "master-node", "worker-node"]
   hostname          = "k3s.local"
   node_name         = local.node_name
   ip_address        = "192.168.1.201/24"
@@ -347,7 +370,7 @@ module "k3s" {
   gateway           = local.lan_gateway
   on_boot           = true
   boot_disk_size    = 100
-  cpu_type = "host"
+  cpu_type          = "host"
   cpu_cores         = 4
   public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCUYCDG/W1ykGWPoNfh9Y2BapIXe+q6BA2tTqhWM6+BV4XymxK30aLnG4SftI8OWFhrOVZbyz9UBU3Dm5pRu1BxLO+u8tMu6WfDY6XiI2AH020EZXlD8T5rg3jeteXmjh0Cp7+tyLFu0na2WNeQ++0fSi2mFq2hcniS5BHf3+5KdS+y793Z/r8ox094tulqLui6nNG5rxQxK39FNsX17HfWd9ctoiT7Y0ehL32CiDhKvjgB9HjCb4UVG2Ny/lxSUvNoqr3TUa5cgNeqH5g9GY+F5odf/HakgHS2wOy2IkQ0ETNxMNDpugCMeCtzPtvyQ7gAhYb1oP8ricUIXKoT426hF6cENNnrWTy/j1Ryp3YjzKLDfWxSSkwx4FTBKE4sx4jK9uCawzkXqNNPGi2yVU+bnH9RKTb4hT+vPjvUADw90PMO5TegvGLqkSWJ3mIl0Wlwla5lc2ZYsTzs+y+TzxWotslJvVH27am9A0rqLLfzVGrlyjqjQvM30KN9XJT4wHM= akira@legion5"
   network_model     = "e1000e"
