@@ -12,7 +12,7 @@ spec:
   # https://docs.gitlab.com/install/requirements/#postgresql-tuning
   resources:
     limits:
-      memory: 4Gi
+      memory: 2Gi
   managed:
     services:
       additional:
