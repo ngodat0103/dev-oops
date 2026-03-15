@@ -3,7 +3,6 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: postgresql
-  namespace: database
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
@@ -53,5 +52,5 @@ spec:
         name: nextcloud-db
   instances: 3
   storage:
-    size: 20Gi
-    storageClass: local-path
+    size: 30Gi
+    storageClass: "openebs-hostpath"
