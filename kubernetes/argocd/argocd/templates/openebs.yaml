@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  namespace: argocd
+  name: openebs
+  finalizers:
+   - resources-finalizer.argocd.argoproj.io
+spec:
+  revisionHistoryLimit: 3
+  project: default
+  destination:
+    name: in-cluster
+    namespace: openebs
+  syncPolicy:
+    syncOptions: [ "ServerSideApply=true", "CreateNamespace=true" ]
+    automated:
+      enabled: false
+      selfHeal: false
+      prune: false
+  sources:
+  - repoURL: https://openebs.github.io/openebs
+    chart: openebs
+    targetRevision: 4.3.3
+    helm:
+     ## https://github.com/openebs/openebs/blob/v4.3.3/charts/values.yaml
+     values: |
+      preUpgradeHook:
+        enabled: false
