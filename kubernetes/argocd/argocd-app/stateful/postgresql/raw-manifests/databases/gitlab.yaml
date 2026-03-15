@@ -2,7 +2,6 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
   name: gitlab
-  namespace: database
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
