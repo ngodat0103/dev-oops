@@ -1,0 +1,4 @@
+argo-cd:
+  ## https://github.com/argoproj/argo-helm/blob/argo-cd-9.4.10/charts/argo-cd/values.yaml 
+  global:
+    domain: argocd.datrollout.dev
