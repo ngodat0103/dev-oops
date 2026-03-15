@@ -1,0 +1,7 @@
+This chart can render notes from its Helm dependencies.
+
+Install or upgrade it with:
+
+  helm upgrade --install argocd . -n argocd --create-namespace --render-subchart-notes
+
+Dependency notes, if any, will be shown below.
