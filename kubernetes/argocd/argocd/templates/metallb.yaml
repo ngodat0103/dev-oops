@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: traefik
+  name: metallb
   namespace: argocd
   finalizers:
   - resources-finalizer.argocd.argoproj.io
@@ -9,20 +9,20 @@ spec:
   project: default
   revisionHistoryLimit: 3
   destination:
-    namespace: traefik
+    namespace: metallb
     name: in-cluster
   syncPolicy:
     syncOptions: [ "ServerSideApply=true", "CreateNamespace=true" ]
     automated:
-      enabled: false
-      prune: false
+      enabled: true
+      selfHeal: true
+      prune: true
   sources:
-  - repoURL: https://traefik.github.io/charts
-    targetRevision: 37.4.0
-    chart: traefik
-    helm:
-      valueFiles:
-      - "$config/kubernetes/argocd/argocd-app/stateless/traefik/values.yaml"
+  - repoURL: https://metallb.github.io/metallb
+    targetRevision: 0.15.2
+    chart: metallb
   - repoURL: https://github.com/ngodat0103/home-lab.git
     targetRevision: master
-    ref: config
+    path: kubernetes/argocd/argocd-app/daemon/metallb/manifests
+    directory:
+      recurse: false
