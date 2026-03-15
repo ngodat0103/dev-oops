@@ -14,8 +14,8 @@ spec:
   syncPolicy:
     syncOptions: [ "ServerSideApply=true", "CreateNamespace=true" ]
     automated:
-      enabled: false
-      prune: false
+      enabled: true
+      prune: true
   sources:
   - repoURL: https://traefik.github.io/charts
     targetRevision: 37.4.0
