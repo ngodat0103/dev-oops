@@ -14,9 +14,9 @@ spec:
   syncPolicy:
     syncOptions: [ "ServerSideApply=true", "CreateNamespace=true" ]
     automated:
-      enabled: true
-      selfHeal: true
-      prune: true
+      enabled: false
+      selfHeal: false
+      prune: false
   sources:
   - repoURL: https://metallb.github.io/metallb
     targetRevision: 0.15.2

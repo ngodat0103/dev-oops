@@ -2,7 +2,6 @@ apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
   name: default
-  namespace: metallb
 spec:
   addresses:
   - 192.168.1.230-192.168.1.240

@@ -1,133 +1,231 @@
-diff --git a/ansible/core/ubuntu-server/apps/qbittorrent.yaml b/ansible/core/ubuntu-server/apps/qbittorrent.yaml
-index d32bb0c..d464f67 100644
---- a/ansible/core/ubuntu-server/apps/qbittorrent.yaml
-+++ b/ansible/core/ubuntu-server/apps/qbittorrent.yaml
-@@ -7,7 +7,7 @@
-         com.github.ngodat0103.service: qbittorrent
-       name: qbittorrent
-       cpus: 0.5
--      memory: "128M"
-+      memory: "256M"
-       image: lscr.io/linuxserver/qbittorrent:5.1.4@sha256:043498de39c3dd63eec94360c5ad966a51271d1581070f42cb73ab0cf4776f29
-       state: started
-       restart_policy: always
-diff --git a/ansible/kubernetes/dev-inventory.ini b/ansible/kubernetes/dev-inventory.ini
-new file mode 100644
-index 0000000..1c0be3f
---- /dev/null
-+++ b/ansible/kubernetes/dev-inventory.ini
-@@ -0,0 +1,26 @@
-+# This inventory describe a HA typology with stacked etcd (== same nodes as control plane)
-+# and 3 worker nodes
-+# See https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html
-+# for tips on building your # inventory
-+
-+# Configure 'ip' variable to bind kubernetes services on a different ip than the default iface
-+# We should set etcd_member_name for etcd cluster. The node that are not etcd members do not need to set the value,
-+# or can set the empty string value.
-+
-+[all:vars]
-+ansible_user=root
-+ansible_ssh_private_key_file = "~/OneDrive/credentials/ssh/k8s/dev/id_rsa" 
-+
-+[kube_control_plane]
-+master-nodes-0 ansible_host=192.168.1.180  ip=192.168.1.180  etcd_member_name=etcd0
-+master-nodes-1 ansible_host=192.168.1.181  ip=192.168.1.181 etcd_member_name=etcd1
-+master-nodes-2 ansible_host=192.168.1.182  ip=192.168.1.182 etcd_member_name=etcd2
-+
-+[etcd:children]
-+kube_control_plane
-+
-+[kube_node]
-+worker-nodes-0 ansible_host=192.168.1.190  ip=192.168.1.190
-+worker-nodes-1 ansible_host=192.168.1.191  ip=192.168.1.191
-+worker-nodes-2 ansible_host=192.168.1.192  ip=192.168.1.192
-+worker-nodes-3 ansible_host=192.168.1.193  ip=192.168.1.193
+diff --git a/.gitignore b/.gitignore
+index b751bdf..0d09e80 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -53,4 +53,6 @@ credentials.json
+ 
+ 
+ # Any test logs
+-**/**.log
 \ No newline at end of file
-diff --git a/ansible/kubernetes/production.ini b/ansible/kubernetes/production.ini
-new file mode 100644
-index 0000000..207e244
---- /dev/null
-+++ b/ansible/kubernetes/production.ini
-@@ -0,0 +1,21 @@
-+# This inventory describe a HA typology with stacked etcd (== same nodes as control plane)
-+# and 3 worker nodes
-+# See https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html
-+# for tips on building your # inventory
++**/**.log
 +
-+# Configure 'ip' variable to bind kubernetes services on a different ip than the default iface
-+# We should set etcd_member_name for etcd cluster. The node that are not etcd members do not need to set the value,
-+# or can set the empty string value.
-+
-+[all:vars]
-+ansible_user=root
-+ansible_ssh_private_key_file = "~/OneDrive/credentials/ssh/k8s/prod/id_rsa" 
-+
-+[kube_control_plane]
-+master-node ansible_host=192.168.1.200  ip=192.168.1.180  etcd_member_name=etcd0
-+
-+[etcd:children]
-+kube_control_plane
-+
-+[kube_node]
-+traefik ansible_host=192.168.1.190  ip=192.168.1.190 ansible_ssh_private_key_file = "~/OneDrive/credentials/ssh/traefik/id_rsa" 
++*secret.yaml
+\ No newline at end of file
 diff --git a/change.diff b/change.diff
-new file mode 100644
-index 0000000..e69de29
-diff --git a/kubernetes/argocd/argocd-app/daemon/metallb/argo-app.yaml b/kubernetes/argocd/argocd-app/daemon/metallb/argo-app.yaml
-index 4d78a91..8ab2018 100644
---- a/kubernetes/argocd/argocd-app/daemon/metallb/argo-app.yaml
-+++ b/kubernetes/argocd/argocd-app/daemon/metallb/argo-app.yaml
-@@ -3,6 +3,8 @@ kind: Application
- metadata:
-   name: metallb
-   namespace: argocd
-+  finalizers:
-+  - resources-finalizer.argocd.argoproj.io
- spec:
-   project: default
-   revisionHistoryLimit: 3
-diff --git a/kubernetes/storage/openebs/deploy.sh b/kubernetes/storage/openebs/deploy.sh
-new file mode 100755
-index 0000000..9044dd7
---- /dev/null
-+++ b/kubernetes/storage/openebs/deploy.sh
-@@ -0,0 +1,3 @@
-+helm repo add openebs https://openebs.github.io/openebs
-+helm repo update
-+helm install prod-openebs --namespace openebs openebs/openebs --version 4.4.0 --create-namespace
+index 0ccb28b..e69de29 100644
+--- a/change.diff
++++ b/change.diff
+@@ -1,133 +0,0 @@
+-diff --git a/ansible/core/ubuntu-server/apps/qbittorrent.yaml b/ansible/core/ubuntu-server/apps/qbittorrent.yaml
+-index d32bb0c..d464f67 100644
+---- a/ansible/core/ubuntu-server/apps/qbittorrent.yaml
+-+++ b/ansible/core/ubuntu-server/apps/qbittorrent.yaml
+-@@ -7,7 +7,7 @@
+-         com.github.ngodat0103.service: qbittorrent
+-       name: qbittorrent
+-       cpus: 0.5
+--      memory: "128M"
+-+      memory: "256M"
+-       image: lscr.io/linuxserver/qbittorrent:5.1.4@sha256:043498de39c3dd63eec94360c5ad966a51271d1581070f42cb73ab0cf4776f29
+-       state: started
+-       restart_policy: always
+-diff --git a/ansible/kubernetes/dev-inventory.ini b/ansible/kubernetes/dev-inventory.ini
+-new file mode 100644
+-index 0000000..1c0be3f
+---- /dev/null
+-+++ b/ansible/kubernetes/dev-inventory.ini
+-@@ -0,0 +1,26 @@
+-+# This inventory describe a HA typology with stacked etcd (== same nodes as control plane)
+-+# and 3 worker nodes
+-+# See https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html
+-+# for tips on building your # inventory
+-+
+-+# Configure 'ip' variable to bind kubernetes services on a different ip than the default iface
+-+# We should set etcd_member_name for etcd cluster. The node that are not etcd members do not need to set the value,
+-+# or can set the empty string value.
+-+
+-+[all:vars]
+-+ansible_user=root
+-+ansible_ssh_private_key_file = "~/OneDrive/credentials/ssh/k8s/dev/id_rsa" 
+-+
+-+[kube_control_plane]
+-+master-nodes-0 ansible_host=192.168.1.180  ip=192.168.1.180  etcd_member_name=etcd0
+-+master-nodes-1 ansible_host=192.168.1.181  ip=192.168.1.181 etcd_member_name=etcd1
+-+master-nodes-2 ansible_host=192.168.1.182  ip=192.168.1.182 etcd_member_name=etcd2
+-+
+-+[etcd:children]
+-+kube_control_plane
+-+
+-+[kube_node]
+-+worker-nodes-0 ansible_host=192.168.1.190  ip=192.168.1.190
+-+worker-nodes-1 ansible_host=192.168.1.191  ip=192.168.1.191
+-+worker-nodes-2 ansible_host=192.168.1.192  ip=192.168.1.192
+-+worker-nodes-3 ansible_host=192.168.1.193  ip=192.168.1.193
+-\ No newline at end of file
+-diff --git a/ansible/kubernetes/production.ini b/ansible/kubernetes/production.ini
+-new file mode 100644
+-index 0000000..207e244
+---- /dev/null
+-+++ b/ansible/kubernetes/production.ini
+-@@ -0,0 +1,21 @@
+-+# This inventory describe a HA typology with stacked etcd (== same nodes as control plane)
+-+# and 3 worker nodes
+-+# See https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html
+-+# for tips on building your # inventory
+-+
+-+# Configure 'ip' variable to bind kubernetes services on a different ip than the default iface
+-+# We should set etcd_member_name for etcd cluster. The node that are not etcd members do not need to set the value,
+-+# or can set the empty string value.
+-+
+-+[all:vars]
+-+ansible_user=root
+-+ansible_ssh_private_key_file = "~/OneDrive/credentials/ssh/k8s/prod/id_rsa" 
+-+
+-+[kube_control_plane]
+-+master-node ansible_host=192.168.1.200  ip=192.168.1.180  etcd_member_name=etcd0
+-+
+-+[etcd:children]
+-+kube_control_plane
+-+
+-+[kube_node]
+-+traefik ansible_host=192.168.1.190  ip=192.168.1.190 ansible_ssh_private_key_file = "~/OneDrive/credentials/ssh/traefik/id_rsa" 
+-diff --git a/change.diff b/change.diff
+-new file mode 100644
+-index 0000000..e69de29
+-diff --git a/kubernetes/argocd/argocd-app/daemon/metallb/argo-app.yaml b/kubernetes/argocd/argocd-app/daemon/metallb/argo-app.yaml
+-index 4d78a91..8ab2018 100644
+---- a/kubernetes/argocd/argocd-app/daemon/metallb/argo-app.yaml
+-+++ b/kubernetes/argocd/argocd-app/daemon/metallb/argo-app.yaml
+-@@ -3,6 +3,8 @@ kind: Application
+- metadata:
+-   name: metallb
+-   namespace: argocd
+-+  finalizers:
+-+  - resources-finalizer.argocd.argoproj.io
+- spec:
+-   project: default
+-   revisionHistoryLimit: 3
+-diff --git a/kubernetes/storage/openebs/deploy.sh b/kubernetes/storage/openebs/deploy.sh
+-new file mode 100755
+-index 0000000..9044dd7
+---- /dev/null
+-+++ b/kubernetes/storage/openebs/deploy.sh
+-@@ -0,0 +1,3 @@
+-+helm repo add openebs https://openebs.github.io/openebs
+-+helm repo update
+-+helm install prod-openebs --namespace openebs openebs/openebs --version 4.4.0 --create-namespace
+-\ No newline at end of file
+-diff --git a/kubernetes/traefik/deploy.sh b/kubernetes/traefik/deploy.sh
+-new file mode 100755
+-index 0000000..7b754b2
+---- /dev/null
+-+++ b/kubernetes/traefik/deploy.sh
+-@@ -0,0 +1,3 @@
+-+helm repo add traefik https://traefik.github.io/charts
+-+helm repo update
+-+helm install traefik traefik/traefik -n ingress-controller --create-namespace --version 39.0.0
+-diff --git a/tf/proxmox/main.tf b/tf/proxmox/main.tf
+-index 11e7c51..f3b7936 100644
+---- a/tf/proxmox/main.tf
+-+++ b/tf/proxmox/main.tf
+-@@ -361,17 +361,17 @@ module "k3s" {
+-   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
+-   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
+-   name              = "k3s"
+--  tags              = ["reverse-proxy", "public-facing", "production", "k3s", "master-node", "worker-node"]
+-+  tags              = ["production", "k3s", "master-node"]
+-   hostname          = "k3s.local"
+-   node_name         = local.node_name
+-   ip_address        = "192.168.1.201/24"
+-   bridge_name       = "vmbr0"
+--  memory            = 1024 * 16
+-+  memory            = 1024 * 4
+-   gateway           = local.lan_gateway
+-   on_boot           = true
+-   boot_disk_size    = 100
+-   cpu_type          = "host"
+--  cpu_cores         = 4
+-+  cpu_cores         = 2
+-   public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCUYCDG/W1ykGWPoNfh9Y2BapIXe+q6BA2tTqhWM6+BV4XymxK30aLnG4SftI8OWFhrOVZbyz9UBU3Dm5pRu1BxLO+u8tMu6WfDY6XiI2AH020EZXlD8T5rg3jeteXmjh0Cp7+tyLFu0na2WNeQ++0fSi2mFq2hcniS5BHf3+5KdS+y793Z/r8ox094tulqLui6nNG5rxQxK39FNsX17HfWd9ctoiT7Y0ehL32CiDhKvjgB9HjCb4UVG2Ny/lxSUvNoqr3TUa5cgNeqH5g9GY+F5odf/HakgHS2wOy2IkQ0ETNxMNDpugCMeCtzPtvyQ7gAhYb1oP8ricUIXKoT426hF6cENNnrWTy/j1Ryp3YjzKLDfWxSSkwx4FTBKE4sx4jK9uCawzkXqNNPGi2yVU+bnH9RKTb4hT+vPjvUADw90PMO5TegvGLqkSWJ3mIl0Wlwla5lc2ZYsTzs+y+TzxWotslJvVH27am9A0rqLLfzVGrlyjqjQvM30KN9XJT4wHM= akira@legion5"
+-   network_model     = "e1000e"
+-   startup_config = {
+diff --git a/kubernetes/argocd/argocd-app/daemon/metallb/metal-lb.sh b/kubernetes/argocd/argocd-app/daemon/metallb/metal-lb.sh
+deleted file mode 100644
+index 57ecbef..0000000
+--- a/kubernetes/argocd/argocd-app/daemon/metallb/metal-lb.sh
++++ /dev/null
+@@ -1 +0,0 @@
+-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.2/config/manifests/metallb-native.yaml
 \ No newline at end of file
-diff --git a/kubernetes/traefik/deploy.sh b/kubernetes/traefik/deploy.sh
-new file mode 100755
-index 0000000..7b754b2
---- /dev/null
-+++ b/kubernetes/traefik/deploy.sh
-@@ -0,0 +1,3 @@
-+helm repo add traefik https://traefik.github.io/charts
-+helm repo update
-+helm install traefik traefik/traefik -n ingress-controller --create-namespace --version 39.0.0
-diff --git a/tf/proxmox/main.tf b/tf/proxmox/main.tf
-index 11e7c51..f3b7936 100644
---- a/tf/proxmox/main.tf
-+++ b/tf/proxmox/main.tf
-@@ -361,17 +361,17 @@ module "k3s" {
-   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
-   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
-   name              = "k3s"
--  tags              = ["reverse-proxy", "public-facing", "production", "k3s", "master-node", "worker-node"]
-+  tags              = ["production", "k3s", "master-node"]
-   hostname          = "k3s.local"
-   node_name         = local.node_name
-   ip_address        = "192.168.1.201/24"
-   bridge_name       = "vmbr0"
--  memory            = 1024 * 16
-+  memory            = 1024 * 4
-   gateway           = local.lan_gateway
-   on_boot           = true
-   boot_disk_size    = 100
-   cpu_type          = "host"
--  cpu_cores         = 4
-+  cpu_cores         = 2
-   public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCUYCDG/W1ykGWPoNfh9Y2BapIXe+q6BA2tTqhWM6+BV4XymxK30aLnG4SftI8OWFhrOVZbyz9UBU3Dm5pRu1BxLO+u8tMu6WfDY6XiI2AH020EZXlD8T5rg3jeteXmjh0Cp7+tyLFu0na2WNeQ++0fSi2mFq2hcniS5BHf3+5KdS+y793Z/r8ox094tulqLui6nNG5rxQxK39FNsX17HfWd9ctoiT7Y0ehL32CiDhKvjgB9HjCb4UVG2Ny/lxSUvNoqr3TUa5cgNeqH5g9GY+F5odf/HakgHS2wOy2IkQ0ETNxMNDpugCMeCtzPtvyQ7gAhYb1oP8ricUIXKoT426hF6cENNnrWTy/j1Ryp3YjzKLDfWxSSkwx4FTBKE4sx4jK9uCawzkXqNNPGi2yVU+bnH9RKTb4hT+vPjvUADw90PMO5TegvGLqkSWJ3mIl0Wlwla5lc2ZYsTzs+y+TzxWotslJvVH27am9A0rqLLfzVGrlyjqjQvM30KN9XJT4wHM= akira@legion5"
-   network_model     = "e1000e"
-   startup_config = {
+diff --git a/kubernetes/argocd/argocd-app/stateless/traefik/argo-app.yaml b/kubernetes/argocd/argocd-app/stateless/traefik/argo-app.yaml
+deleted file mode 100644
+index 4e9f8d7..0000000
+--- a/kubernetes/argocd/argocd-app/stateless/traefik/argo-app.yaml
++++ /dev/null
+@@ -1,28 +0,0 @@
+-apiVersion: argoproj.io/v1alpha1
+-kind: Application
+-metadata:
+-  name: traefik
+-  namespace: argocd
+-  finalizers:
+-  - resources-finalizer.argocd.argoproj.io
+-spec:
+-  project: default
+-  revisionHistoryLimit: 3
+-  destination:
+-    namespace: traefik
+-    name: in-cluster
+-  syncPolicy:
+-    syncOptions: [ "ServerSideApply=true", "CreateNamespace=true" ]
+-    automated:
+-      enabled: false
+-      prune: false
+-  sources:
+-  - repoURL: https://traefik.github.io/charts
+-    targetRevision: 37.4.0
+-    chart: traefik
+-    helm:
+-      valueFiles:
+-      - "$config/kubernetes/argocd/argocd-app/stateless/traefik/values.yaml"
+-  - repoURL: https://github.com/ngodat0103/home-lab.git
+-    targetRevision: master
+-    ref: config
+diff --git a/kubernetes/argocd/argocd-app/daemon/metallb/argo-app.yaml b/kubernetes/argocd/argocd/templates/metallb.yaml
+similarity index 97%
+rename from kubernetes/argocd/argocd-app/daemon/metallb/argo-app.yaml
+rename to kubernetes/argocd/argocd/templates/metallb.yaml
+index 8ab2018..bb7caf5 100644
+--- a/kubernetes/argocd/argocd-app/daemon/metallb/argo-app.yaml
++++ b/kubernetes/argocd/argocd/templates/metallb.yaml
+@@ -15,6 +15,7 @@ spec:
+     syncOptions: [ "ServerSideApply=true", "CreateNamespace=true" ]
+     automated:
+       enabled: true
++      selfHeal: true
+       prune: true
+   sources:
+   - repoURL: https://metallb.github.io/metallb
+diff --git a/kubernetes/argocd/argocd/values.yaml b/kubernetes/argocd/argocd/values.yaml
+index 3547b11..e4b0324 100644
+--- a/kubernetes/argocd/argocd/values.yaml
++++ b/kubernetes/argocd/argocd/values.yaml
+@@ -1,4 +1,17 @@
+ argo-cd:
+   ## https://github.com/argoproj/argo-helm/blob/argo-cd-9.4.10/charts/argo-cd/values.yaml 
++  ingress:
++    # -- Enable an ingress resource for the Argo CD server
++    enabled: true
++    # -- Specific implementation for ingress controller. One of `generic`, `aws` or `gke`
++    ## Additional configuration might be required in related configuration sections
++    controller: generic
++    # -- Additional ingress labels
++    labels: {}
++    # -- Additional ingress annotations
++    ## Ref: https://argo-cd.readthedocs.io/en/stable/operator-manual/ingress/#option-1-ssl-passthrough
++    annotations:
++      traefik.ingress.kubernetes.io/router.tls: "true"
++      traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
+   global:
+     domain: argocd.datrollout.dev

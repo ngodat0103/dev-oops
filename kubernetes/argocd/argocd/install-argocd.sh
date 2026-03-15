@@ -3,4 +3,4 @@
 
 
 helm repo add argo https://argoproj.github.io/argo-helm
-helm upgrade --install argocd . -n argocd --create-namespace --render-subchart-notes
+helm upgrade --install argocd . -n argocd --create-namespace --render-subchart-notes -f values.yaml
