@@ -1,3 +1,4 @@
+{{- if .Values.traefik.enabled }}
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -26,3 +27,4 @@ spec:
   - repoURL: https://github.com/ngodat0103/home-lab.git
     targetRevision: master
     ref: config
+{{- end }}

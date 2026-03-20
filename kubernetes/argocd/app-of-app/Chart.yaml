@@ -6,8 +6,3 @@ type: application
 
 version: "0.0.0"
 appVersion: "v3.3.3" # ArgoCD apps
-
-dependencies:
-- name: argo-cd
-  repository: "https://argoproj.github.io/argo-helm"
-  version: "9.4.10"
