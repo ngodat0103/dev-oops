@@ -1,0 +1,8 @@
+metallb:
+  enabled: true
+traefik:
+  enabled: true
+openebs:
+  enabled: true
+postgresql:
+  enabled: true

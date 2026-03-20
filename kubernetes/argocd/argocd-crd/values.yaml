@@ -19,4 +19,9 @@ configs:
   params:
     server.insecure: true
   tls:
-    create: false
+    create: true
+crds:
+  # -- Install and upgrade CRDs
+  install: true
+  # -- Keep CRDs on chart uninstall
+  keep: false
