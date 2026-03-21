@@ -12,3 +12,5 @@ velero:
   enabled: true
 kubePrometheusStack:
   enabled: true
+mongoOperator:
+  enabled: true

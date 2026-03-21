@@ -1,0 +1,34 @@
+#yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/mongodbcommunity.mongodb.com/mongodbcommunity_v1.json
+apiVersion: mongodbcommunity.mongodb.com/v1
+kind: MongoDBCommunity
+metadata:
+  name: shared-mongodb
+spec:
+  arbiters: 1
+  members: 3
+  type: "ReplicaSet"
+  version: "8.2.1"
+  security:
+    authentication:
+      modes: ["SCRAM"]
+  users:
+    - name: akira
+      db: admin
+      passwordSecretRef:
+        name: akira-db-password
+      roles:
+        - name: readWrite
+          db: akira
+      scramCredentialsSecretName: mongodb-app-scram
+  additionalMongodConfig:
+    storage.wiredTiger.engineConfig.journalCompressor: zlib
+  statefulSet:
+    spec:
+      volumeClaimTemplates:
+        - metadata:
+            name: data-volume
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 30Gi
