@@ -1,0 +1,37 @@
+{{- if .Values.kubePrometheusStack.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  revisionHistoryLimit: 3
+  destination:
+    namespace: kube-prometheus-stack
+    name: in-cluster
+  syncPolicy:
+    syncOptions: [ "CreateNamespace=true","ServerSideApply=true" ]
+    automated:
+      enabled: false
+      prune: false
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    targetRevision: 82.13.0
+    chart: kube-prometheus-stack
+    helm:
+     values: |
+      prometheus:
+        prometheusSpec:
+          retention: 14d
+          retentionSize: 15GiB
+          storageSpec:
+            volumeClaimTemplate:
+              spec:
+                accessModes: ["ReadWriteOnce"]
+                resources:
+                  requests:
+                    storage: 20Gi
+{{- end }}

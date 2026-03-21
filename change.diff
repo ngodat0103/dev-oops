@@ -234,69 +234,98 @@ index d490d31..e69de29 100644
 -+      traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
 -   global:
 -     domain: argocd.datrollout.dev
-diff --git a/kubernetes/argocd/app-of-app/Chart.lock b/kubernetes/argocd/app-of-app/Chart.lock
-deleted file mode 100644
-index c32d9b4..0000000
---- a/kubernetes/argocd/app-of-app/Chart.lock
-+++ /dev/null
-@@ -1,6 +0,0 @@
--dependencies:
--- name: argo-cd
--  repository: https://argoproj.github.io/argo-helm
--  version: 9.4.10
--digest: sha256:795aad956acef3f5efb8160390caf9b9792b7b4150d3a7984f1c5edbad92dfaa
--generated: "2026-03-15T15:06:53.235373371+07:00"
-diff --git a/kubernetes/argocd/app-of-app/values.yaml b/kubernetes/argocd/app-of-app/values.yaml
+diff --git a/kubernetes/argocd/app-of-app/templates/metallb.yaml b/kubernetes/argocd/app-of-app/templates/metallb.yaml
+index d5a7fb6..d0d8a84 100644
+--- a/kubernetes/argocd/app-of-app/templates/metallb.yaml
++++ b/kubernetes/argocd/app-of-app/templates/metallb.yaml
+@@ -13,7 +13,7 @@ spec:
+     namespace: metallb
+     name: in-cluster
+   syncPolicy:
+-    syncOptions: [ "ServerSideApply=true", "CreateNamespace=true" ]
++    syncOptions: [ "CreateNamespace=true" ]
+     automated:
+       enabled: false
+       selfHeal: false
+diff --git a/kubernetes/argocd/app-of-app/templates/velero.yaml b/kubernetes/argocd/app-of-app/templates/velero.yaml
 new file mode 100644
-index 0000000..5153bb6
+index 0000000..a5908b1
 --- /dev/null
++++ b/kubernetes/argocd/app-of-app/templates/velero.yaml
+@@ -0,0 +1,40 @@
++{{- if .Values.velero.enabled }}
++apiVersion: argoproj.io/v1alpha1
++kind: Application
++metadata:
++  name: velero
++  namespace: argocd
++  finalizers:
++  - resources-finalizer.argocd.argoproj.io
++spec:
++  project: default
++  revisionHistoryLimit: 3
++  destination:
++    namespace: velero
++    name: in-cluster
++  syncPolicy:
++    syncOptions: [ "CreateNamespace=true" ]
++    automated:
++      enabled: false
++      selfHeal: false
++      prune: false
++  source:
++    repoURL: https://vmware-tanzu.github.io/helm-charts/
++    targetRevision: 12.0.0
++    chart: velero
++    helm:
++     values: |
++      deployNodeAgent: true
++      configuration:
++        backupStorageLocation:
++          - name: r2-cloudflare
++            provider: aws
++            bucket: velero-storage-prod
++            default: true
++            accessMode: ReadWrite
++            config:
++              S3_ENDPOINT: https://4c8ad4e9fa8213af3fd284bb97b68b5e.r2.cloudflarestorage.com
++            credential:
++              name: velero-secret
++              key: r2-cloudflare
++{{- end }}
+diff --git a/kubernetes/argocd/app-of-app/values.yaml b/kubernetes/argocd/app-of-app/values.yaml
+index 5153bb6..2b61594 100644
+--- a/kubernetes/argocd/app-of-app/values.yaml
 +++ b/kubernetes/argocd/app-of-app/values.yaml
-@@ -0,0 +1,8 @@
-+metallb:
+@@ -6,3 +6,7 @@ openebs:
+   enabled: true
+ postgresql:
+   enabled: true
++mongodb:
++  enabled: false
++velero:
 +  enabled: true
-+traefik:
-+  enabled: true
-+openebs:
-+  enabled: true
-+postgresql:
-+  enabled: true
-diff --git a/kubernetes/argocd/argocd-crd/delete-old-crds.sh b/kubernetes/argocd/argocd-crd/delete-old-crds.sh
-old mode 100644
-new mode 100755
-index 02b0601..48c2e86
---- a/kubernetes/argocd/argocd-crd/delete-old-crds.sh
-+++ b/kubernetes/argocd/argocd-crd/delete-old-crds.sh
-@@ -1,12 +1 @@
--# Define the resources to fix
--# RESOURCES=("clusterrole/argocd-application-controller" "clusterrole/argocd-server" "clusterrolebinding/argocd-application-controller" "clusterrolebinding/argocd-server")
--# kubectl delete clusterrole argocd-server
--# kubectl delete clusterrole argocd-application-controller
--# kubectl delete clusterrolebinding argocd-server
--# kubectl delete clusterrolebinding argocd-application-controller
--for res in "${RESOURCES[@]}"; do
--    echo "Adopting $res..."
--    kubectl label $res "app.kubernetes.io/managed-by=Helm" --overwrite
--    kubectl annotate $res "meta.helm.sh/release-name=argocd" --overwrite
--    kubectl annotate $res "meta.helm.sh/release-namespace=argocd" --overwrite
--done
+diff --git a/tf/cloudflare/storage/main.tf b/tf/cloudflare/storage/main.tf
+index 8c15a47..3b9908c 100644
+--- a/tf/cloudflare/storage/main.tf
++++ b/tf/cloudflare/storage/main.tf
+@@ -13,9 +13,16 @@ resource "cloudflare_r2_bucket" "backupStorageProd" {
+   location      = "apac"
+   storage_class = "Standard"
+ }
+-resource "cloudflare_r2_bucket" "backupStorageDev" {
++
++resource "cloudflare_r2_bucket" "veleroStorageBackupProd" {
++  account_id    = "4c8ad4e9fa8213af3fd284bb97b68b5e"
++  name          = "velero-storage-prod"
++  location      = "apac"
++  storage_class = "Standard"
++}
++resource "cloudflare_r2_bucket" "veleroVolumeBackupProd" {
+   account_id    = "4c8ad4e9fa8213af3fd284bb97b68b5e"
+-  name          = "backup-storage-dev"
++  name          = "velero-volume-prod"
+   location      = "apac"
+   storage_class = "Standard"
+ }
 \ No newline at end of file
-+kubectl get crds -o name | grep 'argoproj.io' | xargs kubectl delete
-\ No newline at end of file
-diff --git a/kubernetes/argocd/argocd-crd/install-argocd.sh b/kubernetes/argocd/argocd-crd/install-argocd.sh
-old mode 100644
-new mode 100755
-diff --git a/kubernetes/argocd/argocd-crd/values.yaml b/kubernetes/argocd/argocd-crd/values.yaml
-index 0668aa4..4462a1d 100644
---- a/kubernetes/argocd/argocd-crd/values.yaml
-+++ b/kubernetes/argocd/argocd-crd/values.yaml
-@@ -19,4 +19,9 @@ configs:
-   params:
-     server.insecure: true
-   tls:
--    create: false
-+    create: true
-+crds:
-+  # -- Install and upgrade CRDs
-+  install: true
-+  # -- Keep CRDs on chart uninstall
-+  keep: false

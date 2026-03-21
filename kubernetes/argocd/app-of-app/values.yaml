@@ -10,3 +10,5 @@ mongodb:
   enabled: false
 velero:
   enabled: true
+kubePrometheusStack:
+  enabled: true
