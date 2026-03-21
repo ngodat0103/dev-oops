@@ -23,6 +23,13 @@ spec:
     chart: kube-prometheus-stack
     helm:
      values: |
+      grafana:
+        ingress:
+          enabled: true
+          hosts: ["grafana.datrollout.dev"]
+          annotations:
+            traefik.ingress.kubernetes.io/router.tls: "true"
+            traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
       prometheus:
         prometheusSpec:
           retention: 14d

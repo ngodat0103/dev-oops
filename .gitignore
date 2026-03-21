@@ -54,5 +54,5 @@ credentials.json
 
 # Any test logs
 **/**.log
-
+change.diff
 *secret.yaml
