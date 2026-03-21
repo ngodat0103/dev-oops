@@ -13,7 +13,7 @@ spec:
     namespace: metallb
     name: in-cluster
   syncPolicy:
-    syncOptions: [ "ServerSideApply=true", "CreateNamespace=true" ]
+    syncOptions: [ "CreateNamespace=true" ]
     automated:
       enabled: false
       selfHeal: false

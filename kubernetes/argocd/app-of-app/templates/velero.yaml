@@ -1,0 +1,40 @@
+{{- if .Values.velero.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: velero
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  revisionHistoryLimit: 3
+  destination:
+    namespace: velero
+    name: in-cluster
+  syncPolicy:
+    syncOptions: [ "CreateNamespace=true" ]
+    automated:
+      enabled: false
+      selfHeal: false
+      prune: false
+  source:
+    repoURL: https://vmware-tanzu.github.io/helm-charts/
+    targetRevision: 12.0.0
+    chart: velero
+    helm:
+     values: |
+      deployNodeAgent: true
+      configuration:
+        backupStorageLocation:
+          - name: r2-cloudflare
+            provider: aws
+            bucket: velero-storage-prod
+            default: true
+            accessMode: ReadWrite
+            config:
+              S3_ENDPOINT: https://4c8ad4e9fa8213af3fd284bb97b68b5e.r2.cloudflarestorage.com
+            credential:
+              name: velero-secret
+              key: r2-cloudflare
+{{- end }}

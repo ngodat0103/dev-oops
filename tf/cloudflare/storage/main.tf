@@ -13,9 +13,16 @@ resource "cloudflare_r2_bucket" "backupStorageProd" {
   location      = "apac"
   storage_class = "Standard"
 }
-resource "cloudflare_r2_bucket" "backupStorageDev" {
+
+resource "cloudflare_r2_bucket" "veleroStorageBackupProd" {
   account_id    = "4c8ad4e9fa8213af3fd284bb97b68b5e"
-  name          = "backup-storage-dev"
+  name          = "velero-storage-prod"
+  location      = "apac"
+  storage_class = "Standard"
+}
+resource "cloudflare_r2_bucket" "veleroVolumeBackupProd" {
+  account_id    = "4c8ad4e9fa8213af3fd284bb97b68b5e"
+  name          = "velero-volume-prod"
   location      = "apac"
   storage_class = "Standard"
 }

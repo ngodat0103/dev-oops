@@ -6,3 +6,7 @@ openebs:
   enabled: true
 postgresql:
   enabled: true
+mongodb:
+  enabled: false
+velero:
+  enabled: true
