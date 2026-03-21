@@ -118,28 +118,6 @@ locals {
         down_delay = 10
       }
     },
-    mongodb = {
-      ip_address               = "192.168.99.3/24"
-      gateway                  = "192.168.1.1"
-      network_interface_name   = "eth0"
-      network_interface_bridge = "private"
-      vm_id                    = 318
-      template_file_id         = resource.proxmox_virtual_environment_download_file.lxc["debian_12"].id
-      operating_system_type    = "debian"
-      on_boot                  = true
-      cores                    = 1
-      memory                   = 1024 * 2
-      node_name                = local.node_name
-      mount_volume_size        = 30 #GB
-      hostname                 = "mongodb.internal"
-      tags                     = ["Production", "Database"]
-      protection               = true
-      startup_config = {
-        order      = 1
-        up_delay   = 10
-        down_delay = 10
-      }
-    },
   }
   lan_gateway    = "192.168.1.1"
   k8s_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCxraGdlzJDPInNQ4zbyr1usD3nSbeofvjx+kRTN/7lFmEoCujn8UyEfaQfe6k/shGQyH8ghb61XzISkDv3Dcir+apQ1x4ajALZX6m+miF4G0R7tOTObj+2MCdOCZ1iklFolhjSJ/wPunoQD5x9jz8mnmr03zZcCr+xVQzMPDHPCeMZlXN0mDg2AJj4+RxolZeW7T9/v0h2l300ZFYbpbUWG+WkJWAy2iqpf2z3TRt74sCyby0sPPeLbg3G9XqWVpx+lVrI/XfG3mirGx+NgEcGBQNNM7HcobHuJ3IejFsVCCenQHiPrMjMk8XhflJ4Vk8ydTTaMNHY5kn9qSyJIA9JxlWypqmIhJYilUADjPCMYt97ahQR8C8BTFxcFGTH8Nf27db6C9rFaZ/WPlbkWOdmW+IFKTVmqyw6l+KBAIKu1pl3wLbY9eot0kQCODlk6ZSbn5yy6e2HU7zpPCbMVGVqwbiOUlVfcTjTEDrlFUZgVhAp5Z/vu9FjdMeDrTQppKE= akira@legion5"
@@ -325,6 +303,7 @@ module "k8s_masters" {
   gateway           = "192.168.1.1"
   memory            = 4096
   cpu_cores         = 2
+  cpu_type = "host"
   node_name         = local.node_name
   boot_disk_size    = 50
   datastore_id      = "local-lvm"
@@ -348,6 +327,7 @@ module "k8s_workers" {
   gateway           = "192.168.1.1"
   memory            = 1024 * 5
   cpu_cores         = 4
+  cpu_type = "host"
   node_name         = local.node_name
   datastore_id      = "local-lvm"
   bridge_name       = "vmbr0"

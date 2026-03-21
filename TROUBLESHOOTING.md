@@ -146,5 +146,43 @@ Traffic now flows correctly from external networks into Proxmox guests. SSH and 
 ## Issues 5: Proxmox instance radomly reboot with AMD CPU
 https://forum.proxmox.com/threads/proxmox-mystery-random-reboots.125001/#post-54
 
-## Issues 6: Need to architecture how I use disk effectively for my Proxmox, but I was confused how storage technology named lvm-thin work??
-### Situation: I need to reproduce Proxmox environment quickly, so I choose  
+---
+
+## ⭐ Issue 6: MongoDB CrashLoopBackOff (Exit Code 132) on Proxmox/Kubernetes VMs
+
+**Situation**:  
+A MongoDB (5.0+) container running on Kubernetes nodes in a Proxmox environment was stuck in a `CrashLoopBackOff` state, terminating immediately with **Exit Code 132 (SIGILL / Illegal Instruction)**. The Proxmox VMs were originally provisioned via Terraform with a generic CPU type (e.g., `x86-64-v2-AES`), which masked the physical CPU's AVX (Advanced Vector Extensions) instruction set. MongoDB 5.0+ strictly requires AVX to execute.
+
+**Task**:  
+Update the Terraform configuration to expose the physical CPU's full instruction set (specifically AVX) to the virtual machines so the MongoDB process can initialize without illegal instruction errors.
+
+**Action**:  
+
+✅ **Update Terraform Module Configuration** Modify the Proxmox VM definitions for the Kubernetes nodes to explicitly set the `cpu_type` argument to `"host"`.
+
+```hcl
+module "k8s_masters" {
+  source    = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
+  # ... existing config ...
+  cpu_type  = "host"
+}
+
+module "k8s_workers" {
+  source    = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
+  # ... existing config ...
+  cpu_type  = "host"
+}
+```
+
+✅ **Apply Configuration and Power Cycle VMs** Run `terraform apply` to provision the changes to the Proxmox cluster. 
+> **Crucial Note:** A standard `reboot` from inside the guest OS will *not* apply Proxmox virtual hardware changes. The VMs must be hard-stopped and started (often handled automatically by Terraform depending on the provider, or manually via the Proxmox API/UI) for the new CPU type to take effect.
+
+✅ **Verify AVX Support Inside the Target VM** ```bash
+grep -o 'avx' /proc/cpuinfo
+```
+> If the hardware change was successful, this command will output `avx` highlighted in the terminal.
+
+**Result**:  
+The VMs now pass through the physical host's exact CPU feature set. MongoDB detects the required AVX instructions, successfully initializes, and the pods reach a ready state without crashing. 🟢
+
+---
