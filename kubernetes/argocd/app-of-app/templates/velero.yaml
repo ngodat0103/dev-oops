@@ -26,6 +26,7 @@ spec:
      values: |
       deployNodeAgent: true
       configuration:
+        volumeSnapshotLocation: []
         backupStorageLocation:
           - name: r2-cloudflare
             provider: aws
