@@ -1,594 +1,368 @@
-> *"Move fast and break things"* — Mark Zuckerberg  
-> *"I moved fast. Things are broken."* — Me, at 3 AM  
-> *"Have you tried turning it off and on again?"* — My mom, who has heard enough
+# Home Lab Infrastructure
 
-Welcome to **dev-oops** — my personal laboratory where I cosplay as a DevOps engineer, ARP-spoof my children's tablets, and treat `terraform destroy` as a form of meditation.
+> *"Move fast and break things"* -- Mark Zuckerberg
+> *"I moved fast. Things are broken."* -- Me, at 3 AM
+> *"Have you tried turning it off and on again?"* -- My mom, who has heard enough
 
-This is what happens when you have more CPU cores than friends.
+Private infrastructure repository managing a single-node Proxmox environment that somehow runs production services, a Kubernetes cluster held together by optimism, and more YAML than any human should write in one lifetime. All infrastructure is codified using Terraform, Ansible, and ArgoCD, because clicking buttons in a web UI is beneath us.
 
----
-
-## What is This?
-
-This repository contains **enterprise-grade infrastructure** for a **hobbyist-grade homelab**. It's over-engineered, over-documented, and occasionally over-heated.
-
-I treat my homelab like a Fortune 500 company's infrastructure, except:
-- My SLA is "probably up"
-- My incident response is "wake up and panic"  
-- My disaster recovery plan is "cry, then restore from ~~backup~~ MinIO"
-- My change management process is `git push --force` and pray
-- My parental controls involve **literal ARP poisoning** (see: [The Sentry Project](#-parental-controls-via-cyberwarfare))
+**Domain:** `datrollout.dev`
 
 ---
 
-## The Victim (Hardware Specs)
+## Table of Contents
 
-| Component | Spec | Notes |
-|-----------|------|-------|
-| **CPU** | 56 x Intel Xeon E5-2680 v4 @ 2.40GHz | Two sockets of raw, slightly-aged power |
-| **RAM** | 62GB | Enough to run Kubernetes. Barely. |
-| **Boot Mode** | Legacy BIOS | *"I don't do UEFI here"* |
-| **Hypervisor** | Proxmox VE 9.0.3 | The backbone of my chaos |
-| **Kernel** | Linux 6.14.8-2-pve | Latest and greatest (until tomorrow) |
-| **Electricity Bill** | Yes | I don't talk about this |
+- [Architecture Overview](#architecture-overview)
+- [Hardware](#hardware)
+- [Network Topology](#network-topology)
+- [Compute Inventory](#compute-inventory)
+- [Platform Tooling](#platform-tooling)
+- [Deployed Services](#deployed-services)
+- [The Kubernetes Situation](#the-kubernetes-situation)
+- [Security](#security)
+- [Observability](#observability)
+- [Backup and Disaster Recovery](#backup-and-disaster-recovery)
+- [CI/CD](#cicd)
+- [Repository Structure](#repository-structure)
+- [Getting Started](#getting-started)
 
-### Storage Situation
+---
 
-```
-┌─────────────┬─────────┬──────────────────────────────────────────────┐
-│ Device      │ Size    │ Purpose                                      │
-├─────────────┼─────────┼──────────────────────────────────────────────┤
-│ sda         │ 465.8G  │ Spinning rust from 2014 (the "OG")           │
-│ sdb         │ 931.5G  │ More spinning rust (the "backup OG")         │
-│ nvme0n1     │ 1.8T    │ The fast boi (VMs live here, briefly)        │
-└─────────────┴─────────┴──────────────────────────────────────────────┘
-```
+## Architecture Overview
 
-### The Production Network (ansible/core/inventory.ini)
+The infrastructure follows a hybrid model: production services run on Docker with Ansible because it actually works, while Kubernetes exists as a dev/exploration environment where I learn things, break things, and pretend I'm running a multi-region cluster on what is essentially seven VMs sharing one physical CPU like college students sharing a Netflix account.
 
 ```
-┌─────────────────────┬────────────────┬──────────────────────────────────────┐
-│ Host                │ IP             │ What It Does                         │
-├─────────────────────┼────────────────┼──────────────────────────────────────┤
-│ pve-master          │ 192.168.1.120  │ Proxmox Hypervisor (the boss)        │
-│ ubuntu-server       │ 192.168.1.121  │ Docker + Traefik (the workhorse)     │
-│ teleport            │ 192.168.1.122  │ Zero-trust access (fancy SSH)        │
-│ vpn-server          │ 192.168.1.123  │ OpenVPN (for remote chaos)           │
-│ hephaestus          │ 192.168.1.124  │ CI/CD runners (Greek god vibes)      │
-│ sonarqube           │ 192.168.1.125  │ Code quality (yes, I lint my code)   │
-│ core-dns            │ 192.168.1.126  │ Internal DNS (Alpine, 128MB RAM)     │
-│ crowdsec            │ 192.168.1.127  │ WAF / Security engine (the bouncer)  │
-├─────────────────────┼────────────────┼──────────────────────────────────────┤
-│                     │  PRIVATE NET   │  192.168.99.0/24                     │
-├─────────────────────┼────────────────┼──────────────────────────────────────┤
-│ lxc-postgresql-16   │ 192.168.99.2   │ PostgreSQL in LXC (the elephant)     │
-│ lxc-kafka           │ 192.168.99.2   │ Kafka (enterprise cosplay)           │
-└─────────────────────┴────────────────┴──────────────────────────────────────┘
+                         Internet
+                            |
+                      "please be gentle"
+                            |
+                            v
+                  +-------------------+
+                  |    Cloudflare     |
+                  | DNS / WAF / Proxy |
+                  |  "the bodyguard"  |
+                  +---------+---------+
+                            |
+                            v
++---------------------------------------------------------------+
+|                   Proxmox VE (pve-master)                     |
+|                     192.168.1.120                              |
+|              One node to rule them all.                        |
+|                                                                |
+|  PRODUCTION (the stuff that must not go down)                  |
+|  +---------------------------+  +---------------------------+  |
+|  | ubuntu-server  .1.121     |  | hephaestus     .1.124     |  |
+|  | Traefik, Docker services  |  | GitLab Runner, GH Runner  |  |
+|  | Monitoring stack          |  | Named after a Greek god   |  |
+|  | (the workhorse)           |  | (for extra cool points)   |  |
+|  +---------------------------+  +---------------------------+  |
+|  +---------------------------+  +---------------------------+  |
+|  | vpn-server     .1.123     |  | sonarqube      .1.125     |  |
+|  | OpenVPN + OTP             |  | "yes I lint my homelab"   |  |
+|  +---------------------------+  +---------------------------+  |
+|  +---------------------------+                                 |
+|  | teleport       .1.122     |                                 |
+|  | Zero-Trust Access         |                                 |
+|  | (SSH but make it fancy)   |                                 |
+|  +---------------------------+                                 |
+|                                                                |
+|  Production LXC                                                |
+|  +---------------------------+  +---------------------------+  |
+|  | postgresql-16  .99.2      |  | crowdsec       .1.127     |  |
+|  | The elephant in the room  |  | "you shall not pass"      |  |
+|  +---------------------------+  +---------------------------+  |
+|                                                                |
+|  Kubernetes Cluster (DEV / EXPLORATION ONLY)                   |
+|  +----------------------------------------------------------+ |
+|  | Masters: .1.180-.182 (x3)  Workers: .1.190-.193 (x4)     | |
+|  | ArgoCD, Traefik, MetalLB, OpenEBS, CloudNative-PG,       | |
+|  | Velero, kube-prometheus-stack, Strimzi Kafka, Redis       | |
+|  |                                                            | |
+|  | "One day this will replace everything above.               | |
+|  |  Today is not that day."                                   | |
+|  +----------------------------------------------------------+ |
++---------------------------------------------------------------+
+```
+
+Traffic flow for public-facing services:
+
+```
+Client -> Cloudflare (proxy/WAF) -> Traefik (reverse proxy) -> CrowdSec (middleware) -> Service
+                                                                     |
+                                                              "papers, please"
 ```
 
 ---
 
-## Architecture (a.k.a. "The Overkill")
+## Hardware
 
+One server. Everything runs on one server. Yes, the "cluster" too. No, it's not HA. Yes, I know.
+
+| Component      | Specification                          | Notes                              |
+|----------------|----------------------------------------|------------------------------------|
+| CPU            | 2x Intel Xeon E5-2680 v4 (56 threads) | Slightly aged but still kicking    |
+| Memory         | 62 GB DDR4                             | Enough for K8s. Barely.            |
+| Boot/VM disk   | 1.8 TB NVMe                            | The fast one. VMs live here.       |
+| Data (HDD)     | 465 GB + 931 GB SATA                   | Spinning rust from a previous era  |
+| Hypervisor     | Proxmox VE                             | The backbone of this operation     |
+| Electricity    | Yes                                    | I don't talk about this           |
+
+---
+
+## Network Topology
+
+| Network              | Subnet             | Purpose                              |
+|----------------------|---------------------|--------------------------------------|
+| LAN                  | 192.168.1.0/24     | Primary network for all VMs and LXCs |
+| Private              | 192.168.99.0/24    | Isolated network for stateful services -- cannot be reached from the outside, which is the whole point |
+| Docker internal      | 192.168.30.0/24    | Bridge network for Docker containers on ubuntu-server |
+| MetalLB pool         | 192.168.1.230-240  | Kubernetes LoadBalancer IP range     |
+
+DNS is managed via Cloudflare with proxied CNAME records for all public-facing services. Terraform manages all DNS records and firewall rules, because doing it by hand in a web console is how incidents start.
+
+---
+
+## Compute Inventory
+
+### Virtual Machines
+
+| Host           | IP             | OS           | vCPU | RAM   | Role                                 |
+|----------------|----------------|--------------|------|-------|--------------------------------------|
+| pve-master     | 192.168.1.120  | Proxmox VE   | --   | --    | Hypervisor (the boss)                |
+| ubuntu-server  | 192.168.1.121  | Ubuntu 22.04 | 4    | 16 GB | Docker host, Traefik, monitoring (the workhorse) |
+| teleport       | 192.168.1.122  | --           | --   | --    | Zero-trust access proxy              |
+| vpn-server     | 192.168.1.123  | Debian 13    | 1    | 2 GB  | OpenVPN with OTP (for remote chaos)  |
+| hephaestus     | 192.168.1.124  | Ubuntu 22.04 | 4    | 16 GB | CI/CD runners (GitLab + GitHub)      |
+| sonarqube      | 192.168.1.125  | Ubuntu 22.04 | 4    | 8 GB  | SonarQube -- yes, I run static analysis on my homelab code |
+
+### LXC Containers
+
+| Host                    | IP             | OS           | vCPU | RAM  | Role                      |
+|-------------------------|----------------|--------------|------|------|---------------------------|
+| postgresql-16           | 192.168.99.2   | Ubuntu 22.04 | 1    | 2 GB | PostgreSQL 16 (production)|
+| crowdsec-detection      | 192.168.1.127  | Ubuntu 22.04 | 1    | 1 GB | CrowdSec LAPI + AppSec   |
+
+### Kubernetes Cluster (Dev/Exploration)
+
+Deployed via Kubespray. Seven VMs pretending to be a datacenter. See [The Kubernetes Situation](#the-kubernetes-situation) for the full story.
+
+| Role    | Count | IP Range            | vCPU | RAM  | Disk   |
+|---------|-------|---------------------|------|------|--------|
+| Master  | 3     | 192.168.1.180-182   | 2    | 4 GB | 50 GB  |
+| Worker  | 4     | 192.168.1.190-193   | 4    | 5 GB | 100 GB |
+
+---
+
+## Platform Tooling
+
+### Terraform
+
+All infrastructure provisioning is managed through Terraform with reusable modules from a separate [terraform-module](https://github.com/ngodat0103/terraform-module) repository. Because copy-pasting HCL blocks is for people who haven't been hurt enough yet.
+
+| Configuration           | Provider                  | Purpose                                       |
+|-------------------------|---------------------------|-----------------------------------------------|
+| `tf/proxmox`            | bpg/proxmox 0.92.0       | VMs, LXCs, networks, cloud-init images        |
+| `tf/cloudflare/dns`     | cloudflare/cloudflare ~5  | DNS records, WAF firewall rules               |
+| `tf/cloudflare/storage` | cloudflare/cloudflare     | R2 object storage (Velero backend)            |
+| `tf/uptimerobot`        | vexxhost/uptimerobot      | External uptime monitoring (the 3 AM alarm)   |
+
+### Ansible
+
+Server configuration and application deployment for all non-Kubernetes workloads. The production stuff. The things that actually matter.
+
+| Playbook Area                | Purpose                                               |
+|------------------------------|-------------------------------------------------------|
+| `ansible/core/ubuntu-server` | Docker host setup, app deployment, monitoring, cron   |
+| `ansible/core/hephaestus`    | CI runner provisioning (Go, Maven, Docker, kubectl)   |
+| `ansible/core/teleport`      | Teleport access proxy installation                    |
+| `ansible/core/vpn-server`    | OpenVPN server with OTP                               |
+| `ansible/core/lxc`           | PostgreSQL and Kafka configuration                    |
+| `ansible/sonarqube`          | SonarQube installation                                |
+| `ansible/kubernetes`          | Kubespray inventory and cluster configuration         |
+
+### ArgoCD (Kubernetes)
+
+GitOps deployment using the app-of-apps pattern. ArgoCD is installed via Helm and manages all cluster workloads. It's ArgoCD all the way down.
+
+| Category   | Applications                                                          |
+|------------|-----------------------------------------------------------------------|
+| Daemon     | MetalLB, kube-prometheus-stack                                        |
+| Stateful   | CloudNative-PG (PostgreSQL), Redis, Chaos Mesh, Local Path Provisioner|
+| Stateless  | Traefik, Vaultwarden, Sealed Secrets, Metrics Server                  |
+| Operators  | Strimzi Kafka Operator, MongoDB Operator (disabled)                   |
+| Storage    | OpenEBS (localpv-provisioner), Velero                                 |
+
+---
+
+## Deployed Services
+
+### Production (Docker on ubuntu-server)
+
+The real deal. These are the services that would ruin my week if they went down.
+
+| Service       | Purpose                  | Exposed Domain              |
+|---------------|--------------------------|-----------------------------|
+| GitLab        | Source control and CI/CD | gitlab.datrollout.dev       |
+| Vaultwarden   | Password management      | bitwarden.datrollout.dev    |
+| Nextcloud     | File synchronization     | nextcloud.datrollout.dev    |
+| Jellyfin      | Media server             | --                          |
+| qBittorrent   | Torrent client           | --                          |
+
+### Production (Standalone)
+
+| Service       | Host             | Purpose                           |
+|---------------|------------------|-----------------------------------|
+| PostgreSQL 16 | 192.168.99.2     | Primary relational database       |
+| CrowdSec      | 192.168.1.127    | Web application firewall / IDS    |
+| SonarQube     | 192.168.1.125    | Static code analysis              |
+| Teleport      | 192.168.1.122    | Zero-trust infrastructure access  |
+| OpenVPN       | 192.168.1.123    | Remote VPN access with OTP        |
+
+### Kubernetes Cluster (Dev/Exploration)
+
+| Application             | Namespace              | Chart Version | Source                    |
+|-------------------------|------------------------|---------------|---------------------------|
+| ArgoCD                  | argocd                 | 9.4.15        | argoproj/argo-helm        |
+| Traefik                 | traefik                | 37.4.0        | traefik/charts            |
+| MetalLB                 | metallb                | 0.15.2        | metallb/metallb           |
+| OpenEBS                 | openebs                | 4.3.3         | openebs/openebs           |
+| CloudNative-PG          | prod-postgresql        | 0.25.0        | cloudnative-pg            |
+| Velero                  | velero                 | 12.0.0        | vmware-tanzu/velero       |
+| kube-prometheus-stack    | kube-prometheus-stack  | 82.13.0       | prometheus-community      |
+| Strimzi Kafka Operator  | kafka                  | 0.50.0        | strimzi                   |
+| Sealed Secrets          | sealed-secrets         | 2.17.2        | bitnami-labs              |
+| Vaultwarden             | vaultwarden            | 0.32.1        | guerzon/vaultwarden       |
+| Redis                   | redis                  | 0.16.5        | ot-container-kit          |
+| Chaos Mesh              | chaos-mesh             | 2.8.0         | chaos-mesh                |
+| Metrics Server          | metrics-server         | 3.13.0        | metrics-server            |
+
+CloudNative-PG manages databases for: `nextcloud`, `gitlabhq_production`, `vaultwarden`.
+
+---
+
+## The Kubernetes Situation
+
+Let me be honest about this.
+
+The Kubernetes cluster is a **dev and exploration environment**. Production runs on Docker + Ansible on ubuntu-server because it just works and I sleep at night.
+
+But here's the thing: every service I deploy on the VM side involves writing Ansible playbooks, Docker Compose files, systemd units, Traefik labels, Prometheus scrape configs, backup cron jobs, and update procedures -- **per service, by hand, every single time**. It's the YAML equivalent of digging a ditch with a spoon. It works, but it doesn't scale, and every new service means repeating the same soul-crushing boilerplate.
+
+The Kubernetes cluster exists because the promise is real: define it once in a Helm chart, let ArgoCD sync it, let the platform handle scheduling, networking, storage, secrets, scaling, and rollbacks. Stop hand-wiring every service like it's 2015. The app-of-apps pattern already proves this -- I can enable an entire service stack by flipping a boolean in `values.yaml`. That's the dream.
+
+**The plan:**
+
+1. Keep exploring and stabilizing the K8s environment (it's getting there)
+2. Prove that it can run workloads reliably on this hardware
+3. When budget allows, build a proper multi-node cluster with dedicated hardware
+4. Migrate everything off the VM and never write another per-service Ansible playbook again
+5. Finally escape the "repeat yourself in hell" loop
+
+Until then, production stays on Docker, Kubernetes stays in the lab, and I keep one foot in each world while slowly going insane maintaining both.
+
+The cluster currently runs the full application stack (Traefik, PostgreSQL, Vaultwarden, Redis, Kafka, monitoring) in a non-production capacity. Chaos Mesh is also deployed, because if things are going to break, they might as well break on my terms.
+
+---
+
+## Security
+
+Traffic goes through multiple layers before it reaches anything useful. I'd rather explain downtime than a breach.
+
+### Edge Protection (Cloudflare)
+
+- All public traffic is proxied through Cloudflare
+- Geo-blocking: only traffic originating from Vietnam is permitted (sorry, rest of the world)
+- UptimeRobot health check IPs are explicitly whitelisted
+- Vaultwarden `/admin` endpoint is blocked at the edge, because even I don't trust myself with that URL exposed
+
+### Reverse Proxy (Traefik v3)
+
+- TLS termination via Let's Encrypt using Cloudflare DNS-01 challenge
+- All requests pass through CrowdSec bouncer middleware -- every single one
+- Real client IPs extracted from `CF-Connecting-IP` header
+- Prometheus metrics and structured access logging enabled
+
+### Intrusion Detection (CrowdSec)
+
+- LAPI running on port 8080, AppSec engine on port 7422
+- Detection scenarios: HTTP path traversal, XSS probing, generic brute force
+- Operating mode: live (real-time blocking, not just logging and hoping)
+- Failure behavior: **block all traffic** if CrowdSec becomes unreachable
+
+```yaml
+crowdsecAppsecUnreachableBlock: true
+crowdsecAppsecFailureBlock: true
+# Translation: "I'd rather the site be down than compromised"
 ```
-                    ┌──────────────────────────────────────────────────┐
-                    │                   THE INTERNET                    │
-                    │              (where the danger lives)             │
-                    └───────────────────────┬──────────────────────────┘
-                                            │
-                                            ▼
-                    ┌──────────────────────────────────────────────────┐
-                    │                   CLOUDFLARE                      │
-                    │    DNS, Firewall, "Please don't DDoS me" layer   │
-                    │         Domain: datrollout.dev (nice)             │
-                    │              (Managed by Terraform)               │
-                    └───────────────────────┬──────────────────────────┘
-                                            │
-                                            ▼
-                    ┌──────────────────────────────────────────────────┐
-                    │               UPTIMEROBOT                         │
-                    │     "Is it down? Let me text you at 3 AM"        │
-                    │              (Also Terraform'd)                   │
-                    └───────────────────────┬──────────────────────────┘
-                                            │
-                                            ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              PROXMOX VE (pve-master)                        │
-│                    (The hypervisor that runs everything)                     │
-│                              192.168.1.120                                   │
-│                                                                              │
-│ ═══════════════════════════ 🏭 PRODUCTION ═══════════════════════════════   │
-│                                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │              🐳 UBUNTU-SERVER VM (192.168.1.121)                     │    │
-│  │                    "The Docker Workhorse"                           │    │
-│  │                  (Managed by ansible/core)                          │    │
-│  │                                                                      │    │
-│  │   ══════════════ TRAEFIK v3.6.7 (The Gateway) ══════════════       │    │
-│  │   │ :80/:443 → CrowdSec middleware → Services                │      │    │
-│  │   │ Let's Encrypt SSL via Cloudflare DNS challenge           │      │    │
-│  │   ═══════════════════════════════════════════════════════════       │    │
-│  │                              │                                       │    │
-│  │                              ▼                                       │    │
-│  │   ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐              │    │
-│  │   │  GitLab  │ │Vaultwarden│ │ Jellyfin │ │Nextcloud │              │    │
-│  │   │  CI/CD   │ │ Passwords │ │ "Linux   │ │  Files   │              │    │
-│  │   │  + Repos │ │           │ │  ISOs"   │ │          │              │    │
-│  │   └──────────┘ └──────────┘ └──────────┘ └──────────┘              │    │
-│  │                                                                      │    │
-│  │   ┌──────────┐ ┌──────────┐ ┌──────────┐                           │    │
-│  │   │qBittorrent│ │Agent DVR │ │ useless- │                           │    │
-│  │   │ "Linux   │ │ Cameras  │ │  app.yaml│                           │    │
-│  │   │  ISOs"   │ │  🎥      │ │    ???   │                           │    │
-│  │   └──────────┘ └──────────┘ └──────────┘                           │    │
-│  │                                                                      │    │
-│  │   ┌─────────────────────────────────────────────────────────┐      │    │
-│  │   │              📊 OBSERVABILITY STACK                      │      │    │
-│  │   │  Prometheus │ Grafana │ Loki │ Alloy │ InfluxDB │ cAdvisor    │    │
-│  │   │           "Watching containers die in 4K"                │      │    │
-│  │   └─────────────────────────────────────────────────────────┘      │    │
-│  │                                                                      │    │
-│  │   💾 Backups: restic → rclone → cloud (I learned the hard way)    │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                             │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │              🔬 SONARQUBE VM (192.168.1.125)                         │    │
-│  │                    Code Quality Analysis                            │    │
-│  │           "Yes, I run static analysis on my homelab code"           │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                             │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │                     📦 LXC CONTAINERS                               │    │
-│  │               (Because VMs are too mainstream)                      │    │
-│  │                                                                      │    │
-│  │   ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐      │    │
-│  │   │ PostgreSQL 16   │ │ Kafka           │ │ CoreDNS         │      │    │
-│  │   │ 192.168.99.2    │ │ 192.168.99.x    │ │ 192.168.1.126   │      │    │
-│  │   │ 4GB RAM         │ │ 8GB RAM         │ │ 128MB RAM 😎    │      │    │
-│  │   │ (Private Net)   │ │ (Private Net)   │ │ Alpine Linux    │      │    │
-│  │   └─────────────────┘ └─────────────────┘ └─────────────────┘      │    │
-│  │                                                                      │    │
-│  │   ┌─────────────────┐                                               │    │
-│  │   │ CrowdSec WAF    │                                               │    │
-│  │   │ 192.168.1.127   │ ← "You shall not pass"                        │    │
-│  │   │ LAPI + AppSec   │                                               │    │
-│  │   └─────────────────┘                                               │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                             │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │            🛡️ SECURITY LAYER (The Actually Serious Part)            │    │
-│  │                                                                      │    │
-│  │   ┌──────────────────────────────────────────────────────────────┐  │    │
-│  │   │ TRAEFIK v3.6.7 (192.168.30.50 / :80, :443)                   │  │    │
-│  │   │   • Reverse proxy for all services                           │  │    │
-│  │   │   • Let's Encrypt SSL via Cloudflare DNS challenge          │  │    │
-│  │   │   • Prometheus metrics + access logging                      │  │    │
-│  │   │   • CrowdSec bouncer plugin middleware                       │  │    │
-│  │   │   • Cloudflare trusted IPs (CF-Connecting-IP header)         │  │    │
-│  │   └──────────────────────────────────────────────────────────────┘  │    │
-│  │                              │                                       │    │
-│  │                              ▼                                       │    │
-│  │   ┌──────────────────────────────────────────────────────────────┐  │    │
-│  │   │ CROWDSEC (192.168.1.127) - "The Bouncer"                     │  │    │
-│  │   │   • LAPI on :8080                                            │  │    │
-│  │   │   • AppSec engine on :7422                                   │  │    │
-│  │   │   • Detects: XSS, Path Traversal, Brute Force               │  │    │
-│  │   │   • Mode: LIVE (blocks bad actors in real-time)              │  │    │
-│  │   │   • "You shall not pass" energy                              │  │    │
-│  │   └──────────────────────────────────────────────────────────────┘  │    │
-│  │                                                                      │    │
-│  │   ┌──────────────────────────────────────────────────────────────┐  │    │
-│  │   │ COREDNS (192.168.1.126) - Alpine, 128MB RAM                  │  │    │
-│  │   │   Internal DNS resolution                                    │  │    │
-│  │   └──────────────────────────────────────────────────────────────┘  │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                             │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │               🔐 TELEPORT (192.168.1.122)                           │    │
-│  │                   Zero-Trust Access                                 │    │
-│  │           "SSH but make it enterprise"                              │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                             │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │               🔒 VPN-SERVER (192.168.1.123)                         │    │
-│  │                      OpenVPN                                        │    │
-│  │           "For when you're not at home"                             │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                             │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │              🏛️ HEPHAESTUS (192.168.1.124)                          │    │
-│  │              "Named after the Greek god of craftsmanship"           │    │
-│  │                                                                      │    │
-│  │          GitLab Runner │ GitHub Runner │ Maven │ Go │ K8s Tools     │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                             │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │                     🕵️ THE SENTRY (Planned)                         │    │
-│  │              "Parental Controls via ARP Poisoning"                  │    │
-│  │      Because asking nicely doesn't work on tablets at 1 AM          │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                             │
-│ ═══════════════════════════ 🧪 LAB / DEV ════════════════════════════════   │
-│                                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │                    K3s KUBERNETES CLUSTER                           │    │
-│  │        🚧 LAB ENVIRONMENT ONLY - NOT PRODUCTION 🚧                  │    │
-│  │            (Migration aborted, now it's a playground)               │    │
-│  │                                                                      │    │
-│  │  "I tried to migrate to K8s. K8s won. Now it's where I test things │    │
-│  │   before they go to the real Docker setup. Or break things on      │    │
-│  │   purpose with Chaos Mesh. Mostly the second one."                 │    │
-│  │                                                                      │    │
-│  │   ArgoCD │ Traefik │ Longhorn │ Sealed Secrets │ Chaos Mesh        │    │
-│  │   PostgreSQL │ Redis │ MinIO │ Vaultwarden │ qBittorrent           │    │
-│  │                                                                      │    │
-│  │   Status: ✨ Learning ✨ Testing ✨ Breaking ✨                       │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+
+### Access Management
+
+| Tool       | Purpose                                        |
+|------------|------------------------------------------------|
+| Teleport   | Zero-trust access to SSH and internal services |
+| OpenVPN    | Remote network access with OTP                 |
+
+### Secret Management
+
+| Method          | Scope                                  |
+|-----------------|----------------------------------------|
+| Ansible Vault   | Infrastructure credentials             |
+| Sealed Secrets  | Kubernetes secrets committed to Git    |
 
 ---
 
 ## Repository Structure
 
 ```
-dev-oops/
-├── ansible/                    # Configuration Management
-│   ├── core/                   # 🏭 THE PRODUCTION STUFF
-│   │   ├── inventory.ini      # The network map (192.168.1.x gang)
-│   │   ├── hephaestus/        # CI/CD runners (Greek god = extra cool points)
-│   │   ├── lxc/               # PostgreSQL 16, Kafka in containers
-│   │   │   ├── postgresql/    # The elephant (192.168.99.2)
-│   │   │   └── kafka/         # Message queue for enterprise cosplay
-│   │   ├── teleport/          # Zero-trust access (fancy SSH for fancy people)
-│   │   ├── ubuntu-server/     # THE DOCKER WORKHORSE
-│   │   │   ├── apps/          # GitLab, Jellyfin, Nextcloud, qBittorrent...
-│   │   │   │   └── useless-app.yaml   # Yes, this exists. No, I won't explain.
-│   │   │   ├── basic/         # apt, samba, storage, swap, user management
-│   │   │   ├── observation-and-monitoring/  # Grafana, Prometheus, Loki, Alloy
-│   │   │   └── system-cron/   # Backups via restic (I learned my lesson)
-│   │   └── vpn-server/        # OpenVPN because WireGuard is too easy
-│   ├── kubernetes/            # Kubespray configs (deprecated)
-│   └── sonarqube/             # Code quality (yes, I lint my YAML. Judge me.)
+.
+├── ansible/
+│   ├── core/                          # Production server configuration (the real stuff)
+│   │   ├── inventory.ini              # Ansible inventory (all hosts)
+│   │   ├── ubuntu-server/             # Docker host: apps, basic setup, monitoring, cron
+│   │   ├── hephaestus/                # CI/CD runner provisioning
+│   │   ├── teleport/                  # Zero-trust access proxy
+│   │   ├── vpn-server/                # OpenVPN configuration
+│   │   └── lxc/                       # LXC workloads (PostgreSQL, Kafka)
+│   ├── kubernetes/                    # Kubespray inventory and configuration
+│   ├── sonarqube/                     # SonarQube installation playbook
+│   └── proxmox/                       # Proxmox host configuration
 │
-├── kubernetes/                 # 🧪 LAB ENVIRONMENT ONLY
-│   ├── argocd/                # GitOps playground
-│   │   ├── argocd-app/        # Application definitions
-│   │   │   ├── daemon/        # Kube-Prometheus-Stack, MetalLB
-│   │   │   ├── stateful/      # PostgreSQL, Redis, MinIO, Longhorn, CHAOS MESH
-│   │   │   └── stateless/     # Traefik, Vaultwarden, Sealed Secrets
-│   │   └── argocd-crd/        # ArgoCD itself (it's ArgoCD all the way down)
-│   └── traefik/               # Ingress controller configs
-│   # ⚠️  This is NOT production! Just a place to test K8s concepts
-│   #     and break things with Chaos Mesh before giving up and
-│   #     going back to Docker like a sensible person.
+├── kubernetes/                        # Dev/exploration environment
+│   ├── argocd/
+│   │   ├── argocd-crd/                # ArgoCD installation (Helm)
+│   │   ├── app-of-app/                # App-of-apps Helm chart (values.yaml toggles)
+│   │   └── argocd-app/                # Per-application ArgoCD manifests and values
+│   │       ├── daemon/                # MetalLB, kube-prometheus-stack
+│   │       ├── stateful/              # PostgreSQL, Redis, Chaos Mesh, local-path
+│   │       └── stateless/             # Traefik, Vaultwarden, Sealed Secrets, metrics-server
+│   └── charts/                        # Custom Helm charts (Kafka operator, Mongo operator)
 │
-├── tf/                        # Terraform (Infrastructure as Code)
-│   ├── cloudflare/            # DNS & Storage for datrollout.dev
-│   ├── proxmox/               # VM provisioning
-│   ├── openstack/             # Because why not add another cloud?
-│   ├── uptimerobot/           # "Is it down?" → "Yes, check Discord"
-│   └── terraform-module/      # Reusable modules (I're professionals here)
+├── tf/
+│   ├── proxmox/                       # VM/LXC provisioning, network, cloud-init
+│   ├── cloudflare/
+│   │   ├── dns/                       # DNS records and WAF firewall rules
+│   │   └── storage/                   # R2 bucket for Velero
+│   ├── uptimerobot/                   # External uptime monitors
+│   └── terraform-module/              # Shared Terraform modules (submodule)
 │
-├── disaster-recovery/         # For when things go wrong (often)
-│   └── vaultwarden/           # Python backup scripts to MinIO
-│       └── Backup/            # Because losing passwords is NOT an option
+├── disaster-recovery/
+│   └── vaultwarden/                   # Backup and restore scripts (the most important directory)
 │
-└── plans/                     # Future chaos documentation
-    └── use-side-arm-arp-interception.md   # *chef's kiss* (see below)
+└── plans/                             # Architecture decision records and future plans
 ```
 
 ---
-
-## 🛡️ Security Stack (The Actually Professional Part)
-
-Traffic flows through multiple security layers before reaching any service:
-
-```
-Internet 🌐
-    │
-    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                         CLOUDFLARE                                      │
-│   • DDoS protection ("Please don't hurt me")                           │
-│   • DNS management (datrollout.dev)                                    │
-│   • Firewall rules (Terraform managed)                                 │
-│   • Proxy mode enabled (hides real IP)                                 │
-└────────────────────────────────────────────────────────────────────────┘
-    │ CF-Connecting-IP header
-    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                     TRAEFIK v3.6.7                                      │
-│   • Reverse proxy on 192.168.1.121:80/443                              │
-│   • Let's Encrypt SSL via Cloudflare DNS challenge                     │
-│   • Routes: gitlab, vaultwarden, nextcloud, jellyfin, teleport...      │
-│   • Every request passes through CrowdSec middleware                   │
-│   • Prometheus metrics + structured access logs                        │
-└────────────────────────────────────────────────────────────────────────┘
-    │ crowdsec@file middleware
-    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                     CROWDSEC (192.168.1.127)                            │
-│   LXC Container - "The Bouncer"                                        │
-│                                                                        │
-│   LAPI (:8080)           AppSec Engine (:7422)                         │
-│   ├─ Decision API        ├─ Real-time request analysis                 │
-│   ├─ Ban/Captcha         ├─ HTTP path traversal detection              │
-│   └─ IP reputation       ├─ XSS probing detection                      │
-│                          └─ Generic brute force detection              │
-│                                                                        │
-│   Mode: LIVE (blocks in real-time, not just logging)                   │
-│   Failure behavior: BLOCK (if CrowdSec is down, deny all)              │
-│   "I'd rather break the site than let hackers in"                      │
-└────────────────────────────────────────────────────────────────────────┘
-    │ ✅ Allowed
-    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                      The actual userful services                       │
-│   GitLab │ Vaultwarden │ Nextcloud │ Jellyfin │ SonarQube │ etc.       │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-### Security Scenarios Protected Against
-
-| Attack Type | Detection | Response |
-|-------------|-----------|----------|
-| **Path Traversal** | `crowdsecurity/http-path-traversal-probing` | 403 Forbidden |
-| **XSS Probing** | `crowdsecurity/http-xss-probing` | 403 Forbidden |
-| **Brute Force** | `crowdsecurity/http-generic-bf` | 403 + Temp Ban |
-| **DDoS** | Cloudflare | Mitigation |
-| **Bot Traffic** | CrowdSec community blocklists | 403 Forbidden |
-
-### The "Trust No One" Philosophy
-
-```yaml
-# If CrowdSec AppSec is unreachable:
-crowdsecAppsecUnreachableBlock: true  # BLOCK EVERYTHING
-
-# If CrowdSec fails:
-crowdsecAppsecFailureBlock: true      # BLOCK EVERYTHING
-
-# Translation: "I'd rather explain downtime than a breach"
-```
-
----
-
-## 🕵️ Parental Controls via Cyberwarfare
-
-> **ADR Status:** Accepted  
-> **Codename:** Homelab Sentry  
-> **mAF (mom Acceptance Factor):** Pending review
-
-When `Screen Time` isn't enough and you have a Proxmox server with existential anxiety, you build a **Man-in-the-Middle attack framework** for your home network.
-
-### The Plan
-
-```
-Normal Network:
-iPad 🧒 ──────────────────────────► Router 📡 ──► Internet
-
-After I'm Done:
-iPad 🧒 ──► Sentry VM 🕵️ ──► Router 📡 ──► Internet
-                │
-                └── "Is it 1 AM? DROP PACKET."
-                └── "Is it homework time? Block YouTube DNS."
-                └── "Alert Dad via Telegram Bot."
-```
-
-### Features (Planned)
-- **ARP Poisoning:** Whispers to the iPad: *"I am the router now"*
-- **Time-based blocking:** No internet after 1 AM (the hard way)
-- **DNS Sinkholing:** YouTube resolves to a "Go to bed" page
-- **Telegram Bot:** `/allow 1h` when they've been good
-- **Graceful Shutdown:** Floods correct ARP packets on exit so WiFi doesn't die when Proxmox reboots
-
-### Risks
-- IP conflicts if I mess up broadcasts
-- Explaining to my mom why I'm "hacking the children"
-- Slight latency increase (4K streaming might suffer)
-- The kids might learn networking to fight back
-
----
-
-## The Stack of Chaos
-
-### Infrastructure Layer
-| Tool | Purpose | Status |
-|------|---------|--------|
-| **Proxmox VE** | Hypervisor | 🟢 Running (pve-master) |
-| **Terraform** | Infrastructure as Code | 🟢 Running |
-| **Cloudflare** | DNS & Security | 🟢 Running |
-| **OpenStack** | ??? | 🟡 It's in the tf folder, I'll figure it out |
-
-### Configuration Management
-| Tool | Purpose | Chaos Level |
-|------|---------|-------------|
-| **Ansible** | Server configuration (🏭 PRODUCTION) | 🔥🔥 Medium (YAML indentation trauma) |
-| **ansible/core** | The actual production playbooks | 🔥🔥 Medium (but it works!) |
-| **Kubespray** | K8s deployment | 🔥🔥🔥 Deprecated (I gave up) |
-
-### Container Orchestration
-| Tool | Purpose | Environment | Chaos Level |
-|------|---------|-------------|-------------|
-| **Docker** | Container runtime | 🏭 PRODUCTION | 🔥🔥 Medium (I know this one) |
-| **Traefik** | Reverse proxy & SSL | 🏭 PRODUCTION | 🔥🔥 Medium (middleware inception) |
-| **K3s** | Lightweight Kubernetes | 🧪 LAB ONLY | 🔥🔥🔥🔥 Extreme (it's still Kubernetes) |
-| **ArgoCD** | GitOps deployment | 🧪 LAB ONLY | 🔥🔥 Medium (fun to learn) |
-| **Longhorn** | Distributed storage | 🧪 LAB ONLY | 🔥🔥🔥 High (distributed = distributed problems) |
-| **Chaos Mesh** | Breaking things on purpose | 🧪 LAB ONLY | 🔥🔥🔥🔥🔥 MAXIMUM (by design) |
-
-> **Why K8s is lab-only:** I tried to migrate from Docker to K8s. I really did. But you know what? Docker Compose + Ansible just works™. The K8s cluster now serves as a playground for learning, testing configs, and occasionally running Chaos Mesh to watch pods die for educational purposes.
-
-### Observability (Watching Things Break)
-| Tool | Purpose | Chaos Level |
-|------|---------|-------------|
-| **Prometheus** | Metrics collection | 🔥🔥 Medium |
-| **Grafana** | Pretty dashboards | 🔥 Low (the fun part) |
-| **Loki** | Log aggregation | 🔥🔥 Medium |
-| **Alloy** | Telemetry collector | 🔥🔥 Medium (new hotness) |
-| **InfluxDB** | Time-series DB | 🔥🔥 Medium |
-| **UptimeRobot** | External monitoring | 🔥 Low (it texts me at 3 AM) |
-
-### Applications (The Actual Useful Stuff)
-| App | Purpose | Why |
-|-----|---------|-----|
-| **GitLab** | Git hosting & CI/CD | Self-hosted GitHub at home |
-| **Vaultwarden** | Password manager | Because I can't remember anything |
-| **Nextcloud** | File sync | Google Drive but with more RAM usage |
-| **Jellyfin** | Media server | "Linux ISOs" streaming |
-| **qBittorrent** | Torrent client | For "Linux ISOs" |
-| **Agent DVR** | Security cameras | Watching the driveway, professionally |
-| **PostgreSQL** | Database | The elephant in the room |
-| **Kafka** | Message queue | Because why not? |
-| **Redis** | Cache | Speed |
-| **MinIO** | Object storage | S3 at home (for backups, mostly) |
-| **Teleport** | Zero-trust access | SSH but enterprise-grade |
-| **SonarQube** | Code quality | Yes, I lint my homelab code |
-| **useless-app** | Unknown | The YAML exists. That's all I know. |
-
-### Security Layer
-| Tool | Purpose | Vibe |
-|------|---------|------|
-| **Traefik v3.6.7** | Reverse proxy + SSL | The front door |
-| **CrowdSec** | WAF + Threat detection | The bouncer |
-| **CoreDNS** | Internal DNS | 128MB of pure resolution |
-| **Cloudflare** | DDoS + DNS + CDN | The bodyguard |
-| **Let's Encrypt** | SSL certs | Free HTTPS via DNS challenge |
-
----
-
-## CI/CD: The Hephaestus System
-
-Named after the **Greek god of fire, metalworking, and craftsmanship**, our CI/CD runner infrastructure auto-provisions:
-
-- 🔨 **GitLab Runner** — for the self-hosted git
-- 🐙 **GitHub Runner** — for the cloud repos  
-- ☕ **Maven** — Java builds
-- 🐹 **Golang** — Go builds
-- 🎡 **K8s Tools** — kubectl, helm, the works
-- 🐳 **Docker** — containers all the way down
-
-All managed by Ansible because manually installing runners is for mortals.
-
----
-
-## Lessons Learned (The Hard Way)
-
-### Things I've Broken (So Far)
-
-- [x] Deleted production database (it was just my passwords, no big deal)
-- [x] Ran `terraform destroy` on the wrong workspace
-- [x] Forgot to backup before "quick fix"
-- [x] Locked myself out of my own server
-- [x] Filled up the boot disk with logs
-- [x] Created an infinite ArgoCD sync loop
-- [x] Misconfigured firewall, couldn't SSH in
-- [x] Tried to migrate from Docker to K8s
-- [x] Gave up on K8s migration (Docker + Ansible supremacy)
-- [x] Kept K8s cluster anyway as "learning environment" (cope)
-- [x] Installed Chaos Mesh and immediately regretted it
-- [ ] Successfully ARP-spoofed my kids (coming soon)
-- [ ] Lost data permanently (knock on wood 🪵)
-
-### Lessons Actually Learned
-1. **Always backup Vaultwarden** — hence the Python scripts to MinIO
-2. **Docker + Ansible is fine** — K8s is cool but production uptime is cooler
-3. **K8s is great... for learning** — keep it as a lab, not production
-4. **Chaos Mesh is both amazing and terrifying** — USE WITH CAUTION (in lab only)
-5. **Name things after Greek gods** — makes debugging feel epic
-6. **Document your ARP spoofing plans** — your future self will thank you
-7. **LXC for databases, VMs for apps** — this actually works really well
-
----
-
-## File Highlight Reel
-
-| File | What It Does | Concern Level |
-|------|--------------|---------------|
-| `useless-app.yaml` | Deploys... something? | 🤷 |
-| `use-side-arm-arp-interception.md` | Tactical child network control | 👀 |
-| `delete-crd.sh` | Exactly what it sounds like | 💀 |
-| `chaos-mesh/argo-app.yaml` | Automated breaking things | 🔥 |
-| `backup.sh` (in Vaultwarden) | The most important file | 🙏 |
-
----
-
-## Getting Started (For the Brave)
-
-```bash
-# Step 1: Clone this chaos
-git clone https://github.com/ngodat0103/dev-oops.git
-cd dev-oops
-
-# Step 2: Terraform your cloud resources
-cd tf/cloudflare && terraform init && terraform apply
-
-# Step 3: Ansible your PRODUCTION servers (the real stuff)
-cd ../../ansible/core
-ansible-playbook -i inventory.ini ubuntu-server/basic/apt.yaml       # Base setup
-ansible-playbook -i inventory.ini ubuntu-server/apps/gitlab.yaml     # GitLab
-ansible-playbook -i inventory.ini ubuntu-server/apps/traefik.yaml    # Reverse proxy
-ansible-playbook -i inventory.ini lxc/postgresql/0-manage-postgresql.yaml  # DB
-
-# Step 4: (Optional) Play with K8s lab environment
-cd ../../kubernetes/argocd
-# This is just for learning, not production. Go wild. Break things.
-kubectl apply -f argocd-crd/
-
-# Step 5: Watch it all in Grafana
-# Step 6: Get paged at 3 AM by UptimeRobot
-# Step 7: Fix it half-asleep
-# Step 8: Write a postmortem you'll never read
-# Step 9: Repeat
-```
-
----
-
-## Contributing
-
-This is my personal homelab, so contributions are... unexpected? But if you:
-
-1. Found a security issue → Please tell me (nicely)
-2. Have a suggestion → Open an issue
-3. Want to judge my YAML → Fair enough
-4. Know why `useless-app.yaml` exists → Please enlighten me
-5. Have better parental control ideas than ARP poisoning → I'm listening
-
----
-
-## The Real Architecture
-
-```
-                    ┌─────────────────────────────────────┐
-                    │           My Mental State           │
-                    │                                     │
-                    │    ┌─────────┐     ┌─────────┐     │
-                    │    │ Anxiety │────►│ Coffee  │     │
-                    │    └─────────┘     └────┬────┘     │
-                    │         ▲               │          │
-                    │         │               ▼          │
-                    │    ┌────┴────┐    ┌─────────┐     │
-                    │    │ 3 AM    │◄───│ Alerts  │     │
-                    │    │ Panic   │    └─────────┘     │
-                    │    └─────────┘                     │
-                    └─────────────────────────────────────┘
-```
-
----
-
 ## License
 
-This project is licensed under the **"Works On My Machine"** license.
+This project is licensed under the "Works On My Machine" license.
 
 You're free to:
 - Copy this and break your own stuff
-- Learn from my mistakes  
-- Laugh at my configuration choices
-- Question my parenting techniques
-- Wonder why anyone needs Chaos Mesh at home
+- Learn from my mistakes
+- Judge my configuration choices
+- Wonder why anyone runs Chaos Mesh at home
 
 ---
 
-<p align="center">
-  <i>Powered by caffeine, spite, and 56 Xeon cores that could heat a small apartment.</i>
-</p>
+*Powered by caffeine, spite, and 56 Xeon threads that could heat a small apartment.*

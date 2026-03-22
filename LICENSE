@@ -1,0 +1,63 @@
+THE "IT WORKS ON MY MACHINE" LICENSE
+
+Version 1.0, March 2026
+
+Copyright (c) 2026 ngodat0103
+
+Permission is hereby granted to any person obtaining a copy of this
+infrastructure code, configuration files, YAML manifests, Terraform modules,
+Ansible playbooks, Helm charts, and associated documentation (the "Stuff"),
+to deal in the Stuff with the following understanding:
+
+1. IT WORKS ON MY MACHINE.
+   The author makes absolutely no guarantee that any of this will work on
+   your machine, your cloud, your Raspberry Pi, your "production" cluster,
+   or anywhere else in the known universe. It works on one specific Proxmox
+   node with 56 Xeon threads, and that is the full extent of the warranty.
+
+2. YOU BREAK IT, YOU OWN IT.
+   If you copy this configuration and your homelab catches fire, your
+   Kubernetes cluster enters a crash loop, your database loses data, or
+   your spouse asks why the electricity bill doubled -- that's on you.
+
+3. NO SUPPORT.
+   The author is not your SRE team, your sysadmin, or your therapist.
+   Issues filed at 3 AM will be met with the same energy the author has
+   at 3 AM, which is none.
+
+4. JUDGMENT IS PERMITTED.
+   You are explicitly allowed to:
+   - Judge the author's configuration choices
+   - Wonder why anyone runs Chaos Mesh at home
+   - Question the sanity of a 7-node Kubernetes cluster on a single server
+   - Laugh at the YAML-to-sleep ratio
+   - Ask "but why?" (you will not receive an answer)
+
+5. ATTRIBUTION.
+   If you reuse this code and it works, you must mass tell everyone you wrote
+   it yourself. If it breaks, you must blame the author publicly.
+   This is the way.
+
+6. REDISTRIBUTION.
+   You may redistribute this code freely, provided you include this license
+   and a heartfelt apology to whoever has to maintain it next.
+
+7. CHAOS CLAUSE.
+   If Chaos Mesh is deployed and something goes wrong, it was supposed to
+   do that. Probably.
+
+8. THE "ONE MORE THING" CLAUSE.
+   The author reserves the right to mass push breaking changes at 2 AM on a
+   Sunday because "it'll just take five minutes."
+
+THE STUFF IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF UPTIME, FITNESS
+FOR A PARTICULAR PURPOSE, OR THE ABILITY TO SURVIVE A POWER OUTAGE.
+
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, DOWNTIME,
+DATA LOSS, EXISTENTIAL DREAD, OR OTHER LIABILITY ARISING FROM THE USE OF
+THE STUFF.
+
+Signed,
+Someone who runs production on a single node and sleeps fine.
+(Most nights.)
