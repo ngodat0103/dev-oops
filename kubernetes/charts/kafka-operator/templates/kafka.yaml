@@ -1,0 +1,34 @@
+#yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/kafka.strimzi.io/kafka_v1.json
+apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: kafka-cluster
+  annotations:
+    strimzi.io/node-pools: enabled
+# Deployment specifications
+spec:
+  kafka:
+    # Broker configuration for replication (recommended)
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+    # Listener configuration (required)
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+    # Kafka version (recommended)
+    version: 4.1.1
+    # KRaft metadata version (recommended)
+  # Entity Operator (recommended)
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}

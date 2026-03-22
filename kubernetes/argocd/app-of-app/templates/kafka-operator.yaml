@@ -1,0 +1,27 @@
+{{- if and (.Values.kafkaOperator) (.Values.kafkaOperator.enabled) -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka-operator
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ngodat0103/dev-oops.git
+    path: kubernetes/charts/kafka-operator
+    targetRevision: master
+  destination:
+    name: in-cluster
+    namespace: kafka
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+{{- end -}}
