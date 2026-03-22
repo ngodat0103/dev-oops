@@ -14,3 +14,5 @@ kubePrometheusStack:
   enabled: true
 mongoOperator:
   enabled: true
+kafkaOperator:
+  enabled: true
