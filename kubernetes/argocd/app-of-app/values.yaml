@@ -16,3 +16,5 @@ mongoOperator:
   enabled: true
 kafkaOperator:
   enabled: true
+customManifest:
+  enabled: true

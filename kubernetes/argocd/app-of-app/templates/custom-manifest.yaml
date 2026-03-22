@@ -1,0 +1,25 @@
+{{- if and (.Values.customManifest) (.Values.customManifest.enabled) -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: custom-manifest
+  namespace: argocd
+spec:
+  project: default
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    automated:
+      enabled: false
+      prune: false
+      selfHeal: false
+  destination:
+    namespace: custom-manifest
+    name: in-cluster
+  source:
+    directory:
+      recurse: true
+    repoURL: https://github.com/ngodat0103/home-lab.git
+    targetRevision: master
+    path: kubernetes/argocd/custom-manifest
+{{- end -}}
