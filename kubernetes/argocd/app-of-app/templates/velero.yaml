@@ -22,8 +22,16 @@ spec:
     repoURL: https://vmware-tanzu.github.io/helm-charts/
     targetRevision: 12.0.0
     chart: velero
+    # https://artifacthub.io/packages/helm/vmware-tanzu/velero
     helm:
      values: |
+      initContainers:
+        - name: velero-plugin-for-aws
+          image: velero/velero-plugin-for-aws:v1.13.1
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /target
+              name: plugins
       deployNodeAgent: true
       configuration:
         volumeSnapshotLocation: []
@@ -34,7 +42,9 @@ spec:
             default: true
             accessMode: ReadWrite
             config:
-              S3_ENDPOINT: https://4c8ad4e9fa8213af3fd284bb97b68b5e.r2.cloudflarestorage.com
+              region: auto
+              s3ForcePathStyle: 'true'
+              s3Url: https://4c8ad4e9fa8213af3fd284bb97b68b5e.r2.cloudflarestorage.com
             credential:
               name: velero-secret
               key: r2-cloudflare
