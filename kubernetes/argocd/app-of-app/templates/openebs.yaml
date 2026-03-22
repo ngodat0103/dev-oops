@@ -25,6 +25,51 @@ spec:
     helm:
      ## https://github.com/openebs/openebs/blob/v4.3.3/charts/values.yaml
      values: |
+      loki:
+        enabled: false
+        minio:
+          enabled: false
+      alloy:
+        enabled: false
+      engines:
+        local:
+          lvm:
+            enabled: false
+          zfs:
+            enabled: false
+        replicated:
+          mayastor:
+            enabled: false
+      mayastor:
+        csi:
+          node:
+            initContainers:
+              enabled: false
+        etcd:
+          # -- Kubernetes Cluster Domain
+          clusterDomain: cluster.local
+        localpv-provisioner:
+          enabled: true
+        crds:
+          enabled: false
+        loki:
+          enabled: false
+        alloy:
+          enabled: false
+      lvm-localpv:
+        crds:
+          lvmLocalPv:
+            enabled: false
+          csi:
+            volumeSnapshots:
+              enabled: false
+      zfs-localpv:
+        crds:
+          zfsLocalPv:
+            enabled: false
+          csi:
+            volumeSnapshots:
+              enabled: false
       preUpgradeHook:
         enabled: false
 {{- end }}
