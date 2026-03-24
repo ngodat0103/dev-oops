@@ -1,0 +1,72 @@
+{{- if .Values.loki.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  revisionHistoryLimit: 3
+  destination:
+    namespace: loki
+    name: in-cluster
+  syncPolicy:
+    syncOptions: [ "CreateNamespace=true","ServerSideApply=true" ]
+    automated:
+      enabled: false
+      prune: true
+      selfHeal: true
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 6.55.0
+    chart: loki
+    helm:
+      values: |
+        loki:
+          auth_enabled: false
+          commonConfig:
+            replication_factor: 1
+          storage:
+            type: 'filesystem'
+          schemaConfig:
+            configs:
+            - from: 2024-04-01
+              store: tsdb
+              object_store: filesystem
+              schema: v13
+              index:
+                prefix: loki_index_
+                period: 24h
+        deploymentMode: SingleBinary
+        singleBinary:
+          replicas: 1
+          persistence:
+            enabled: true
+            size: 30Gi
+        chunksCache:
+          enabled: false
+        gateway:
+          enabled: false
+        read:
+          replicas: 0
+        write:
+          replicas: 0
+        backend:
+          replicas: 0
+        ingester:
+          replicas: 0
+        querier:
+          replicas: 0
+        queryFrontend:
+          replicas: 0
+        compactor:
+          replicas: 0
+        ruler:
+          replicas: 0
+        distributor:
+          replicas: 0
+        indexGateway:
+          replicas: 0
+{{- end }}

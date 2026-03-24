@@ -18,3 +18,7 @@ kafkaOperator:
   enabled: true
 customManifest:
   enabled: true
+loki:
+  enabled: true
+alloy:
+  enabled: true

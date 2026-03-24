@@ -1,0 +1,89 @@
+{{- if .Values.alloy.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: alloy
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  revisionHistoryLimit: 3
+  destination:
+    namespace: alloy
+    name: in-cluster
+  syncPolicy:
+    syncOptions: [ "CreateNamespace=true","ServerSideApply=true" ]
+    automated:
+      enabled: false
+      prune: true
+      selfHeal: true
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 1.6.2
+    chart: alloy
+    helm:
+      values: |
+        alloy:
+          mounts:
+           varlog: true
+           dockercontainers: false
+          configMap:
+            create: true
+            content: |
+              discovery.kubernetes "pod" {
+                      role = "pod"
+                      // Restrict to pods on the same node to reduce resource usage
+                      selectors {
+                      role = "pod"
+                      field = "spec.nodeName=" + coalesce(sys.env("HOSTNAME"), constants.hostname)
+                      }
+              }
+              // Relabel and filter discovered pods
+              discovery.relabel "pod_logs" {
+                      targets = discovery.kubernetes.pod.targets
+
+                      rule {
+                      source_labels = ["__meta_kubernetes_namespace"]
+                      action = "replace"
+                      target_label = "namespace"
+                      }
+
+                      rule {
+                      source_labels = ["__meta_kubernetes_pod_name"]
+                      action = "replace"
+                      target_label = "pod"
+                      }
+
+                      rule {
+                      source_labels = ["__meta_kubernetes_pod_container_name"]
+                      action = "replace"
+                      target_label = "container"
+                      }
+
+                      rule {
+                      source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+                      action = "replace"
+                      target_label = "__path__"
+                      separator = "/"
+                      replacement = "/var/log/pods/*$1/*.log"
+                      }
+              }
+
+              // Tail logs from Kubernetes pods
+              loki.source.kubernetes "pod_logs" {
+                      targets = discovery.relabel.pod_logs.output
+                      forward_to = [loki.write.default.receiver]
+              }
+              // Configure Loki endpoint
+              loki.write "default" {
+                      endpoint {
+                      url = "http://loki.loki:3100/loki/api/v1/push"
+                      }
+              }
+        clustering:
+          enabled: false
+        controller:
+          type: 'daemonset'
+
+{{- end }}
