@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Datrollout - Maintenance</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #121a31;
+      --text: #eaf1ff;
+      --muted: #9fb0d6;
+      --accent: #63d2ff;
+      --warn: #ffd166;
+      --ok: #62f2a2;
+      --border: #263659;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at top, #182445 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .card {
+      width: min(760px, 100%);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #4d3d00;
+      background: #2e2400;
+      color: var(--warn);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 14px 0 12px;
+      font-size: clamp(26px, 4vw, 40px);
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .quote {
+      margin: 14px 0 18px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+      color: #c8d6f7;
+      font-style: italic;
+    }
+
+    .status {
+      margin: 18px 0;
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .status strong {
+      color: var(--text);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      display: inline-block;
+      border-radius: 50%;
+      margin-right: 8px;
+      background: var(--ok);
+      box-shadow: 0 0 12px rgba(98, 242, 162, 0.7);
+      vertical-align: middle;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--accent);
+      font-size: 0.95em;
+    }
+
+    footer {
+      margin-top: 14px;
+      font-size: 13px;
+      color: #7f93bf;
+    }
+  </style>
+</head>
+<body>
+  <main class="card" role="main" aria-labelledby="title">
+    <span class="badge">Scheduled Maintenance</span>
+    <h1 id="title">Move fast and break things.<br>Right now I am fixing the broken part.</h1>
+
+    <p class="quote">"I moved fast. Things are broken." - Homelab Operator, probably at 3 AM</p>
+
+    <p>
+      The service is temporarily unavailable while infrastructure upgrades are in progress.
+      I am patching things, restarting things, and politely asking YAML to cooperate.
+    </p>
+
+    <section class="status" aria-label="Maintenance status">
+      <div><span class="dot" aria-hidden="true"></span><strong>Status:</strong> Maintenance in progress</div>
+      <div><strong>Environment:</strong> <code>datrollout.dev</code></div>
+      <div><strong>Expected behavior:</strong> Intermittent downtime and dramatic logs</div>
+    </section>
+
+    <p>
+      Please check back in a bit. If this page still appears after a long coffee break,
+      the cluster and I are having another deep philosophical conversation.
+    </p>
+
+    <footer>
+      Powered by caffeine, optimism, and one overworked homelab.
+    </footer>
+  </main>
+</body>
+</html>
