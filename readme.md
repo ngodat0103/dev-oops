@@ -119,7 +119,30 @@ One server. Everything runs on one server. Yes, the "cluster" too. No, it's not 
 | Docker internal      | 192.168.30.0/24    | Bridge network for Docker containers on ubuntu-server |
 | MetalLB pool         | 192.168.1.230-240  | Kubernetes LoadBalancer IP range     |
 
-DNS is managed via Cloudflare with proxied CNAME records for all public-facing services. Terraform manages all DNS records and firewall rules, because doing it by hand in a web console is how incidents start.
+DNS is managed via Cloudflare and Terraform, because doing it by hand in a web console is how incidents start.
+
+**Public DNS (proxied CNAME via Cloudflare):**
+
+| Record                          | Type  | Proxied | Target        |
+|---------------------------------|-------|---------|---------------|
+| nextcloud.datrollout.dev        | CNAME | Yes     | DDNS endpoint |
+| gitlab.datrollout.dev           | CNAME | Yes     | DDNS endpoint |
+| bitwarden.datrollout.dev        | CNAME | Yes     | DDNS endpoint |
+| sonarqube.datrollout.dev        | CNAME | Yes     | DDNS endpoint |
+| loki.datrollout.dev             | CNAME | Yes     | DDNS endpoint |
+| prometheus.datrollout.dev       | CNAME | Yes     | DDNS endpoint |
+| grafana.datrollout.dev          | CNAME | Yes     | DDNS endpoint |
+
+**Internal DNS (unproxied A records pointing to K8s Traefik at `192.168.1.232`):**
+
+| Record                          | Type | Proxied | Target          |
+|---------------------------------|------|---------|-----------------|
+| core-harbor.datrollout.dev      | A    | No      | 192.168.1.232   |
+| kafka-ui.datrollout.dev         | A    | No      | 192.168.1.232   |
+| pgadmin4.datrollout.dev         | A    | No      | 192.168.1.232   |
+| argocd.datrollout.dev           | A    | No      | 192.168.1.232   |
+
+Internal records resolve to the Kubernetes Traefik ingress (via MetalLB) and are only reachable from the local network or VPN.
 
 ---
 
