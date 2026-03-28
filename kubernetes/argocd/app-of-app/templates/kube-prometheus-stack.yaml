@@ -60,6 +60,11 @@ spec:
             traefik.ingress.kubernetes.io/router.tls: "true"
             traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
       grafana:
+        sidecar:
+          dashboards:
+            enabled: true
+            label: grafana_dashboard
+            searchNamespace: ALL
         admin:
           existingSecret: grafana-admin
           userKey: admin-user
@@ -82,6 +87,16 @@ spec:
             version: 1
       prometheus:
         prometheusSpec:
+          podMonitorSelectorNilUsesHelmValues: false
+          podMonitorNamespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: Exists   # matches ALL namespaces
+          serviceMonitorSelectorNilUsesHelmValues: false
+          serviceMonitorNamespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: Exists
           retention: 14d
           retentionSize: 15GiB
           storageSpec:
