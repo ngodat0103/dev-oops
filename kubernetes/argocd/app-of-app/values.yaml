@@ -26,3 +26,5 @@ pgadmin4:
   enabled: true
 harbor:
   enabled: false ## unstable
+sonarqube:
+  enabled: true

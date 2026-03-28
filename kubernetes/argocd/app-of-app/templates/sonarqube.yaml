@@ -1,0 +1,66 @@
+{{- if and (.Values.sonarqube) (.Values.sonarqube.enabled) -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sonarqube
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://SonarSource.github.io/helm-chart-sonarqube
+    chart: sonarqube
+    targetRevision: 2026.2.0
+    helm:
+      values: |
+        revisionHistoryLimit: 3
+        monitoringPasscode: somePassCode
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 6144M
+            ephemeral-storage: 5120M
+          requests:
+            cpu: 500m
+            memory: 2048M
+            ephemeral-storage: 1536M
+        community:
+          enabled: true
+        persistence:
+          enabled: true
+          size: 30Gi
+        jdbcOverwrite:
+          enabled: true
+          jdbcUrl: "jdbc:postgresql://postgresql-rw.prod-postgresql/sonarqube"
+          jdbcUsername: sonarqube
+          jdbcSecretName: sonarqube
+          jdbcSecretPasswordKey: password
+        ingress:
+          enabled: true
+          annotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: websecure
+            traefik.ingress.kubernetes.io/router.tls: "true"
+            traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+          hosts:
+          - name: sonarqube.datrollout.dev
+        prometheusMonitoring:
+          podMonitor:
+            enabled: true
+  destination:
+    name: in-cluster
+    namespace: sonarqube
+  syncPolicy:
+    automated:
+      enabled: false
+      prune: false
+      selfHeal: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+{{- end -}}
