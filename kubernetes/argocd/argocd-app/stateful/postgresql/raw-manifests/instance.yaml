@@ -13,6 +13,9 @@ spec:
   resources:
     limits:
       memory: 2Gi
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: postgres-admin
   managed:
     services:
       additional:
@@ -36,20 +39,28 @@ spec:
       superuser: false
       passwordSecret:
         name: vaultwarden-db
-    - name: gitlab
+    # - name: gitlab
+    #   ensure: present
+    #   comment: "Role for Gitlab"
+    #   login: true
+    #   superuser: false
+    #   passwordSecret:
+    #     name: gitlab-db
+    # - name: nextcloud
+    #   comment: Role for nextcloud
+    #   login: true
+    #   superuser: false
+    #   ensure: present
+    #   passwordSecret:
+    #     name: nextcloud-db
+    - name: pgadmin_monitor
       ensure: present
-      comment: "Role for Gitlab"
       login: true
       superuser: false
       passwordSecret:
-        name: gitlab-db
-    - name: nextcloud
-      comment: Role for nextcloud
-      login: true
-      superuser: false
-      ensure: present
-      passwordSecret:
-        name: nextcloud-db
+        name: pgadmin-monitor-credentials
+      inRoles:
+      - pg_monitor
   instances: 3
   storage:
     size: 30Gi
