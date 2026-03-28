@@ -1,0 +1,58 @@
+{{- if .Values.pgadmin4.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pgadmin4
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  revisionHistoryLimit: 3
+  destination:
+    namespace: pgadmin4
+    name: in-cluster
+  syncPolicy:
+    syncOptions: [ "ServerSideApply=true", "CreateNamespace=true" ]
+    automated:
+      enabled: true
+      selfHeal: true
+      prune: true
+  sources:
+  - repoURL: https://helm.runix.net
+    targetRevision: 1.62.0
+    chart: pgadmin4
+    helm:
+      values: |
+        revisionHistoryLimit: 2
+        replicaCount: 1
+        env:
+          email: ngovuminhdat@gmail.com
+          enhanced_cookie_protection: "False"
+        existingSecret: pgadmin4-secret
+        secretKeys:
+          pgadminPasswordKey: password
+        persistentVolume:
+          enabled: true
+          size: 5Gi
+          accessMode: ReadWriteOnce
+        ingress:
+          enabled: true
+          annotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: websecure
+            traefik.ingress.kubernetes.io/router.tls: "true"
+            traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+          hosts:
+          - host: pgadmin4.datrollout.dev
+            paths:
+            - path: /
+              pathType: Prefix
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            memory: 1024Mi
+        networkPolicy:
+          enabled: false
+{{- end }}
