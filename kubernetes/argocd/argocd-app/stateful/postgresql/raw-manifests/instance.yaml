@@ -16,6 +16,8 @@ spec:
   enableSuperuserAccess: true
   superuserSecret:
     name: postgres-admin
+  monitoring:
+    enablePodMonitor: true
   managed:
     services:
       additional:
