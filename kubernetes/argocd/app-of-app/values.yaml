@@ -24,3 +24,5 @@ alloy:
   enabled: true
 pgadmin4:
   enabled: true
+harbor:
+  enabled: true

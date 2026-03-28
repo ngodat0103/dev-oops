@@ -282,7 +282,7 @@ module "k8s_workers" {
   tags              = ["development", "kubernetes-workers"]
   boot_disk_size    = 100
   gateway           = "192.168.1.1"
-  memory            = 1024 * 5
+  memory            = 1024 * 8
   cpu_cores         = 4
   cpu_type = "host"
   node_name         = local.node_name
