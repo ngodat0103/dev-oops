@@ -25,4 +25,4 @@ alloy:
 pgadmin4:
   enabled: true
 harbor:
-  enabled: true
+  enabled: false ## unstable

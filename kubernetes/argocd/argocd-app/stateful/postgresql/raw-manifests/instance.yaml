@@ -34,13 +34,20 @@ spec:
           spec:
             type: LoadBalancer
     roles:
-    - name: vaultwarden
+    - name: sonarqube
       ensure: present
-      comment: Role for Vaultwarden
+      comment: Role for Sonarqube
       login: true
       superuser: false
       passwordSecret:
-        name: vaultwarden-db
+        name: sonarqube
+    # - name: vaultwarden
+    #   ensure: present
+    #   comment: Role for Vaultwarden
+    #   login: true
+    #   superuser: false
+    #   passwordSecret:
+    #     name: vaultwarden-db
     # - name: gitlab
     #   ensure: present
     #   comment: "Role for Gitlab"

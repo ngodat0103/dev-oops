@@ -111,7 +111,7 @@ module "ubuntu_server" {
   ip_address        = "192.168.1.121/24"
   hostname          = "ubuntu-server.local"
   bridge_name       = "vmbr0"
-  memory            = 1024 * 16
+  memory            = 1024 * 12
   gateway           = local.lan_gateway
   protection        = true
   vm_id             = 101
