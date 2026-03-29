@@ -11,8 +11,12 @@ spec:
   # According to requirement of Gitlab
   # https://docs.gitlab.com/install/requirements/#postgresql-tuning
   resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
     limits:
-      memory: 2Gi
+      cpu: "1"
+      memory: 512Mi
   enableSuperuserAccess: true
   superuserSecret:
     name: postgres-admin
