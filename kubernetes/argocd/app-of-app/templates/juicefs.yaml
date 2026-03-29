@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: juicefs
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   revisionHistoryLimit: 3
   project: default
@@ -11,7 +13,7 @@ spec:
     automated:
       enabled: false
       selfHeal: false
-      prune: false
+      prune: true
   destination:
     namespace: juicefs
     name: in-cluster
@@ -19,14 +21,24 @@ spec:
     repoURL: https://charts.wener.tech
     chart: juicefs-csi-driver
     targetRevision: 0.31.4
+    # https://artifacthub.io/packages/helm/wener/juicefs-csi-driver?modal=values
     helm:
       values: |
+        mountMode: mountpod
+        webhook:
+          certManager:
+            enabled: false
+        controller:
+          replicas: 1
         storageClasses:
           - name: "juicefs-sc-cloudflare-r2"
             enabled: true
             existingSecret: "cloudflare-r2"
             reclaimPolicy: Retain
-            allowVolumeExpansion: true              
+            allowVolumeExpansion: true
+            mountOptions:
+             - debug
+             - cache-size=2048     
         dashboard:
           ingress:
             enabled: true

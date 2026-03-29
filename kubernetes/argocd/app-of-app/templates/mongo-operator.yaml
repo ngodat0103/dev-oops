@@ -16,6 +16,10 @@ spec:
     name: in-cluster
     namespace: mongo
   syncPolicy:
+    automated:
+      enabled: false
+      selfHeal: false
+      prune: false
     syncOptions:
       - CreateNamespace=true
     retry:

@@ -1,0 +1,38 @@
+{{- if and (.Values.vaultwarden) (.Values.vaultwarden.enabled) -}}
+apiVersion: "argoproj.io/v1alpha1"
+kind: Application
+metadata:
+  name: vaultwarden
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  revisionHistoryLimit: 3
+  project: default
+  syncPolicy:
+    automated:
+      enabled: false
+      prune: false
+      selfHeal: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+  destination:
+    namespace: vaultwarden
+    name: in-cluster
+  sources:
+  - helm:
+      valueFiles:
+      - "$config/kubernetes/argocd/argocd-app/stateless/vaultwarden/helm/values.yaml"
+    repoURL: "https://guerzon.github.io/vaultwarden"
+    chart: vaultwarden
+    targetRevision: 0.35.1
+  - repoURL: "https://github.com/ngodat0103/home-lab.git"
+    targetRevision: master
+    ref: "config"
+{{- end -}}

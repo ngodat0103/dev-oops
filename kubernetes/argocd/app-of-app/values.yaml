@@ -28,3 +28,7 @@ harbor:
   enabled: false ## unstable
 sonarqube:
   enabled: true
+juicefs:
+  enabled: true
+vaultwarden:
+  enabled: true
