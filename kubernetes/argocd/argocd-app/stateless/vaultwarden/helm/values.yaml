@@ -13,7 +13,7 @@ image:
   ## @param image.tag Vaultwarden image tag
   ## Ref: https://hub.docker.com/r/vaultwarden/server/tags
   ##
-  tag: "1.33.2-alpine"
+  tag: "1.35.2"
   ## @param image.pullPolicy Vaultwarden image pull policy
   ## ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
   ##
@@ -54,7 +54,7 @@ replicas: 1
 
 ## @param fullnameOverride String to override the application name.
 ##
-fullnameOverride: ""
+fullnameOverride: "vaultwarden"
 
 ## @param resourceType Can be either Deployment or StatefulSet
 ## Overwrite automatic resource type detection by specifying the resource type
@@ -83,24 +83,24 @@ podLabels: {}
 
 ## @param initContainers extra init containers for initializing the vaultwarden instance
 ##
-initContainers:
-- name: setup-rsa-key
-  image: busybox
-  command:
-  - "sh"
-  - "-c"
-  - |-
-    echo "$RSA_KEY" | sed 's/" "/\n/g' > /data/rsa_key.pem
-    chmod 400 /data/rsa_key.pem
-  env:
-  - name: RSA_KEY
-    valueFrom:
-      secretKeyRef:
-        key: rsa_key.pem
-        name: vaultwarden
-  volumeMounts:
-  - name: vaultwarden-data
-    mountPath: "/data"
+initContainers: []
+# - name: setup-rsa-key
+#   image: busybox
+#   command:
+#   - "sh"
+#   - "-c"
+#   - |-
+#     echo "$RSA_KEY" | sed 's/" "/\n/g' > /data/rsa_key.pem
+#     chmod 400 /data/rsa_key.pem
+#   env:
+#   - name: RSA_KEY
+#     valueFrom:
+#       secretKeyRef:
+#         key: rsa_key.pem
+#         name: vaultwarden
+#   volumeMounts:
+#   - name: vaultwarden-data
+#     mountPath: "/data"
 
 ## @param sidecars extra containers running alongside the vaultwarden instance
 ##
@@ -125,7 +125,7 @@ tolerations: []
 ## @param serviceAccount.name Name of the service account to create
 ##
 serviceAccount:
-  create: true
+  create: false
   name: "vaultwarden-svc"
 
 ## @param podSecurityContext Pod security options
@@ -203,7 +203,7 @@ readinessProbe:
 startupProbe:
   ## @param startupProbe.enabled Enable startup probe
   ##
-  enabled: false
+  enabled: true
   ## @param startupProbe.initialDelaySeconds Delay before startup probe is initiated
   ##
   initialDelaySeconds: 5
@@ -234,12 +234,11 @@ resources:
     memory: 50Mi
 ## @param strategy Resource configurations
 ##
-strategy: {}
-  # type: RollingUpdate
-  # rollingUpdate:
-  #   maxSurge: 1
-  #   maxUnavailable: 0
-
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
 podDisruptionBudget:
   ## @param podDisruptionBudget.enabled Enable PodDisruptionBudget settings
   # ref: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
@@ -268,8 +267,8 @@ storage:
   ##
   data:
     name: "vaultwarden-data"
-    size: "2Gi"
-    class: "longhorn"
+    size: "3Gi"
+    class: "juicefs-sc-cloudflare-r2"
     path: "/data"
     keepPvc: true
     accessMode: "ReadWriteOnce"
@@ -277,9 +276,9 @@ storage:
   ## By default, attachments/ is located inside the data directory.
   ##
   attachments:
-    name: "vaultwarden-files"
-    size: "2Gi"
-    class: "longhorn"
+    name: "vaultwarden-attachments"
+    size: "3Gi"
+    class: "juicefs-sc-cloudflare-r2"
     path: /files
     keepPvc: true
     accessMode: "ReadWriteOnce"
@@ -298,7 +297,7 @@ database:
   type: "postgresql"
   ## @param database.host Database hostname or IP address
   ##
-  host: "postgresql-rw.database"
+  host: "postgresql-rw.prod-postgresql"
   ## @param database.port Database port
   ## Default for MySQL is 3306, default for PostgreSQL is 5432
   port: "5432"
@@ -316,7 +315,7 @@ database:
   uriOverride: ""
   ## @param database.existingSecret Name of an existing secret containing the database URI
   ##
-  existingSecret: "vaultwarden"
+  existingSecret: "vaultwarden-db"
   ## @param database.existingSecretKey Key in the existing secret
   ##
   existingSecretKey: "DATABASE_URL"
