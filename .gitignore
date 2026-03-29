@@ -39,7 +39,7 @@ Session.vim
 crash.log
 
 test/fixtures/shared/terraform.tfvars
-
+vaultwarden-data.sql
 test/integration/gcloud/config.sh
 test/integration/tmp
 

@@ -59,7 +59,7 @@ fullnameOverride: "vaultwarden"
 ## @param resourceType Can be either Deployment or StatefulSet
 ## Overwrite automatic resource type detection by specifying the resource type
 ##
-resourceType: ""
+resourceType: "StatefulSet"
 
 ## @param commonAnnotations Annotations for the deployment or statefulset
 ##
@@ -84,24 +84,6 @@ podLabels: {}
 ## @param initContainers extra init containers for initializing the vaultwarden instance
 ##
 initContainers: []
-# - name: setup-rsa-key
-#   image: busybox
-#   command:
-#   - "sh"
-#   - "-c"
-#   - |-
-#     echo "$RSA_KEY" | sed 's/" "/\n/g' > /data/rsa_key.pem
-#     chmod 400 /data/rsa_key.pem
-#   env:
-#   - name: RSA_KEY
-#     valueFrom:
-#       secretKeyRef:
-#         key: rsa_key.pem
-#         name: vaultwarden
-#   volumeMounts:
-#   - name: vaultwarden-data
-#     mountPath: "/data"
-
 ## @param sidecars extra containers running alongside the vaultwarden instance
 ##
 sidecars: []
@@ -623,7 +605,7 @@ duo:
 smtp:
   ## @param smtp.existingSecret Name of an existing secret containing the SMTP username and password. Also set smtp.username.existingSecretKey and smtp.password.existingSecretKey.
   ##
-  existingSecret: "vaultwarden"
+  existingSecret: "vaultwarden-smtp"
   ## @param smtp.host SMTP host
   ##
   host: "smtp.gmail.com"

@@ -14,6 +14,12 @@ spec:
       enabled: false
       selfHeal: false
       prune: true
+    retry:
+      limit: 1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
   destination:
     namespace: juicefs
     name: in-cluster
@@ -37,8 +43,13 @@ spec:
             reclaimPolicy: Retain
             allowVolumeExpansion: true
             mountOptions:
-             - debug
-             - cache-size=2048     
+              - cache-size=10240
+              - free-space-ratio=0.1
+              - prefetch=3
+              - max-readahead=67108864
+              - open-cache=3
+              - attr-cache=3
+              - entry-cache=3
         dashboard:
           ingress:
             enabled: true
