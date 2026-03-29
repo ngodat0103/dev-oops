@@ -1,0 +1,43 @@
+{{- if and (.Values.juicefs) (.Values.juicefs.enabled) -}}
+apiVersion: "argoproj.io/v1alpha1"
+kind: Application
+metadata:
+  name: juicefs
+  namespace: argocd
+spec:
+  revisionHistoryLimit: 3
+  project: default
+  syncPolicy:
+    automated:
+      enabled: false
+      selfHeal: false
+      prune: false
+  destination:
+    namespace: juicefs
+    name: in-cluster
+  source:
+    repoURL: https://charts.wener.tech
+    chart: juicefs-csi-driver
+    targetRevision: 0.31.4
+    helm:
+      values: |
+        storageClasses:
+          - name: "juicefs-sc-cloudflare-r2"
+            enabled: true
+            existingSecret: "cloudflare-r2"
+            reclaimPolicy: Retain
+            allowVolumeExpansion: true              
+        dashboard:
+          ingress:
+            enabled: true
+            className: "traefik"
+            annotations:
+              traefik.ingress.kubernetes.io/router.entrypoints: websecure
+              traefik.ingress.kubernetes.io/router.tls: "true"
+              traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+            hosts:
+             - host: "juicefs.datrollout.dev"
+               paths:
+                - path: /
+                  pathType: ImplementationSpecific
+{{- end -}}

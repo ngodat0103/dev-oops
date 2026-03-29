@@ -186,3 +186,58 @@ grep -o 'avx' /proc/cpuinfo
 The VMs now pass through the physical host's exact CPU feature set. MongoDB detects the required AVX instructions, successfully initializes, and the pods reach a ready state without crashing. 🟢
 
 ---
+
+Here is the documentation for the file descriptor issue, formatted exactly like the previous one to maintain a professional, standardized knowledge base.
+
+***
+
+## Issue 7: JuiceFS CSI Node "Too Many Open Files" Error Co-located with SonarQube
+
+**Situation:**
+A JuiceFS CSI node driver pod on a Kubernetes worker node (`worker-nodes-1`) failed to initialize, resulting in a `fail to load config` and `too many open files` error. The worker node was also hosting SonarQube (backed by Elasticsearch), which is highly intensive on file descriptors. While the system-wide file capacity was sufficient, the default per-process soft limit (1,024) was too low, causing JuiceFS to crash upon startup when attempting to open its required sockets and cache files.
+
+**Task:**
+Increase both the system-wide and per-process file descriptor limits on the host machine, and ensure the running Kubernetes pods inherit these updated limits to allow JuiceFS and SonarQube to operate simultaneously.
+
+**Action:**
+
+**1. Increase Host-Level File Limits**
+Append higher limits to the user security configuration and the system kernel parameters to provide adequate headroom.
+
+```bash
+# Update per-process limits for the root user
+echo "root soft nofile 65536" >> /etc/security/limits.conf
+echo "root hard nofile 65536" >> /etc/security/limits.conf
+
+# Update system-wide maximum file limit
+echo "fs.file-max = 2097152" >> /etc/sysctl.conf
+
+# Apply the kernel parameter changes
+sysctl -p
+```
+
+**2. Restart Kubernetes Resources to Inherit Limits**
+Resource limits are evaluated only at process startup. Modifying host configurations does not affect running containers. The affected DaemonSets and pods must be forcefully restarted to capture the new "snapshot" of the host's resource limits.
+
+```bash
+# Restart the JuiceFS CSI Node DaemonSet
+kubectl rollout restart daemonset juicefs-csi-node -n kube-system
+
+# Delete any lingering mount pods to force recreation
+kubectl delete pods -n kube-system -l app.kubernetes.io/name=juicefs-mount
+```
+
+**3. Verify the Applied Limits**
+Confirm that the newly spawned JuiceFS process successfully inherited the 65,536 limit from the host environment.
+
+```bash
+# Find the new Process ID for JuiceFS and check its specific limits
+PID=$(pgrep -f juicefs | head -n 1)
+cat /proc/$PID/limits | grep "Max open files"
+```
+> If successful, the output will display `Max open files` as `65536` for both the soft and hard limits.
+
+**Result:**
+The JuiceFS pods successfully inherited the expanded file descriptor limits upon recreation. The CSI node driver and mount pods initialized without resource exhaustion errors, allowing both JuiceFS and SonarQube to run stably on the same worker node.
+
+**
