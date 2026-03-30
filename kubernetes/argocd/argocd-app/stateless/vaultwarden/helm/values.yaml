@@ -59,7 +59,7 @@ fullnameOverride: "vaultwarden"
 ## @param resourceType Can be either Deployment or StatefulSet
 ## Overwrite automatic resource type detection by specifying the resource type
 ##
-resourceType: "StatefulSet"
+resourceType: "Deployment"
 
 ## @param commonAnnotations Annotations for the deployment or statefulset
 ##
@@ -209,10 +209,10 @@ startupProbe:
 ##
 resources:
   limits:
-    cpu: 100m
-    memory: 100Mi
+    cpu: 1000m
+    memory: 256Mi
   requests:
-    cpu: 50m
+    cpu: 100m
     memory: 50Mi
 ## @param strategy Resource configurations
 ##
@@ -252,14 +252,14 @@ storage:
     size: "3Gi"
     class: "juicefs-sc-cloudflare-r2"
     path: "/data"
-    keepPvc: true
+    keepPvc: false
     accessMode: "ReadWriteOnce"
   ## @param storage.attachments Attachments directory configuration, refer to values.yaml for parameters.
   ## By default, attachments/ is located inside the data directory.
   ##
   attachments:
     name: "vaultwarden-attachments"
-    size: "3Gi"
+    size: "5Gi"
     class: "juicefs-sc-cloudflare-r2"
     path: /files
     keepPvc: true
