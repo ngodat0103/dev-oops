@@ -24,6 +24,25 @@ spec:
     storage.wiredTiger.engineConfig.journalCompressor: zlib
   statefulSet:
     spec:
+      template:
+        spec:
+          containers:
+            - name: mongod
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "450Mi"
+                limits:
+                  cpu: "100m"
+                  memory: "450Mi"
+            - name: mongodb-agent
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "50Mi"
+                limits:
+                  cpu: "100m"
+                  memory: "100Mi"
       volumeClaimTemplates:
         - metadata:
             name: data-volume
