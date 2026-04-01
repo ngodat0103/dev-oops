@@ -29,6 +29,6 @@ harbor:
 sonarqube:
   enabled: true
 juicefs:
-  enabled: true
+  enabled: false
 vaultwarden:
   enabled: true
