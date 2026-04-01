@@ -22,6 +22,7 @@ spec:
       scramCredentialsSecretName: mongodb-app-scram
   additionalMongodConfig:
     storage.wiredTiger.engineConfig.journalCompressor: zlib
+    storage.wiredTiger.engineConfig.cacheSizeGB: 0.256
   statefulSet:
     spec:
       template:
