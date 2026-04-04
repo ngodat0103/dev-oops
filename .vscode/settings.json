@@ -18,7 +18,8 @@
                         "file:///home/akira/code/home-lab/ansible/proxmox/alloy.yaml",
                         "file:///home/akira/code/home-lab/ansible/core/lxc/postgresql/apt.yaml",
                         "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/apps/traefik.yaml",
-                        "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/apps/qbittorrent.yaml"
+                        "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/apps/qbittorrent.yaml",
+                        "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/observation-and-monitoring/prometheus/0-manage.yaml"
                 ],
                 "https://json.schemastore.org/traefik-v2.json": [
                         "file:///home/akira/code/home-lab/ansible/docker/services/files/traefik.yaml",

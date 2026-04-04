@@ -33,8 +33,10 @@
       name: prometheus
       image: prom/prometheus:v3.5.0@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996
       command: ['--storage.tsdb.retention.time=14d','--config.file=/etc/prometheus/prometheus.yml']
-      memory: 256M
-      cpus: 0.5
+      memory_reservation: 1G
+      memory: 2G
+      memory_swap: 10G
+      cpus: 3
       state: started
       restart_policy: always
       healthcheck:
