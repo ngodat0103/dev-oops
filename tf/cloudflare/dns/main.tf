@@ -11,7 +11,8 @@ locals {
   zone_id              = "ab6606e8b3aad0b66008eb26f2dd3660"
   share_comment        = "Managed by Terraform"
   account_id           = "4c8ad4e9fa8213af3fd284bb97b68b5e"
-  traefik_internal_ip= "192.168.1.232"
+  traefik_k8s_lan_ip= "192.168.1.232"
+  traefik_docker_ip = "192.168.1.121"
 }
 module "ddns_records" {
   source               = "git::https://github.com/ngodat0103/terraform-module.git//cloudflare/dns-records?ref=9efc538229c94814818587dccad17a7ccf878310"
@@ -25,15 +26,7 @@ module "ddns_records" {
       proxied = true
       ttl     = 360
     }
-    gitlab = {
-      type    = "CNAME"
-      proxied = true
-    }
     bitwarden = {
-      type    = "CNAME"
-      proxied = true
-    }
-    sonarqube = {
       type    = "CNAME"
       proxied = true
     }
@@ -49,30 +42,41 @@ module "ddns_records" {
       type    = "CNAME"
       proxied = true
     }
-
     // Internal services
     core-harbor = {
       type    = "A"
       proxied = false
-      content = local.traefik_internal_ip
+      content = local.traefik_k8s_lan_ip
       ttl     = 1
     }
     kafka-ui = {
       type    = "A"
       proxied = false
-      content = local.traefik_internal_ip
+      content = local.traefik_k8s_lan_ip
       ttl     = 1
     }
     pgadmin4 = {
       type    = "A"
       proxied = false
-      content = local.traefik_internal_ip
+      content = local.traefik_k8s_lan_ip
       ttl     = 1
     }
     argocd = {
       type    = "A"
       proxied = false
-      content = local.traefik_internal_ip
+      content = local.traefik_k8s_lan_ip
+      ttl     = 1
+    }
+    jellyfin = {
+      type    = "A"
+      proxied = false
+      content = local.traefik_docker_ip
+      ttl     = 1
+    }
+    gitlab = {
+      type    = "A"
+      proxied = false
+      content = local.traefik_docker_ip
       ttl     = 1
     }
   }
