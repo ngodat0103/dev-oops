@@ -21,7 +21,7 @@
 *.un~
 Session.vim
 .netrwhist
-
+.scannerwork
 # IntelliJ IDEA files:
 .idea/
 

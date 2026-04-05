@@ -13,22 +13,24 @@ spec:
     chart: sonarqube
     targetRevision: 2026.2.0
     helm:
+      # https://artifacthub.io/packages/helm/sonarqube/sonarqube/2026.2.0?modal=values
       values: |
         revisionHistoryLimit: 3
+        deploymentType: Deployment
         monitoringPasscode: somePassCode
         resources:
           limits:
-            cpu: 2000m
+            cpu: 4000m
             memory: 6144M
-            ephemeral-storage: 5120M
+            ephemeral-storage: 50Gi
           requests:
-            cpu: 500m
-            memory: 2048M
-            ephemeral-storage: 1536M
+            cpu: 4000m
+            memory: 6144M
+            ephemeral-storage: 50Gi
         community:
           enabled: true
         persistence:
-          enabled: true
+          enabled: false # not important. This just stores elastic cache; not a big deal.
           size: 30Gi
         jdbcOverwrite:
           enabled: true
