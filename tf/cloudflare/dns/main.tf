@@ -67,6 +67,12 @@ module "ddns_records" {
       content = local.traefik_k8s_lan_ip
       ttl     = 1
     }
+    sonarqube = {
+      type    = "A"
+      proxied = false
+      content = local.traefik_k8s_lan_ip
+      ttl     = 1
+    }
     jellyfin = {
       type    = "A"
       proxied = false

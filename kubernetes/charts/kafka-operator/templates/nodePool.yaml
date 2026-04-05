@@ -20,10 +20,14 @@ spec:
   resources:
     requests:
       memory: 512Mi
-      cpu: 100m
+      cpu: 300m
     limits:
-      memory: 1Gi
-      cpu: 500m
+      memory: 512Mi
+      cpu: 1000m
   jvmOptions:
     -Xms: 256m
     -Xmx: 256m
+    javaSystemProperties:
+      - name: log4j2.formatMsgNoLookups
+        value: "true"
+    gcLoggingEnabled: false

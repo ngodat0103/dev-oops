@@ -15,7 +15,7 @@ kubePrometheusStack:
 mongoOperator:
   enabled: true
 kafkaOperator:
-  enabled: true
+  enabled: false
 customManifest:
   enabled: true
 loki:

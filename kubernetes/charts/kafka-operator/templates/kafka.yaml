@@ -14,7 +14,7 @@ spec:
       transaction.state.log.replication.factor: 3
       transaction.state.log.min.isr: 2
       default.replication.factor: 3
-      min.insync.replicas: 2
+      min.insync.replicas: 1
     # Listener configuration (required)
     listeners:
       - name: plain
