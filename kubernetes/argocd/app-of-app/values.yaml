@@ -6,10 +6,8 @@ openebs:
   enabled: true
 postgresql:
   enabled: true
-mongodb:
-  enabled: false
 velero:
-  enabled: true
+  enabled: false
 kubePrometheusStack:
   enabled: true
 mongoOperator:
@@ -31,4 +29,4 @@ sonarqube:
 juicefs:
   enabled: false
 vaultwarden:
-  enabled: true
+  enabled: false

@@ -5,7 +5,7 @@ metadata:
   name: shared-mongodb
 spec:
   arbiters: 1
-  members: 3
+  members: 2
   type: "ReplicaSet"
   version: "8.2.1"
   security:
@@ -34,7 +34,7 @@ spec:
                   cpu: "100m"
                   memory: "450Mi"
                 limits:
-                  cpu: "100m"
+                  cpu: "500m"
                   memory: "450Mi"
             - name: mongodb-agent
               resources:
@@ -42,7 +42,7 @@ spec:
                   cpu: "100m"
                   memory: "50Mi"
                 limits:
-                  cpu: "100m"
+                  cpu: "500m"
                   memory: "100Mi"
       volumeClaimTemplates:
         - metadata:

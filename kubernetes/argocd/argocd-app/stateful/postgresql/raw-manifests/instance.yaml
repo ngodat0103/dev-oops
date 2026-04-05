@@ -12,11 +12,11 @@ spec:
   # https://docs.gitlab.com/install/requirements/#postgresql-tuning
   resources:
     requests:
-      memory: 128Mi
-      cpu: 100m
+      memory: 1Gi
+      cpu: 300m
     limits:
       cpu: "1"
-      memory: 512Mi
+      memory: 1Gi
   enableSuperuserAccess: true
   superuserSecret:
     name: postgres-admin
@@ -74,7 +74,7 @@ spec:
         name: pgadmin-monitor-credentials
       inRoles:
       - pg_monitor
-  instances: 3
+  instances: 2
   storage:
     size: 30Gi
     storageClass: "openebs-hostpath"
