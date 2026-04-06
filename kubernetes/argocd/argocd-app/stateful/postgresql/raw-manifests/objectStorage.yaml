@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/barmancloud.cnpg.io/objectstore_v1.json
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: cloudflare-r2
+spec:
+  configuration:
+    destinationPath: s3://cnpg-postgresql/
+    endpointURL: https://4c8ad4e9fa8213af3fd284bb97b68b5e.r2.cloudflarestorage.com
+    s3Credentials:
+      accessKeyId:
+        name: cloudflare-r2
+        key: ACCESS_KEY
+      secretAccessKey:
+        name: cloudflare-r2
+        key: SECRET_KEY
+    wal:
+      compression: gzip

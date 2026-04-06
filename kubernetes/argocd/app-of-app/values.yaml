@@ -30,3 +30,5 @@ juicefs:
   enabled: false
 vaultwarden:
   enabled: false
+certManager:
+  enabled: true

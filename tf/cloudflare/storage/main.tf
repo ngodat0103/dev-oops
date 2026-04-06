@@ -26,3 +26,11 @@ resource "cloudflare_r2_bucket" "juicefs" {
   location      = "apac"
   storage_class = "Standard"
 }
+
+resource "cloudflare_r2_bucket" "cnpg_postgresql" {
+  account_id    = "4c8ad4e9fa8213af3fd284bb97b68b5e"
+  name          = "cnpg-postgresql"
+  location      = "apac"
+  storage_class = "Standard"
+}
+

@@ -258,7 +258,7 @@ module "k8s_masters" {
   ip_address        = "192.168.1.18${count.index}/24"
   tags              = ["development", "kubernetes-masters"]
   gateway           = "192.168.1.1"
-  memory            = 4096
+  memory            = 1024*5 
   cpu_cores         = 2
   cpu_type = "host"
   node_name         = local.node_name
@@ -283,7 +283,7 @@ module "k8s_workers" {
   boot_disk_size    = 100
   gateway           = "192.168.1.1"
   memory            = 1024 * 8
-  cpu_cores         = 4
+  cpu_cores         = 8
   cpu_type = "host"
   node_name         = local.node_name
   datastore_id      = "local-lvm"

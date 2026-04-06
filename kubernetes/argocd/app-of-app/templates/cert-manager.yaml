@@ -1,0 +1,29 @@
+{{- if and (.Values.certManager) (.Values.certManager.enabled) -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+spec:
+  project: default
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true
+    - CreateNamespace=true
+    automated:
+      enabled: false
+      prune: false
+      selfHeal: false
+  destination:
+    namespace: cert-manager
+    name: in-cluster
+  sources:
+  - repoURL: https://charts.jetstack.io
+    chart: cert-manager
+    targetRevision: v1.20.1
+    helm:
+      values: |
+        crds:
+          enabled: true
+          keep: false
+{{- end }}

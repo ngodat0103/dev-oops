@@ -12,16 +12,21 @@ spec:
   # https://docs.gitlab.com/install/requirements/#postgresql-tuning
   resources:
     requests:
-      memory: 1Gi
-      cpu: 300m
+      memory: 2Gi
+      cpu: "2000m"
     limits:
-      cpu: "1"
-      memory: 1Gi
+      cpu: "4000m"
+      memory: 2Gi
   enableSuperuserAccess: true
   superuserSecret:
     name: postgres-admin
   monitoring:
     enablePodMonitor: true
+  plugins:
+  - name: barman-cloud.cloudnative-pg.io
+    isWALArchiver: true
+    parameters:
+      barmanObjectName: cloudflare-r2
   managed:
     services:
       additional:
