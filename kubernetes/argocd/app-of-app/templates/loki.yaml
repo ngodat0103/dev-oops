@@ -19,6 +19,7 @@ spec:
       prune: true
       selfHeal: true
   source:
+    # 
     repoURL: https://grafana.github.io/helm-charts
     targetRevision: 6.55.0
     chart: loki
@@ -42,10 +43,19 @@ spec:
         deploymentMode: SingleBinary
         singleBinary:
           replicas: 1
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 1Gi
           persistence:
             enabled: true
             size: 30Gi
         chunksCache:
+          enabled: false
+        memcached:
           enabled: false
         gateway:
           enabled: false
