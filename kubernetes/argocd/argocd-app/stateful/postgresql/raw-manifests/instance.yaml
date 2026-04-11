@@ -12,21 +12,31 @@ spec:
   # https://docs.gitlab.com/install/requirements/#postgresql-tuning
   resources:
     requests:
-      memory: 2Gi
+      memory: 1Gi
       cpu: "2000m"
     limits:
       cpu: "4000m"
-      memory: 2Gi
+      memory: 1Gi
   enableSuperuserAccess: true
   superuserSecret:
     name: postgres-admin
   monitoring:
     enablePodMonitor: true
-  plugins:
-  - name: barman-cloud.cloudnative-pg.io
-    isWALArchiver: true
-    parameters:
-      barmanObjectName: cloudflare-r2
+  bootstrap:
+    recovery:
+      source: origin
+  externalClusters:
+  - name: origin
+    plugin:
+      name: barman-cloud.cloudnative-pg.io
+      parameters:
+        barmanObjectName: cloudflare-r2
+        serverName: postgresql
+  # plugins:
+  # - name: barman-cloud.cloudnative-pg.io
+  #   isWALArchiver: true
+  #   parameters:
+  #     barmanObjectName: cloudflare-r2
   managed:
     services:
       additional:
@@ -42,21 +52,21 @@ spec:
             name: postgresql-externnal-ro
           spec:
             type: LoadBalancer
-    roles:
-    - name: sonarqube
-      ensure: present
-      comment: Role for Sonarqube
-      login: true
-      superuser: false
-      passwordSecret:
-        name: sonarqube
-    - name: vaultwarden
-      ensure: present
-      comment: Role for Vaultwarden
-      login: true
-      superuser: false
-      passwordSecret:
-        name: vaultwarden
+    # roles:
+    # - name: sonarqube
+    #   ensure: present
+    #   comment: Role for Sonarqube
+    #   login: true
+    #   superuser: false
+    #   passwordSecret:
+    #     name: sonarqube
+    # - name: vaultwarden
+    #   ensure: present
+    #   comment: Role for Vaultwarden
+    #   login: true
+    #   superuser: false
+    #   passwordSecret:
+    #     name: vaultwarden
     # - name: gitlab
     #   ensure: present
     #   comment: "Role for Gitlab"
@@ -71,15 +81,14 @@ spec:
     #   ensure: present
     #   passwordSecret:
     #     name: nextcloud-db
-    - name: pgadmin_monitor
-      ensure: present
-      login: true
-      superuser: false
-      passwordSecret:
-        name: pgadmin-monitor-credentials
-      inRoles:
-      - pg_monitor
+    # - name: pgadmin_monitor
+    #   ensure: present
+    #   login: true
+    #   superuser: false
+    #   passwordSecret:
+    #     name: pgadmin-monitor-credentials
+    #   inRoles:
+    #   - pg_monitor
   instances: 2
   storage:
     size: 30Gi
-    storageClass: "openebs-hostpath"
