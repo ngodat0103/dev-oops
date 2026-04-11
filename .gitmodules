@@ -1,12 +1,3 @@
-[submodule "ansible/service/postgresql/ansible-role-postgresql"]
-	path = ansible/service/postgresql/ansible-role-postgresql
-	url = https://github.com/geerlingguy/ansible-role-postgresql.git
-[submodule "vagrant-template"]
-	path = vagrant-template
-	url = https://github.com/ngodat0103/vagrant-template.git
-[submodule "common-stuff"]
-	path = common-stuff
-	url = https://github.com/ngodat0103/common-stuff.git
 [submodule "tf/cloudflare/terraform-module"]
 	path = tf/cloudflare/terraform-module
 	url = https://github.com/ngodat0103/terraform-module.git
