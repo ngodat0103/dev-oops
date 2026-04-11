@@ -29,6 +29,11 @@ spec:
           auth_enabled: false
           commonConfig:
             replication_factor: 1
+          limits_config:
+            retention_period: 14d
+          compactor:
+            retention_enabled: true
+            delete_request_store: filesystem
           storage:
             type: 'filesystem'
           schemaConfig:
