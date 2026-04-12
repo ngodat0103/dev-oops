@@ -54,3 +54,4 @@ credentials.json
 change.diff
 *secret.yaml
 *secret
+.secrets
