@@ -13,9 +13,9 @@ spec:
   resources:
     requests:
       memory: 1Gi
-      cpu: "2000m"
+      cpu: 1
     limits:
-      cpu: "4000m"
+      cpu: 2
       memory: 1Gi
   enableSuperuserAccess: true
   superuserSecret:
