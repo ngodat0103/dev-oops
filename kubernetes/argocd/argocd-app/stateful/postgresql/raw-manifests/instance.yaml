@@ -28,20 +28,6 @@ spec:
     parameters:
       barmanObjectName: cloudflare-r2
   managed:
-    services:
-      additional:
-      - selectorType: rw
-        serviceTemplate:
-          metadata:
-            name: postgresql-externnal-rw
-          spec:
-            type: LoadBalancer
-      - selectorType: ro
-        serviceTemplate:
-          metadata:
-            name: postgresql-externnal-ro
-          spec:
-            type: LoadBalancer
     roles:
     - name: sonarqube
       ensure: present
