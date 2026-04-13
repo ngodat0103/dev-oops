@@ -27,6 +27,8 @@ spec:
     isWALArchiver: true
     parameters:
       barmanObjectName: cloudflare-r2
+  backup:
+    retentionPolicy: 14d
   managed:
     roles:
     - name: sonarqube
