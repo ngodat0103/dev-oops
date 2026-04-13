@@ -1,0 +1,21 @@
+{{- if and (.Values.smbCsiDriver) (.Values.smbCsiDriver.enabled) -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: csi-driver-smb
+  namespace: argocd
+spec:
+  project: default
+  syncPolicy:
+    automated:
+      enabled: false
+  destination:
+    namespace: kube-system
+    name: in-cluster
+  source:
+    repoURL: https://github.com/kubernetes-csi/csi-driver-smb.git
+    targetRevision: "v1.20.1"
+    path: deploy
+    directory:
+      exclude: "{csi-smb-node-windows.yaml,csi-smb-node-windows-hostprocess.yaml}"
+{{- end }}
