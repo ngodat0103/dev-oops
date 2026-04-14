@@ -20,12 +20,12 @@ spec:
         monitoringPasscode: somePassCode
         resources:
           limits:
-            cpu: 4000m
-            memory: 6144M
+            cpu: 2
+            memory: 4Gi
             ephemeral-storage: 50Gi
           requests:
-            cpu: 4000m
-            memory: 6144M
+            cpu: 1
+            memory: 4Gi
             ephemeral-storage: 50Gi
         community:
           enabled: true

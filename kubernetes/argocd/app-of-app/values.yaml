@@ -27,8 +27,8 @@ harbor:
 sonarqube:
   enabled: true
 juicefs:
-  enabled: false
+  enabled: true
 vaultwarden:
-  enabled: false
+  enabled: true
 certManager:
   enabled: true
