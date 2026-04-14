@@ -6,59 +6,12 @@ deployment:
   # -- Deployment or DaemonSet
   kind: Deployment
   # -- Number of pods of the deployment (only applies when kind == Deployment)
-  replicas: 1
+  replicas: 2
   # -- Number of old history to retain to allow rollback (If not set, default Kubernetes value is set to 10)
   revisionHistoryLimit: 2
     # @schema type:[integer, null];minimum:0
     # -- Amount of time (in seconds) before Kubernetes will send the SIGKILL signal if Traefik does not shut down
 
-  terminationGracePeriodSeconds: 60
-  # -- The minimum number of seconds Traefik needs to be up and running before the DaemonSet/Deployment controller considers it available
-  minReadySeconds: 0
-  ## -- Override the liveness/readiness port. This is useful to integrate traefik
-  ## with an external Load Balancer that performs healthchecks.
-  ## Default: ports.traefik.port
-  healthchecksPort:
-    # @schema type:[integer, null];minimum:0
-    ## -- Override the liveness/readiness host. Useful for getting ping to respond on non-default entryPoint.
-
-  ## Default: ports.traefik.hostIP if set, otherwise Pod IP
-  healthchecksHost: ""
-  ## -- Override the liveness/readiness scheme. Useful for getting ping to
-  ## respond on websecure entryPoint.
-  healthchecksScheme:
-    # @schema enum:[HTTP, HTTPS, null]; type:[string, null]; default: HTTP
-    ## -- Override the readiness path.
-
-  ## Default: /ping
-  readinessPath: ""
-  # -- Override the liveness path.
-  # Default: /ping
-  livenessPath: ""
-  # -- Additional deployment annotations (e.g. for jaeger-operator sidecar injection)
-  annotations: {}
-  # -- Additional deployment labels (e.g. for filtering deployment by custom labels)
-  labels: {}
-  # -- Additional pod annotations (e.g. for mesh injection or prometheus scraping)
-  # It supports templating. One can set it with values like traefik/name: '{{ template "traefik.name" . }}'
-  podAnnotations: {}
-  # -- Additional Pod labels (e.g. for filtering Pod by custom labels)
-  podLabels: {}
-  # -- Additional containers (e.g. for metric offloading sidecars)
-  additionalContainers: []
-  # https://docs.datadoghq.com/developers/dogstatsd/unix_socket/?tab=host
-  # - name: socat-proxy
-  #   image: alpine/socat:1.0.5
-  #   args: ["-s", "-u", "udp-recv:8125", "unix-sendto:/socket/socket"]
-  #   volumeMounts:
-  #     - name: dsdsocket
-  #       mountPath: /socket
-  # -- Additional volumes available for use with initContainers and additionalContainers
-  additionalVolumes: []
-  # - name: dsdsocket
-  #   hostPath:
-  #     path: /var/run/statsd-exporter
-  # -- Additional initContainers (e.g. for setting file permission as shown below)
   initContainers:
   # The "volume-permissions" init container is required if you run into permission issues.
   # Related issue: https://github.com/traefik/traefik-helm-chart/issues/396
@@ -74,15 +27,6 @@ deployment:
     - name: data
       mountPath: /data
 
-# -- [Pod Disruption Budget](https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/pod-disruption-budget-v1/)
-podDisruptionBudget:
-  # @schema additionalProperties: false
-  enabled: false
-  maxUnavailable: # @schema type:[string, integer, null];minimum:0
-  minAvailable:
-    # @schema type:[string, integer, null];minimum:0
-
-    # -- Create a default IngressClass for Traefik
 ingressClass:
   # @schema additionalProperties: false
   enabled: true
@@ -114,52 +58,11 @@ experimental:
 
 gateway:
   # -- When providers.kubernetesGateway.enabled, deploy a default gateway
-  enabled: true
-  # -- Set a custom name to gateway
-  name: ""
-  # -- By default, Gateway is created in the same `Namespace` than Traefik.
-  namespace: ""
-  # -- Additional gateway annotations (e.g. for cert-manager.io/issuer)
-  annotations: {}
-  # -- [Infrastructure](https://kubernetes.io/blog/2023/11/28/gateway-api-ga/#gateway-infrastructure-labels)
-  infrastructure: {}
-  # -- Define listeners
-  listeners:
-    web:
-      # -- Port is the network port. Multiple listeners may use the same port, subject to the Listener compatibility rules.
-      # The port must match a port declared in ports section.
-      port: 8000
-      # -- Optional hostname. See [Hostname](https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.Hostname)
-      hostname: ""
-      # Specify expected protocol on this listener. See [ProtocolType](https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.ProtocolType)
-      protocol: HTTP
-      # -- (object) Routes are restricted to namespace of the gateway [by default](https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.FromNamespaces
-      namespacePolicy:
-        # @schema type:[object, null]
-        # websecure listener is disabled by default because certificateRefs needs to be added,
-        # or you may specify TLS protocol with Passthrough mode and add "--providers.kubernetesGateway.experimentalChannel=true" in additionalArguments section.
-        # websecure:
-        #   # -- Port is the network port. Multiple listeners may use the same port, subject to the Listener compatibility rules.
-        #   # The port must match a port declared in ports section.
-        #   port: 8443
-        #   # -- Optional hostname. See [Hostname](https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.Hostname)
-        #   hostname:
-        #   # Specify expected protocol on this listener See [ProtocolType](https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.ProtocolType)
-        #   protocol: HTTPS
-        #   # -- Routes are restricted to namespace of the gateway [by default](https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.FromNamespaces)
-        #   namespacePolicy:
-        #   # -- Add certificates for TLS or HTTPS protocols. See [GatewayTLSConfig](https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io%2fv1.GatewayTLSConfig)
-        #   certificateRefs:
-        #   # -- TLS behavior for the TLS session initiated by the client. See [TLSModeType](https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.TLSModeType).
-        #   mode:
+  enabled: false
 
 gatewayClass:
-  # @schema additionalProperties: false
-  # -- When providers.kubernetesGateway.enabled and gateway.enabled, deploy a default gatewayClass
-  enabled: true
-  # -- Set a custom name to GatewayClass
+  enabled: false
   name: ""
-  # -- Additional gatewayClass labels (e.g. for filtering gateway objects by custom labels)
   labels: {}
 
 # -- Only dashboard & healthcheck IngressRoute are supported. It's recommended to create workloads CR outside of this Chart.
@@ -182,7 +85,7 @@ ingressRoute:
     # /!\ Do not expose your dashboard without any protection over the internet /!\
     entryPoints: [ "traefik" ]
     # -- Additional ingressRoute middlewares (e.g. for authentication)
-    middlewares: []
+    middlewares: [ "" ]
     # -- TLS options (e.g. secret containing certificate)
     tls: {}
   healthcheck:
@@ -213,34 +116,6 @@ updateStrategy:
   rollingUpdate:
     maxUnavailable: 0 # @schema type:[integer, string, null]
     maxSurge: 1 # @schema type:[integer, string, null]
-
-readinessProbe:
-  # @schema additionalProperties: false
-  # -- The number of consecutive failures allowed before considering the probe as failed.
-  failureThreshold: 1
-  # -- The number of seconds to wait before starting the first probe.
-  initialDelaySeconds: 2
-  # -- The number of seconds to wait between consecutive probes.
-  periodSeconds: 10
-  # -- The minimum consecutive successes required to consider the probe successful.
-  successThreshold: 1
-  # -- The number of seconds to wait for a probe response before considering it as failed.
-  timeoutSeconds: 2
-livenessProbe:
-  # @schema additionalProperties: false
-  # -- The number of consecutive failures allowed before considering the probe as failed.
-  failureThreshold: 3
-  # -- The number of seconds to wait before starting the first probe.
-  initialDelaySeconds: 2
-  # -- The number of seconds to wait between consecutive probes.
-  periodSeconds: 10
-  # -- The minimum consecutive successes required to consider the probe successful.
-  successThreshold: 1
-  # -- The number of seconds to wait for a probe response before considering it as failed.
-  timeoutSeconds: 2
-
-# -- Define [Startup Probe](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-startup-probes)
-startupProbe: {}
 
 providers:
   # @schema additionalProperties: false
