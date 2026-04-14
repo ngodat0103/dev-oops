@@ -32,5 +32,3 @@ vaultwarden:
   enabled: false
 certManager:
   enabled: true
-smbCsiDriver:
-  enabled: true

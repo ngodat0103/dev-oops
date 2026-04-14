@@ -1,0 +1,59 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: gitlab
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  cluster:
+    name: "postgresql"
+  name: gitlabhq_production
+  owner: gitlab
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: nextcloud
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  cluster:
+    name: postgresql
+  name: nextcloud
+  owner: nextcloud
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: sonarqube
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  cluster:
+    name: "postgresql"
+  name: sonarqube
+  owner: sonarqube
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: vaultwarden
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  cluster:
+    name: "postgresql"
+  name: vaultwarden
+  owner: "vaultwarden"
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: juicefs
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  cluster:
+    name: postgresql
+  name: juicefs
+  owner: juicefs

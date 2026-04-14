@@ -59,6 +59,13 @@ spec:
       ensure: present
       passwordSecret:
         name: nextcloud-db
+    - name: juicefs
+      login: true
+      comment: Role for juicefs
+      superuser: false
+      ensure: present
+      passwordSecret:
+        name: juicefs
     - name: pgadmin_monitor
       ensure: present
       login: true
