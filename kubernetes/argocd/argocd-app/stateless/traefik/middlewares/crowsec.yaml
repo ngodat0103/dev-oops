@@ -19,7 +19,7 @@ spec:
       crowdsecAppsecFailureBlock: true
       crowdsecAppsecUnreachableBlock: true
       crowdsecAppsecBodyLimit: 10485760
-      crowdsecLapiKey: '{{ env "CROWDSEC_LAPI_KEY" }}' # set as env var on Traefik pod from a K8s Secret
+      crowdsecLapiKeyFile: /etc/traefik/crowdsec/crowdsec-lapi-key
       crowdsecLapiScheme: http
       crowdsecLapiHost: 192.168.1.127:8080
       crowdsecLapiPath: "/"

@@ -11,7 +11,13 @@ deployment:
   revisionHistoryLimit: 2
     # @schema type:[integer, null];minimum:0
     # -- Amount of time (in seconds) before Kubernetes will send the SIGKILL signal if Traefik does not shut down
-
+  additionalVolumes:
+  - name: crowdsec-lapi-key
+    secret:
+      secretName: traefik-secret
+      items:
+      - key: CROWDSEC_LAPI_KEY
+        path: crowdsec-lapi-key
   initContainers:
   # The "volume-permissions" init container is required if you run into permission issues.
   # Related issue: https://github.com/traefik/traefik-helm-chart/issues/396
@@ -27,6 +33,10 @@ deployment:
     - name: data
       mountPath: /data
 
+additionalVolumeMounts:
+- name: crowdsec-lapi-key
+  mountPath: /etc/traefik/crowdsec
+  readOnly: true
 ingressClass:
   # @schema additionalProperties: false
   enabled: true
@@ -204,18 +214,13 @@ providers:
 # - "--ping"
 # - "--ping.entrypoint=web"`
 volumes: []
-# - name: public-cert
-#   mountPath: "/certs"
-#   type: secret
 # - name: '{{ printf "%s-configs" .Release.Name }}'
 #   mountPath: "/config"
 #   type: configMap
-
 # -- Additional volumeMounts to add to the Traefik container
 # -- For instance when using a logshipper for access logs
 # - name: traefik-logs
 #   mountPath: /var/log/traefik
-
 
 logs:
   general:
