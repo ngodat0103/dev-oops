@@ -6,9 +6,9 @@ deployment:
   # -- Deployment or DaemonSet
   kind: Deployment
   # -- Number of pods of the deployment (only applies when kind == Deployment)
-  replicas: 2
+  replicas: 1
   # -- Number of old history to retain to allow rollback (If not set, default Kubernetes value is set to 10)
-  revisionHistoryLimit: 2
+  revisionHistoryLimit: 3
     # @schema type:[integer, null];minimum:0
     # -- Amount of time (in seconds) before Kubernetes will send the SIGKILL signal if Traefik does not shut down
   additionalVolumes:
@@ -82,7 +82,7 @@ gatewayClass:
 ingressRoute:
   dashboard:
     # -- Create an IngressRoute for the dashboard
-    enabled: false
+    enabled: true
     # -- Additional ingressRoute annotations (e.g. for kubernetes.io/ingress.class)
     annotations: {}
     # -- Additional ingressRoute labels (e.g. for filtering IngressRoute by custom labels)
@@ -98,7 +98,8 @@ ingressRoute:
     # /!\ Do not expose your dashboard without any protection over the internet /!\
     entryPoints: [ "traefik" ]
     # -- Additional ingressRoute middlewares (e.g. for authentication)
-    middlewares: [ "" ]
+    middlewares:
+    - name: allow-local-ip-only
     # -- TLS options (e.g. secret containing certificate)
     tls: {}
   healthcheck:
