@@ -42,6 +42,14 @@ spec:
             existingSecret: "cloudflare-r2"
             reclaimPolicy: Retain
             allowVolumeExpansion: true
+            mountPod:
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 1Gi
+                requests:
+                  cpu: 100m
+                  memory: 512Mi
             mountOptions:
               - cache-size=10240
               - free-space-ratio=0.1
