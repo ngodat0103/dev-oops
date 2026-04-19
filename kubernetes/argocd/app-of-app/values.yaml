@@ -32,7 +32,8 @@ vaultwarden:
   enabled: true
 certManager:
   enabled: true
-
+redis:
+  enabled: true
 # Internal ingress policy:
 # - Internal-only apps must use Traefik annotations:
 #   - traefik.ingress.kubernetes.io/router.entrypoints: "websecure"

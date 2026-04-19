@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  # NOTE: must NOT be named 'redisinsight' — that name would inject RI_APP_HOST/RI_APP_PORT
+  # env vars that conflict with the application's own env vars.
+  name: redisinsight-service
+  namespace: redis
+  labels:
+    app: redisinsight
+spec:
+  type: ClusterIP
+  selector:
+    app: redisinsight
+  ports:
+    - port: 5540
+      targetPort: 5540
+      protocol: TCP

@@ -1,0 +1,37 @@
+{{- if and (.Values.redis) (.Values.redis.enabled) -}}
+apiVersion: "argoproj.io/v1alpha1"
+kind: Application
+metadata:
+  name: redis
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: "default"
+  syncPolicy:
+    retry:
+      limit: 3
+    automated:
+      enabled: false
+    syncOptions:
+    - "ServerSideApply=true"
+    - "CreateNamespace=true"
+  destination:
+    namespace: "redis"
+    name: "in-cluster"
+  sources:
+  - repoURL: "https://ot-container-kit.github.io/helm-charts/"
+    chart: "redis-operator"
+    targetRevision: "0.24.0"
+  - repoURL: "https://ot-container-kit.github.io/helm-charts/"
+    targetRevision: "0.16.9"
+    chart: "redis"
+    helm:
+      valueFiles: [ "$config/kubernetes/argocd/argocd-app/stateful/redis/helm/redis-values.yaml" ]
+  - repoURL: "https://github.com/ngodat0103/home-lab.git"
+    targetRevision: master
+    path: kubernetes/argocd/argocd-app/stateful/redis/ui
+  - repoURL: "https://github.com/ngodat0103/home-lab.git"
+    targetRevision: master
+    ref: config
+{{- end -}}

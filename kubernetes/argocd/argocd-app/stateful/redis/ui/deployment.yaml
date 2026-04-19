@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redisinsight
+  namespace: redis
+  labels:
+    app: redisinsight
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: redisinsight
+  template:
+    metadata:
+      labels:
+        app: redisinsight
+    spec:
+      volumes:
+      - name: redisinsight-data
+        persistentVolumeClaim:
+          claimName: redisinsight-pvc
+      initContainers:
+      - name: init-chmod
+        image: busybox
+        command:
+        - /bin/sh
+        - -c
+        - chown -R 1000 /data
+        volumeMounts:
+        - name: redisinsight-data
+          mountPath: /data
+      containers:
+      - name: redisinsight
+        image: redis/redisinsight:3.2.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5540
+          protocol: TCP
+        volumeMounts:
+        - name: redisinsight-data
+          mountPath: /data
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - wget -qO- http://127.0.0.1:5540/api/health/ || exit 1
+          failureThreshold: 30
+          periodSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - wget -qO- http://127.0.0.1:5540/api/health/ || exit 1
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - wget -qO- http://127.0.0.1:5540/api/health/ || exit 1
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 500m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi
