@@ -25,7 +25,7 @@
         traefik.http.routers.nextcloud.entrypoints: "websecure,web"
         traefik.http.routers.nextcloud.tls: "true"
       restart_policy: always
-      image: linuxserver/nextcloud:31.0.9@sha256:e38312445902d851f1b87760cbf30e820f490a44348507bfd143a9fc799475c7
+      image: linuxserver/nextcloud:33.0.2@sha256:cc73f7219452bb96b318af66603056f7465819508ac51d7fa47f59248ef39594
       networks:
         - name: runtime-network
           ipv4_address: "192.168.30.7"
