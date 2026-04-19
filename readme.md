@@ -306,6 +306,19 @@ Traffic goes through multiple layers before it reaches anything useful. I'd rath
 - Real client IPs extracted from `CF-Connecting-IP` header
 - Prometheus metrics and structured access logging enabled
 
+### Kubernetes Internal Ingress Policy
+
+Internal-only applications in the Kubernetes lab stay behind Traefik and are restricted with an IP allowlist middleware.
+
+- Internal-only apps: `sonarqube`, `juicefs`, `grafana`, `alertmanager`, `pgadmin4`, `chaos-mesh`
+- Harbor follows the same policy when enabled
+- Required ingress annotations for internal apps:
+  - `traefik.ingress.kubernetes.io/router.entrypoints: "websecure"`
+  - `traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"`
+- Allowed LAN/VPN CIDRs are managed in:
+  - `kubernetes/argocd/argocd-app/stateless/traefik/middlewares/allow-local-ip-only.yaml`
+- Public apps must not use the local-only middleware
+
 ### Intrusion Detection (CrowdSec)
 
 - LAPI running on port 8080, AppSec engine on port 7422

@@ -57,6 +57,7 @@ spec:
           enabled: true
           hosts: ["alert-manager.datrollout.dev"]
           annotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
             traefik.ingress.kubernetes.io/router.tls: "true"
             traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
             traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"
@@ -74,6 +75,8 @@ spec:
           enabled: true
           hosts: ["grafana.datrollout.dev"]
           annotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
+            traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"
             traefik.ingress.kubernetes.io/router.tls: "true"
             traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
         additionalDataSources:

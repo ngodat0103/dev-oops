@@ -32,3 +32,12 @@ vaultwarden:
   enabled: true
 certManager:
   enabled: true
+
+# Internal ingress policy:
+# - Internal-only apps must use Traefik annotations:
+#   - traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
+#   - traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"
+# - Current internal-only set: sonarqube, juicefs, grafana, alertmanager, pgadmin4, chaos-mesh
+# - Harbor should follow the same policy when enabled
+# - Allowed source CIDRs are maintained in:
+#   kubernetes/argocd/argocd-app/stateless/traefik/middlewares/allow-local-ip-only.yaml
