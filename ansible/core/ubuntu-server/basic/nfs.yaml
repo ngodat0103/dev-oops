@@ -1,0 +1,37 @@
+- name: Setup NFS server
+  hosts: ubuntu-server
+  become: true
+  vars:
+    nfs_clients:
+      - 192.168.1.190
+      - 192.168.1.191
+      - 192.168.1.192
+      - 192.168.1.193
+    nfs_shares:
+      - path: /mnt/data1
+        options: rw,async,no_subtree_check,no_root_squash
+      - path: /mnt/data2
+        options: rw,async,no_subtree_check,no_root_squash
+  handlers:
+    - name: Reload NFS exports
+      ansible.builtin.command:
+        cmd: exportfs -ra
+  tasks:
+  - name: Install nfs-kernel-server
+    ansible.builtin.package:
+      name: nfs-kernel-server
+      state: present
+  - name: Enable and start nfs-kernel-server
+    ansible.builtin.systemd:
+      name: nfs-kernel-server
+      state: started
+      enabled: true
+  - name: Deploy /etc/exports from template
+    ansible.builtin.template:
+      src: "templates/nfs-exports.j2"
+      dest: /etc/exports
+      owner: root
+      group: root
+      mode: '0644'
+    notify:
+      - Reload NFS exports

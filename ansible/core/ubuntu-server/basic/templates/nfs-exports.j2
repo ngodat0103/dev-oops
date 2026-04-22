@@ -1,0 +1,5 @@
+# Managed by Ansible - do not edit manually
+{% for share in nfs_shares %}
+{{ share.path }} {% for client in nfs_clients %}{{ client }}({{ share.options }}) {% endfor %}
+
+{% endfor %}
