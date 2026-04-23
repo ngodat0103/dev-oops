@@ -1,0 +1,42 @@
+# Migration notes (from Docker/VM to Kubernetes):
+# 1. On the old host, archive the config directory:
+#    tar czf /tmp/qbittorrent-config.tar.gz \
+#      BT_backup categories.json GeoDB logs nova3 rss watched_folders.json \
+#      qBittorrent.conf qBittorrent-data.conf
+# 2. Switch to the qbittorrent namespace:
+#    kns qbittorrent
+# 3. Copy the archive directly into the running pod:
+#    kubectl cp /tmp/qbittorrent-config.tar.gz qbittorrent-0:/config/qBittorrent
+# 4. Exec into the pod and extract:
+#    kubectl exec -it qbittorrent-0 -- tar xzf /config/qBittorrent/qbittorrent-config.tar.gz \
+#      -C /config/qBittorrent --strip-components=0
+# 5. Restart the pod to pick up the restored config:
+#    kubectl rollout restart statefulset qbittorrent
+{{- if and (.Values.qbittorrent) (.Values.qbittorrent.enabled) -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: qbittorrent
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
+    automated:
+      enabled: false
+      prune: false
+      selfHeal: false
+  destination:
+    namespace: qbittorrent
+    name: in-cluster
+  source:
+    directory:
+      recurse: false
+    repoURL: https://github.com/ngodat0103/home-lab.git
+    targetRevision: master
+    path: kubernetes/argocd/argocd-app/stateful/qbittorrent
+{{- end }}

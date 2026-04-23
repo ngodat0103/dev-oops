@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qbittorrent
+  namespace: qbittorrent
+spec:
+  replicas: 1
+  serviceName: qbittorrent
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent
+    spec:
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config-pvc
+      - name: data1
+        persistentVolumeClaim:
+          claimName: qbittorrent-data1-pvc
+      - name: data2
+        persistentVolumeClaim:
+          claimName: qbittorrent-data2-pvc
+      containers:
+      - name: qbittorrent
+        image: lscr.io/linuxserver/qbittorrent:5.1.4
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 4
+            memory: 1Gi
+        ports:
+        - name: web
+          containerPort: 8080
+        - name: bittorrent-tcp
+          containerPort: 6881
+          protocol: TCP
+        - name: bittorrent-udp
+          containerPort: 6881
+          protocol: UDP
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: Asia/Ho_Chi_Minh
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: data1
+          mountPath: /mnt/data1
+        - name: data2
+          mountPath: /mnt/data2

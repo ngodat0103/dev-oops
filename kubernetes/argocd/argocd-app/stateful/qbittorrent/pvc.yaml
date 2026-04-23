@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-config-pvc
+  namespace: qbittorrent
+spec:
+  storageClassName: juicefs-sc-cloudflare-r2
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-data1-pvc
+  namespace: qbittorrent
+spec:
+  storageClassName: ""
+  volumeName: qbittorrent-data1-pv
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Ti
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-data2-pvc
+  namespace: qbittorrent
+spec:
+  storageClassName: ""
+  volumeName: qbittorrent-data2-pv
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Ti
