@@ -225,29 +225,6 @@ module "hephaestus" {
     down_delay = 1
   }
 }
-module "sonarqube" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
-  template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
-  name              = "sonarqube"
-  tags              = ["Sonarqube", "production"]
-  hostname          = "sonarqube.local"
-  node_name         = local.node_name
-  ip_address        = "192.168.1.125/24"
-  bridge_name       = "vmbr0"
-  memory            = 1024 * 8
-  gateway           = local.lan_gateway
-  on_boot           = true
-  boot_disk_size    = 150
-  cpu_cores         = 4
-  public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCTbsuzpC3Crbmy8bq6NfKqGoJKrxFdSPz4+HSfE/gljWKzMimRQZY46j8JEK3tgZxHkgW8gRewV7cIyOkw0GbOnBjISQIO+zrPJjxJrdXR/odbOFQ+Xqpk6llHoZcNd15dDmVITD34QVyVvdNxm04lnOKKixuvjJ+rLn8FxSFED6oBeLF8H5JWodhn/GsK0ysQEJGHrE1JPfY73V0wr2rnKdAyYEYZvqj4XNcOkDAzGP7minTHQVyJC+b9PNu1SzRPimbkXio/pns/wDonc44lq1+XiBHr7vrny0lqLMZI8APmYfQ6F0lE2yAEnMNEET6c6mR8vpzSHXZH2g7b6N8etoTAZBM3e1ufrw7+E6LxOzULvIAXHzZOMlb8GeKrcrXc8j6KxPGAoHkXGU8evoEtNpd5wuNNNmtENbNtqopR6tpiMkifQSuzlWq2Vw6SX5RQXfQaeeiNc4j2iZpUw3ps8vKLZOB2a1r/QoTXyLKeJJr+EBvsz1SG9CzCC7KxwyM= akira@legion5"
-  network_model     = "e1000e"
-  startup_config = {
-    order      = 1
-    up_delay   = 30
-    down_delay = 1
-  }
-}
-
 module "k8s_masters" {
   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
   count             = 3
