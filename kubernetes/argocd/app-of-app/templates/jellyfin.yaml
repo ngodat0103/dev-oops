@@ -1,28 +1,26 @@
-{{- if and (.Values.qbittorrent) (.Values.qbittorrent.enabled) -}}
+{{- if and (.Values.jellyfin) (.Values.jellyfin.enabled) }}
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: qbittorrent
+  name: jellyfin
   namespace: argocd
   finalizers:
   - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
+  destination:
+   namespace: jellyfin
+   name: in-cluster
   syncPolicy:
     syncOptions:
     - CreateNamespace=true
     - ServerSideApply=true
     automated:
       enabled: false
-      prune: false
-      selfHeal: false
-  destination:
-    namespace: qbittorrent
-    name: in-cluster
   source:
     directory:
       recurse: false
     repoURL: https://github.com/ngodat0103/home-lab.git
     targetRevision: master
-    path: kubernetes/argocd/argocd-app/stateful/qbittorrent
+    path: kubernetes/argocd/argocd-app/stateful/jellyfin
 {{- end }}

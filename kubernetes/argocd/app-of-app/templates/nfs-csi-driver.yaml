@@ -1,8 +1,3 @@
-# Prerequisites before enabling this app:
-# 1. Install nfs-common on ALL Kubernetes nodes (provides /sbin/mount.nfs):
-#    cd ansible/kubernetes && ansible-playbook -i <inventory>.ini install-nfs-client.yaml
-# 2. Sync this app first, wait for csi-driver-nfs pods in kube-system to be Running.
-# 3. Then enable qbittorrent in values.yaml.
 {{- if and (.Values.nfsCsiDriver) (.Values.nfsCsiDriver.enabled) -}}
 apiVersion: argoproj.io/v1alpha1
 kind: Application

@@ -31,6 +31,15 @@ spec:
     helm:
       values: |
         mountMode: mountpod
+        globalConfig:
+          mountPodPatch:
+            - resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  cpu: 4
+                  memory: 2Gi
         webhook:
           certManager:
             enabled: false
@@ -42,14 +51,6 @@ spec:
             existingSecret: "cloudflare-r2"
             reclaimPolicy: Retain
             allowVolumeExpansion: true
-            mountPod:
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 1Gi
-                requests:
-                  cpu: 100m
-                  memory: 512Mi
             mountOptions:
               - cache-size=10240
               - free-space-ratio=0.1
@@ -58,6 +59,7 @@ spec:
               - open-cache=3
               - attr-cache=3
               - entry-cache=3
+              - writeback
         dashboard:
           ingress:
             enabled: true
