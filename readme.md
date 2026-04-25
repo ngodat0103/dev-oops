@@ -2,9 +2,8 @@
 
 > *"Move fast and break things"* -- Mark Zuckerberg
 > *"I moved fast. Things are broken."* -- Me, at 3 AM
-> *"Have you tried turning it off and on again?"* -- My mom, who has heard enough
 
-Private infrastructure repository managing a single-node Proxmox environment that somehow runs production services, a Kubernetes cluster held together by optimism, and more YAML than any human should write in one lifetime. All infrastructure is codified using Terraform, Ansible, and ArgoCD, because clicking buttons in a web UI is beneath us.
+Private infrastructure repository managing a single-node Proxmox environment that somehow runs production services, a Kubernetes cluster held together by optimism, and more YAML than any human should write in one lifetime.
 
 **Domain:** `datrollout.dev`
 
@@ -19,6 +18,7 @@ Private infrastructure repository managing a single-node Proxmox environment tha
 - [Platform Tooling](#platform-tooling)
 - [Deployed Services](#deployed-services)
 - [The Kubernetes Situation](#the-kubernetes-situation)
+- [Storage Architecture](#storage-architecture)
 - [Security](#security)
 - [Observability](#observability)
 - [Backup and Disaster Recovery](#backup-and-disaster-recovery)
@@ -30,7 +30,7 @@ Private infrastructure repository managing a single-node Proxmox environment tha
 
 ## Architecture Overview
 
-The infrastructure follows a hybrid model: production services run on Docker with Ansible because it actually works, while Kubernetes exists as a dev/exploration environment where I learn things, break things, and pretend I'm running a multi-region cluster on what is essentially seven VMs sharing one physical CPU like college students sharing a Netflix account.
+The infrastructure follows a hybrid model in active transition: services are being migrated from Docker on ubuntu-server to Kubernetes, starting with internal tools. Kubernetes is no longer just a lab — it is increasingly the primary runtime, while Docker remains the fallback for anything not yet migrated.
 
 ```
                          Internet
@@ -73,14 +73,15 @@ The infrastructure follows a hybrid model: production services run on Docker wit
 |  | The elephant in the room  |  | "you shall not pass"      |  |
 |  +---------------------------+  +---------------------------+  |
 |                                                                |
-|  Kubernetes Cluster (DEV / EXPLORATION ONLY)                   |
+|  Kubernetes Cluster (MIGRATION IN PROGRESS)                   |
 |  +----------------------------------------------------------+ |
 |  | Masters: .1.180-.182 (x3)  Workers: .1.190-.193 (x4)     | |
 |  | ArgoCD, Traefik, MetalLB, OpenEBS, CloudNative-PG,       | |
-|  | Velero, kube-prometheus-stack, Strimzi Kafka, Redis       | |
-|  |                                                            | |
+|  | Velero, kube-prometheus-stack, Strimzi Kafka, Redis,     | |
+|  | qBittorrent, Jellyfin (migrated from Docker)              | |
+||  |                                                            | |
 |  | "One day this will replace everything above.               | |
-|  |  Today is not that day."                                   | |
+|  |  That day has started."                                   | |
 |  +----------------------------------------------------------+ |
 +---------------------------------------------------------------+
 ```
@@ -119,8 +120,7 @@ One server. Everything runs on one server. Yes, the "cluster" too. No, it's not 
 | Docker internal      | 192.168.30.0/24    | Bridge network for Docker containers on ubuntu-server |
 | MetalLB pool         | 192.168.1.230-240  | Kubernetes LoadBalancer IP range     |
 
-DNS is managed via Cloudflare and Terraform, because doing it by hand in a web console is how incidents start.
-
+DNS is managed via Cloudflare and Terraform.
 **Public DNS (proxied CNAME via Cloudflare):**
 
 | Record                          | Type  | Proxied | Target        |
@@ -141,6 +141,8 @@ DNS is managed via Cloudflare and Terraform, because doing it by hand in a web c
 | kafka-ui.datrollout.dev         | A    | No      | 192.168.1.232   |
 | pgadmin4.datrollout.dev         | A    | No      | 192.168.1.232   |
 | argocd.datrollout.dev           | A    | No      | 192.168.1.232   |
+| jellyfin.datrollout.dev         | A    | No      | 192.168.1.232   |
+| qbittorrent.datrollout.dev      | A    | No      | 192.168.1.232   |
 
 Internal records resolve to the Kubernetes Traefik ingress (via MetalLB) and are only reachable from the local network or VPN.
 
@@ -208,13 +210,13 @@ Server configuration and application deployment for all non-Kubernetes workloads
 
 GitOps deployment using the app-of-apps pattern. ArgoCD is installed via Helm and manages all cluster workloads. It's ArgoCD all the way down.
 
-| Category   | Applications                                                          |
-|------------|-----------------------------------------------------------------------|
-| Daemon     | MetalLB, kube-prometheus-stack                                        |
-| Stateful   | CloudNative-PG (PostgreSQL), Redis, Chaos Mesh, Local Path Provisioner|
-| Stateless  | Traefik, Vaultwarden, Sealed Secrets, Metrics Server                  |
-| Operators  | Strimzi Kafka Operator, MongoDB Operator (disabled)                   |
-| Storage    | OpenEBS (localpv-provisioner), Velero                                 |
+| Category   | Applications                                                                      |
+|------------|-----------------------------------------------------------------------------------|
+| Daemon     | MetalLB, kube-prometheus-stack                                                    |
+| Stateful   | CloudNative-PG (PostgreSQL), Redis, Chaos Mesh, qBittorrent, Jellyfin             |
+| Stateless  | Traefik, Vaultwarden, Sealed Secrets, Metrics Server                              |
+| Operators  | Strimzi Kafka Operator, MongoDB Operator (disabled)                               |
+| Storage    | OpenEBS (localpv-provisioner), Velero, JuiceFS (Cloudflare R2), NFS CSI Driver   |
 
 ---
 
@@ -222,15 +224,15 @@ GitOps deployment using the app-of-apps pattern. ArgoCD is installed via Helm an
 
 ### Production (Docker on ubuntu-server)
 
-The real deal. These are the services that would ruin my week if they went down.
+The remaining Docker services — to be migrated to Kubernetes as the cluster stabilises. Internal tools are being moved first.
 
-| Service       | Purpose                  | Exposed Domain              |
-|---------------|--------------------------|-----------------------------|
-| GitLab        | Source control and CI/CD | gitlab.datrollout.dev       |
-| Vaultwarden   | Password management      | bitwarden.datrollout.dev    |
-| Nextcloud     | File synchronization     | nextcloud.datrollout.dev    |
-| Jellyfin      | Media server             | --                          |
-| qBittorrent   | Torrent client           | --                          |
+| Service       | Purpose                  | Exposed Domain              | Status        |
+|---------------|--------------------------|-----------------------------|---------------|
+| GitLab        | Source control and CI/CD | gitlab.datrollout.dev       | Docker        |
+| Vaultwarden   | Password management      | bitwarden.datrollout.dev    | Docker        |
+| Nextcloud     | File synchronization     | nextcloud.datrollout.dev    | Docker        |
+| Jellyfin      | Media server             | jellyfin.datrollout.dev     | **Migrated → K8s** |
+| qBittorrent   | Torrent client           | qbittorrent.datrollout.dev  | **Migrated → K8s** |
 
 ### Production (Standalone)
 
@@ -252,13 +254,17 @@ The real deal. These are the services that would ruin my week if they went down.
 | OpenEBS                 | openebs                | 4.3.3         | openebs/openebs           |
 | CloudNative-PG          | prod-postgresql        | 0.25.0        | cloudnative-pg            |
 | Velero                  | velero                 | 12.0.0        | vmware-tanzu/velero       |
-| kube-prometheus-stack    | kube-prometheus-stack  | 82.13.0       | prometheus-community      |
+| kube-prometheus-stack   | kube-prometheus-stack  | 82.13.0       | prometheus-community      |
 | Strimzi Kafka Operator  | kafka                  | 0.50.0        | strimzi                   |
 | Sealed Secrets          | sealed-secrets         | 2.17.2        | bitnami-labs              |
 | Vaultwarden             | vaultwarden            | 0.32.1        | guerzon/vaultwarden       |
 | Redis                   | redis                  | 0.16.5        | ot-container-kit          |
 | Chaos Mesh              | chaos-mesh             | 2.8.0         | chaos-mesh                |
 | Metrics Server          | metrics-server         | 3.13.0        | metrics-server            |
+| JuiceFS CSI Driver      | juicefs                | 0.31.4        | wener/juicefs-csi-driver  |
+| NFS CSI Driver          | kube-system            | v4.13.2       | kubernetes-csi/csi-driver-nfs |
+| **qBittorrent**         | qbittorrent            | --            | raw manifests (migrated)  |
+| **Jellyfin**            | jellyfin               | --            | raw manifests (migrated)  |
 
 CloudNative-PG manages databases for: `nextcloud`, `gitlabhq_production`, `vaultwarden`.
 
@@ -266,25 +272,133 @@ CloudNative-PG manages databases for: `nextcloud`, `gitlabhq_production`, `vault
 
 ## The Kubernetes Situation
 
-Let me be honest about this.
+The migration has started. Here is the honest state of affairs.
 
-The Kubernetes cluster is a **dev and exploration environment**. Production runs on Docker + Ansible on ubuntu-server because it just works and I sleep at night.
+The Kubernetes cluster started as a **dev and exploration environment**. Production ran on Docker + Ansible on ubuntu-server because it worked and I slept at night. That model is now actively being dismantled.
 
-But here's the thing: every service I deploy on the VM side involves writing Ansible playbooks, Docker Compose files, systemd units, Traefik labels, Prometheus scrape configs, backup cron jobs, and update procedures -- **per service, by hand, every single time**. It's the YAML equivalent of digging a ditch with a spoon. It works, but it doesn't scale, and every new service means repeating the same soul-crushing boilerplate.
+Every service on the Docker side requires writing Ansible playbooks, Docker Compose files, systemd units, Traefik labels, Prometheus scrape configs, backup cron jobs, and update procedures — **per service, by hand, every single time**. It's the YAML equivalent of digging a ditch with a spoon. Kubernetes solves this: define it once, let ArgoCD sync it, let the platform handle scheduling, networking, storage, secrets, and rollbacks. The app-of-apps pattern already proves the point — enabling a full service stack is a boolean flip in `values.yaml`.
 
-The Kubernetes cluster exists because the promise is real: define it once in a Helm chart, let ArgoCD sync it, let the platform handle scheduling, networking, storage, secrets, scaling, and rollbacks. Stop hand-wiring every service like it's 2015. The app-of-apps pattern already proves this -- I can enable an entire service stack by flipping a boolean in `values.yaml`. That's the dream.
+**Migration strategy: internal tools first.**
+
+Internal-facing services (no public exposure, no user-facing SLA) are migrated first to build confidence in the cluster before touching anything critical.
+
+| Wave | Services | Status |
+|------|----------|--------|
+| 1 — Internal tools | qBittorrent, Jellyfin | **Done** |
+| 2 — Self-hosted productivity | Nextcloud, Vaultwarden | Planned |
+| 3 — Critical infrastructure | GitLab | Last |
+
+**Storage approach for migrated services:**
+- Config / state → JuiceFS backed by Cloudflare R2 (survives node loss)
+- Media / large data → NFS PV pointing at existing disks on ubuntu-server
+- Ephemeral cache → `emptyDir`
 
 **The plan:**
 
-1. Keep exploring and stabilizing the K8s environment (it's getting there)
-2. Prove that it can run workloads reliably on this hardware
-3. When budget allows, build a proper multi-node cluster with dedicated hardware
-4. Migrate everything off the VM and never write another per-service Ansible playbook again
-5. Finally escape the "repeat yourself in hell" loop
+1. ~~Keep exploring and stabilizing the K8s environment~~ — done, it runs workloads
+2. ~~Prove it can run workloads reliably~~ — qBittorrent and Jellyfin are live
+3. Continue migrating internal tools wave by wave
+4. When budget allows, build a proper multi-node cluster with dedicated hardware
+5. Eventually decommission ubuntu-server as a Docker host entirely
 
-Until then, production stays on Docker, Kubernetes stays in the lab, and I keep one foot in each world while slowly going insane maintaining both.
+The cluster now runs production workloads.
+---
 
-The cluster currently runs the full application stack (Traefik, PostgreSQL, Vaultwarden, Redis, Kafka, monitoring) in a non-production capacity. Chaos Mesh is also deployed, because if things are going to break, they might as well break on my terms.
+## Storage Architecture
+
+Three storage tiers are in use — cloud object storage for durable config/state, local NFS for bulk media, and ephemeral node-local storage for throwaway cache.
+
+### Overall Storage Topology
+
+```mermaid
+flowchart TD
+    subgraph cloud [Cloud]
+        R2["Cloudflare R2\n(Object Storage)"]
+    end
+
+    subgraph ubuntu_server ["ubuntu-server (192.168.1.121)"]
+        data1["/mnt/data1\n465 GB HDD"]
+        data2["/mnt/data2\n931 GB HDD"]
+        nfs_export["NFS Export\n/mnt"]
+        data1 --> nfs_export
+        data2 --> nfs_export
+    end
+
+    subgraph k8s ["Kubernetes Cluster"]
+        subgraph storage_layer ["Storage Layer"]
+            juicefs["JuiceFS CSI Driver\njuicefs-sc-cloudflare-r2"]
+            nfs_csi["NFS CSI Driver\nnfs-csi-driver-nfs"]
+            openebs["OpenEBS\nlocalpv-provisioner"]
+            emptydir["emptyDir\n(ephemeral)"]
+        end
+
+        subgraph workloads ["Workloads"]
+            jellyfin["Jellyfin"]
+            qbittorrent["qBittorrent"]
+            vaultwarden["Vaultwarden"]
+            redis_ui["Redis UI"]
+            cnpg["CloudNative-PG"]
+        end
+    end
+
+    R2 <-->|"S3 API"| juicefs
+    nfs_export -->|"NFS mount"| nfs_csi
+
+    juicefs -->|"config PVC"| jellyfin
+    juicefs -->|"config PVC"| qbittorrent
+    juicefs -->|"config PVC"| vaultwarden
+    juicefs -->|"config PVC"| redis_ui
+
+    nfs_csi -->|"media PVC\n(read-only subPath)"| jellyfin
+    nfs_csi -->|"downloads PVC\n(read-write)"| qbittorrent
+
+    openebs -->|"data PVC"| cnpg
+    emptydir -->|"cache volume"| jellyfin
+```
+
+### Per-Workload Storage Mapping
+
+```mermaid
+flowchart LR
+    subgraph jellyfin_vol ["Jellyfin Volumes"]
+        jcfg["/config\nJuiceFS PVC\njellyfin-config-pvc"]
+        jcache["/cache\nemptyDir"]
+        jdata1["/data1\nNFS subPath\ndata2/jellyfin\nread-only"]
+        jdata2["/data2\nNFS subPath\ndata1/NFS/jellyfin\nread-only"]
+    end
+
+    subgraph qbt_vol ["qBittorrent Volumes"]
+        qcfg["/config\nJuiceFS PVC\nqbittorrent-config-pvc"]
+        qdata1["/mnt/data1\nNFS PV\nqbittorrent-data1-pv"]
+        qdata2["/mnt/data2\nNFS PV\nqbittorrent-data2-pv"]
+    end
+
+    subgraph nfs_disks ["NFS (192.168.1.121:/mnt)"]
+        disk1["data1/\n465 GB HDD"]
+        disk2["data2/\n931 GB HDD"]
+    end
+
+    subgraph juicefs_backend ["JuiceFS → Cloudflare R2"]
+        r2["R2 Bucket\njuicefs-prod"]
+    end
+
+    jcfg --> r2
+    qcfg --> r2
+
+    jdata1 -->|"subPath: data2/jellyfin"| disk2
+    jdata2 -->|"subPath: data1/NFS/jellyfin"| disk1
+    qdata1 --> disk1
+    qdata2 --> disk2
+```
+
+### Storage Tier Summary
+
+| Tier | Technology | Backend | Use Case | Durability |
+|------|-----------|---------|----------|------------|
+| Cloud-backed config | JuiceFS CSI | Cloudflare R2 | App config, state | Survives node/disk loss |
+| Local NFS | NFS CSI Driver | ubuntu-server `/mnt` | Media files, torrent downloads | Single-host (NAS) |
+| Ephemeral | `emptyDir` | Node disk | Transcoding cache | Lost on pod restart |
+| Local block | OpenEBS localpv | Worker node disk | PostgreSQL data | Single-node |
 
 ---
 
