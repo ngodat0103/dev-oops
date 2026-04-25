@@ -38,3 +38,5 @@ nfsCsiDriver:
   enabled: true
 qbittorrent:
   enabled: true
+jellyfin:
+  enabled: true
