@@ -6,7 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.42.17",
     "boto3-stubs~=1.42.17",
-    "cryptography>=46.0.3",
+    "cryptography>=46.0.7",
     "docker>=7.0.0",
     "python-dotenv>=1.2.1",
     "zstandard>=0.25.0",
