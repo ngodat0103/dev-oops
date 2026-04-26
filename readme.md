@@ -302,6 +302,7 @@ Internal-facing services (no public exposure, no user-facing SLA) are migrated f
 5. Eventually decommission ubuntu-server as a Docker host entirely
 
 The cluster now runs production workloads.
+
 ---
 
 ## Storage Architecture
@@ -462,10 +463,85 @@ crowdsecAppsecFailureBlock: true
 
 ---
 
+## Observability
+
+Everything emits metrics or logs. If it doesn't, it gets added until it does.
+
+### Metrics (Prometheus + Grafana)
+
+`kube-prometheus-stack` is the backbone. It scrapes everything: nodes, pods, Traefik, CloudNative-PG, Strimzi, ArgoCD, and anything else that exposes a `/metrics` endpoint.
+
+| Component              | Scrape Target                    | Notes                                    |
+|------------------------|----------------------------------|------------------------------------------|
+| Node metrics           | `node-exporter` on every worker  | CPU, memory, disk, network               |
+| Kubernetes API         | kube-state-metrics               | Deployments, pods, PVCs, events          |
+| Traefik                | Traefik `/metrics`               | Request rates, latency, error codes      |
+| CloudNative-PG         | CNPG exporter per pod            | Replication lag, WAL archiving status    |
+| CrowdSec               | CrowdSec exporter                | Bans, decisions, AppSec hits             |
+| ArgoCD                 | ArgoCD metrics service           | Sync status, health state                |
+
+Grafana is exposed internally at `grafana.datrollout.dev` via Traefik.
+
+### Logs (Loki + Alloy)
+
+Grafana Alloy runs as a DaemonSet and ships all pod logs to Loki. Loki is deployed in-cluster and accessible through Grafana's Explore panel.
+
+### Alerting
+
+Alertmanager is deployed alongside Prometheus. Alerts are routed to a Telegram bot for anything that warrants a notification at 3 AM.
+
+---
+
+## Backup and Disaster Recovery
+
+### PostgreSQL
+
+PostgreSQL (CloudNative-PG) is the most critical stateful service. The entire backup strategy is built around continuous WAL archiving to Cloudflare R2 via the Barman Cloud plugin.
+
+| What | How | Where |
+|------|-----|-------|
+| Base backups | `ScheduledBackup` CRD, daily at 02:00 UTC | `s3://cnpg-postgresql/postgresql/base/` |
+| WAL archiving | Continuous via Barman Cloud plugin | `s3://cnpg-postgresql/postgresql/wals/` |
+| Retention | 7 days | Configurable via `retentionPolicy` |
+| RPO | < 5 minutes | WAL archiving interval |
+| RTO | < 30 minutes | Full cluster restore from R2 |
+
+Full restore procedure, known issues, and PITR instructions: [`disaster-recovery/postgresql/readme.md`](disaster-recovery/postgresql/readme.md)
+
+### Vaultwarden
+
+Vaultwarden data is backed up via a scheduled script. Restore scripts and instructions are in [`disaster-recovery/vaultwarden/`](disaster-recovery/vaultwarden/).
+
+---
+
+## CI/CD
+
+### GitHub Actions
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `postgresql-backup-test.yml` | Cron: 1st & 15th at 03:00 UTC + manual | End-to-end PostgreSQL backup verification on an ephemeral DOKS cluster |
+
+**PostgreSQL Backup Verification** (`postgresql-backup-test.yml`):
+
+Spins up a throwaway DigitalOcean Kubernetes cluster, deploys the full PostgreSQL stack via ArgoCD at the pinned recovery tag, waits for the CloudNative-PG cluster to reach healthy state, then validates that expected databases and tables are present. The destroy step deletes the cluster first, then cleans up orphaned block storage volumes (by `k8s:<cluster-id>` CSI tag) and load balancers (by IP + tag).
+
+This runs automatically twice a month. If it fails, the backup is broken.
+
+### GitLab CI (hephaestus)
+
+Application-level CI pipelines run on the self-hosted GitLab runner on `hephaestus` (192.168.1.124). SonarQube analysis is triggered from the same runner for any repo that warrants static analysis.
+
+---
+
 ## Repository Structure
 
 ```
 .
+├── .github/
+│   └── workflows/
+│       └── postgresql-backup-test.yml # Automated backup verification (runs 1st & 15th)
+│
 ├── ansible/
 │   ├── core/                          # Production server configuration (the real stuff)
 │   │   ├── inventory.ini              # Ansible inventory (all hosts)
@@ -478,7 +554,7 @@ crowdsecAppsecFailureBlock: true
 │   ├── sonarqube/                     # SonarQube installation playbook
 │   └── proxmox/                       # Proxmox host configuration
 │
-├── kubernetes/                        # Dev/exploration environment
+├── kubernetes/                        # Kubernetes cluster workloads
 │   ├── argocd/
 │   │   ├── argocd-crd/                # ArgoCD installation (Helm)
 │   │   ├── app-of-app/                # App-of-apps Helm chart (values.yaml toggles)
@@ -497,12 +573,44 @@ crowdsecAppsecFailureBlock: true
 │   └── terraform-module/              # Shared Terraform modules (submodule)
 │
 ├── disaster-recovery/
-│   └── vaultwarden/                   # Backup and restore scripts (the most important directory)
+│   ├── postgresql/                    # PostgreSQL DR plan, restore procedure, CI docs
+│   └── vaultwarden/                   # Vaultwarden backup and restore scripts
 │
 └── plans/                             # Architecture decision records and future plans
 ```
 
 ---
+
+## Getting Started
+
+This repo is opinionated and wired to specific infrastructure. Nothing here will work out-of-the-box without the underlying hardware, secrets, and DigitalOcean account. That said:
+
+**To explore the Kubernetes manifests:**
+```bash
+# Browse ArgoCD app definitions
+ls kubernetes/argocd/argocd-app/
+
+# See what the app-of-app chart enables
+cat kubernetes/argocd/app-of-app/values.yaml
+```
+
+**To run the backup verification manually:**
+```bash
+gh workflow run postgresql-backup-test.yml \
+  --field region=nyc3 \
+  --field node_size=s-4vcpu-8gb \
+  --field node_count=2
+```
+
+**To understand the PostgreSQL disaster recovery procedure:**
+See [`disaster-recovery/postgresql/readme.md`](disaster-recovery/postgresql/readme.md).
+
+**Required secrets for the backup verification workflow** (set under `Settings → Environments → test-backup`):
+- `DIGITALOCEAN_TOKEN` — DigitalOcean API token
+- `R2_ACCESS_KEY` / `R2_SECRET_KEY` — Cloudflare R2 credentials
+
+---
+
 ## License
 
 This project is licensed under the "Works On My Machine" license.
