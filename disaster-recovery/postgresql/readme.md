@@ -14,6 +14,7 @@
 7. [Post-Restore Validation](#7-post-restore-validation)
 8. [Re-enable WAL Archiving](#8-re-enable-wal-archiving)
 9. [Runbook: Full Cluster Loss](#9-runbook-full-cluster-loss)
+10. [Automated Backup Verification (CI)](#10-automated-backup-verification-ci)
 
 ---
 
@@ -334,3 +335,78 @@ kubectl get cluster -n <namespace> postgresql \
 | 7 | Re-enable WAL archiving | Uncomment `spec.plugins`, re-apply |
 | 8 | Confirm backup resumes | Check `ContinuousArchiving` condition |
 | 9 | Commit clean manifest to Git | `git commit -m "chore: re-enable WAL archiving post-recovery"` |
+
+---
+
+## 10. Automated Backup Verification (CI)
+
+**Workflow file:** `.github/workflows/postgresql-backup-test.yml`
+
+An automated end-to-end backup verification runs on a schedule to prove that the R2 backup is actually restorable without human intervention.
+
+### Schedule
+
+| Trigger | When |
+|---------|------|
+| Scheduled | 1st and 15th of every month at **03:00 UTC** |
+| Manual | `workflow_dispatch` (configurable region, node size, node count) |
+
+### What It Does
+
+```
+Provision ephemeral DOKS cluster
+        │
+        ▼
+Deploy ArgoCD + app-of-app (postgresql only)
+        │
+        ▼
+Sync cert-manager → create namespace & secrets (R2 creds, postgres-admin)
+        │
+        ▼
+Override prod-postgresql revision → git tag: postgresql-first-recovery-test
+        │
+        ▼
+Sync PostgreSQL app (ArgoCD) → wait for "Cluster in healthy state"
+        │
+        ▼
+Validate restored data
+  ├── connectivity check (SELECT 1)
+  ├── list databases (\l)
+  ├── assert expected databases exist (sonarqube)
+  └── count user tables per database
+        │
+        ▼
+Destroy (always runs)
+  ├── 1. Scale all node pools → 0
+  ├── 2. Delete DOKS cluster
+  ├── 3. Delete block storage volumes  (tagged k8s:<cluster-id> by CSI driver)
+  └── 4. Delete load balancers         (by IP + tag fallback)
+```
+
+### Required GitHub Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `DIGITALOCEAN_TOKEN` | DigitalOcean API token (DOKS + volumes + LBs) |
+| `R2_ACCESS_KEY` | Cloudflare R2 access key |
+| `R2_SECRET_KEY` | Cloudflare R2 secret key |
+
+Configure these under **Settings → Environments → test-backup**.
+
+### Destroy Order
+
+The teardown step runs with `if: always()` to guarantee cleanup even on failure. Resources are removed in this order to avoid dependency conflicts:
+
+1. **Scale node pools to 0** — gracefully evicts all pods before cluster deletion
+2. **Delete DOKS cluster** — removes control plane and all nodes
+3. **Delete block storage volumes** — the CSI driver tags each PVC-backed volume with `k8s:<cluster-id>`; `doctl` filters by this tag
+4. **Delete load balancers** — matched first by the external IPs collected from `kubectl get svc` (before the cluster was deleted), then by `k8s:<cluster-id>` tag as a fallback
+
+### Triggering Manually
+
+```bash
+gh workflow run postgresql-backup-test.yml \
+  --field region=nyc3 \
+  --field node_size=s-4vcpu-8gb \
+  --field node_count=2
+```

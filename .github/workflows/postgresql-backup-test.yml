@@ -203,15 +203,68 @@ jobs:
       - name: Destroy DOKS cluster and associated infra
         if: always()
         run: |
-          kubectl get namespaces \
-            --no-headers \
-            -o custom-columns=':metadata.name' \
-            | grep -Ev '^(kube-system|kube-public|kube-node-lease|default)$' \
-            | xargs -r kubectl delete namespace --ignore-not-found=true 2>/dev/null || true
+          CLUSTER_ID=$(doctl kubernetes cluster get "$CLUSTER_NAME" \
+            --format ID --no-header 2>/dev/null || echo "")
 
-          kubectl delete svc --all --field-selector spec.type=LoadBalancer \
-            --ignore-not-found=true -n default 2>/dev/null || true
-          kubectl delete pvc --all \
-            --ignore-not-found=true -n default 2>/dev/null || true
-          sleep 60
-          doctl kubernetes cluster delete "$CLUSTER_NAME" --force --dangerous 2>/dev/null || true
+          if [ -z "$CLUSTER_ID" ]; then
+            echo "Cluster '$CLUSTER_NAME' not found, nothing to clean up."
+            exit 0
+          fi
+
+          echo "Cluster ID: $CLUSTER_ID"
+
+          # Collect LB IPs now while kubectl still works — needed after cluster is gone
+          LB_IPS=$(kubectl get svc -A \
+            -o jsonpath='{.items[?(@.spec.type=="LoadBalancer")].status.loadBalancer.ingress[0].ip}' \
+            2>/dev/null || echo "")
+
+          # --- Scale down all node pools then delete the cluster ---
+          echo "=== Scaling down node pools ==="
+          POOL_IDS=$(doctl kubernetes cluster node-pool list "$CLUSTER_NAME" \
+            --format ID --no-header 2>/dev/null || echo "")
+          for pool_id in $POOL_IDS; do
+            echo "Scaling node pool $pool_id to 0..."
+            doctl kubernetes cluster node-pool update "$CLUSTER_NAME" "$pool_id" \
+              --count 0 || true
+          done
+          [ -n "$POOL_IDS" ] && sleep 30 || true
+
+          echo "=== Deleting DOKS cluster ==="
+          doctl kubernetes cluster delete "$CLUSTER_NAME" --force --dangerous || true
+
+          # --- Delete DigitalOcean Block Storage Volumes ---
+          # The DOKS CSI driver tags every provisioned volume with k8s:<cluster-id>
+          echo "=== Cleaning up DigitalOcean Block Storage Volumes ==="
+          VOL_IDS=$(doctl compute volume list -o json \
+            | jq -r --arg tag "k8s:$CLUSTER_ID" \
+              '.[] | select(.tags? and (.tags[] == $tag)) | .id' 2>/dev/null || echo "")
+          if [ -n "$VOL_IDS" ]; then
+            for vol_id in $VOL_IDS; do
+              echo "Deleting volume: $vol_id"
+              doctl compute volume delete "$vol_id" --force || true
+            done
+          else
+            echo "No block storage volumes found for cluster $CLUSTER_ID."
+          fi
+
+          # --- Delete DigitalOcean Load Balancers ---
+          # Primary: match by IPs collected before cluster was deleted
+          echo "=== Cleaning up DigitalOcean Load Balancers ==="
+          for lb_ip in $LB_IPS; do
+            LB_ID=$(doctl compute load-balancer list -o json \
+              | jq -r --arg ip "$lb_ip" '.[] | select(.ip == $ip) | .id')
+            if [ -n "$LB_ID" ]; then
+              echo "Deleting load balancer $LB_ID (IP: $lb_ip)"
+              doctl compute load-balancer delete "$LB_ID" --force || true
+            fi
+          done
+          # Fallback: catch any LBs still tagged with the cluster ID
+          TAGGED_LB_IDS=$(doctl compute load-balancer list -o json \
+            | jq -r --arg tag "k8s:$CLUSTER_ID" \
+              '.[] | select(.tags? and (.tags[] == $tag)) | .id' 2>/dev/null || echo "")
+          for lb_id in $TAGGED_LB_IDS; do
+            echo "Deleting tagged load balancer: $lb_id"
+            doctl compute load-balancer delete "$lb_id" --force 2>/dev/null || true
+          done
+
+          echo "Destroy complete."
