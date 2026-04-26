@@ -8,6 +8,6 @@ dependencies = [
     "boto3-stubs~=1.42.17",
     "cryptography>=46.0.3",
     "docker>=7.0.0",
-    "python-dotenv>=1.2.1",
+    "python-dotenv>=1.2.2",
     "zstandard>=0.25.0",
 ]
