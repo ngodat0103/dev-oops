@@ -43,20 +43,6 @@ spec:
         env:
         - name: TZ
           value: Asia/Ho_Chi_Minh
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8096
-          initialDelaySeconds: 30
-          periodSeconds: 15
-          failureThreshold: 5
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8096
-          initialDelaySeconds: 60
-          periodSeconds: 30
-          failureThreshold: 5
         volumeMounts:
         - name: config
           mountPath: /config
