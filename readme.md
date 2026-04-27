@@ -52,20 +52,15 @@ The infrastructure follows a hybrid model in active transition: services are bei
 |                                                                |
 |  PRODUCTION (the stuff that must not go down)                  |
 |  +---------------------------+  +---------------------------+  |
-|  | ubuntu-server  .1.121     |  | hephaestus     .1.124     |  |
-|  | Traefik, Docker services  |  | GitLab Runner, GH Runner  |  |
-|  | Monitoring stack          |  | Named after a Greek god   |  |
-|  | (the workhorse)           |  | (for extra cool points)   |  |
+|  | ubuntu-server  .1.121     |  | sonarqube      .1.125     |  |
+|  | Traefik, Docker services  |  | "yes I lint my homelab"   |  |
+|  | Monitoring stack          |  |                           |  |
+|  | (the workhorse)           |  |                           |  |
 |  +---------------------------+  +---------------------------+  |
 |  +---------------------------+  +---------------------------+  |
-|  | vpn-server     .1.123     |  | sonarqube      .1.125     |  |
-|  | OpenVPN + OTP             |  | "yes I lint my homelab"   |  |
+|  | vpn-server     .1.123     |  | teleport       .1.122     |  |
+|  | OpenVPN + OTP             |  | Zero-Trust Access         |  |
 |  +---------------------------+  +---------------------------+  |
-|  +---------------------------+                                 |
-|  | teleport       .1.122     |                                 |
-|  | Zero-Trust Access         |                                 |
-|  | (SSH but make it fancy)   |                                 |
-|  +---------------------------+                                 |
 |                                                                |
 |  Production LXC                                                |
 |  +---------------------------+  +---------------------------+  |
@@ -73,15 +68,16 @@ The infrastructure follows a hybrid model in active transition: services are bei
 |  | The elephant in the room  |  | "you shall not pass"      |  |
 |  +---------------------------+  +---------------------------+  |
 |                                                                |
-|  Kubernetes Cluster (MIGRATION IN PROGRESS)                   |
+|  Kubernetes Cluster (PRODUCTION — migration in progress)      |
 |  +----------------------------------------------------------+ |
 |  | Masters: .1.180-.182 (x3)  Workers: .1.190-.193 (x4)     | |
+|  | 10 vCPU / 10 GB RAM / 250 GB disk per worker (production) | |
 |  | ArgoCD, Traefik, MetalLB, OpenEBS, CloudNative-PG,       | |
 |  | Velero, kube-prometheus-stack, Strimzi Kafka, Redis,     | |
 |  | qBittorrent, Jellyfin (migrated from Docker)              | |
 ||  |                                                            | |
 |  | "One day this will replace everything above.               | |
-|  |  That day has started."                                   | |
+|  |  That day has started. And it's tagged production."       | |
 |  +----------------------------------------------------------+ |
 +---------------------------------------------------------------+
 ```
@@ -158,7 +154,6 @@ Internal records resolve to the Kubernetes Traefik ingress (via MetalLB) and are
 | ubuntu-server  | 192.168.1.121  | Ubuntu 22.04 | 4    | 16 GB | Docker host, Traefik, monitoring (the workhorse) |
 | teleport       | 192.168.1.122  | --           | --   | --    | Zero-trust access proxy              |
 | vpn-server     | 192.168.1.123  | Debian 13    | 1    | 2 GB  | OpenVPN with OTP (for remote chaos)  |
-| hephaestus     | 192.168.1.124  | Ubuntu 22.04 | 4    | 16 GB | CI/CD runners (GitLab + GitHub)      |
 | sonarqube      | 192.168.1.125  | Ubuntu 22.04 | 4    | 8 GB  | SonarQube -- yes, I run static analysis on my homelab code |
 
 ### LXC Containers
@@ -168,14 +163,14 @@ Internal records resolve to the Kubernetes Traefik ingress (via MetalLB) and are
 | postgresql-16           | 192.168.99.2   | Ubuntu 22.04 | 1    | 2 GB | PostgreSQL 16 (production)|
 | crowdsec-detection      | 192.168.1.127  | Ubuntu 22.04 | 1    | 1 GB | CrowdSec LAPI + AppSec   |
 
-### Kubernetes Cluster (Dev/Exploration)
+### Kubernetes Cluster (Production)
 
-Deployed via Kubespray. Seven VMs pretending to be a datacenter. See [The Kubernetes Situation](#the-kubernetes-situation) for the full story.
+Deployed via Kubespray. Seven VMs pretending to be a datacenter — now tagged `production`. See [The Kubernetes Situation](#the-kubernetes-situation) for the full story.
 
-| Role    | Count | IP Range            | vCPU | RAM  | Disk   |
-|---------|-------|---------------------|------|------|--------|
-| Master  | 3     | 192.168.1.180-182   | 2    | 4 GB | 50 GB  |
-| Worker  | 4     | 192.168.1.190-193   | 4    | 5 GB | 100 GB |
+| Role    | Count | IP Range            | vCPU | RAM   | Disk   |
+|---------|-------|---------------------|------|-------|--------|
+| Master  | 3     | 192.168.1.180-182   | 2    | 4 GB  | 50 GB  |
+| Worker  | 4     | 192.168.1.190-193   | 10   | 10 GB | 250 GB |
 
 ---
 
@@ -199,7 +194,6 @@ Server configuration and application deployment for all non-Kubernetes workloads
 | Playbook Area                | Purpose                                               |
 |------------------------------|-------------------------------------------------------|
 | `ansible/core/ubuntu-server` | Docker host setup, app deployment, monitoring, cron   |
-| `ansible/core/hephaestus`    | CI runner provisioning (Go, Maven, Docker, kubectl)   |
 | `ansible/core/teleport`      | Teleport access proxy installation                    |
 | `ansible/core/vpn-server`    | OpenVPN server with OTP                               |
 | `ansible/core/lxc`           | PostgreSQL and Kafka configuration                    |
@@ -274,7 +268,7 @@ CloudNative-PG manages databases for: `nextcloud`, `gitlabhq_production`, `vault
 
 The migration has started. Here is the honest state of affairs.
 
-The Kubernetes cluster started as a **dev and exploration environment**. Production ran on Docker + Ansible on ubuntu-server because it worked and I slept at night. That model is now actively being dismantled.
+The Kubernetes cluster started as a **dev and exploration environment** and has been promoted to `production`. Production ran on Docker + Ansible on ubuntu-server because it worked and I slept at night. That model is now actively being dismantled.
 
 Every service on the Docker side requires writing Ansible playbooks, Docker Compose files, systemd units, Traefik labels, Prometheus scrape configs, backup cron jobs, and update procedures — **per service, by hand, every single time**. It's the YAML equivalent of digging a ditch with a spoon. Kubernetes solves this: define it once, let ArgoCD sync it, let the platform handle scheduling, networking, storage, secrets, and rollbacks. The app-of-apps pattern already proves the point — enabling a full service stack is a boolean flip in `values.yaml`.
 
@@ -528,9 +522,9 @@ Spins up a throwaway DigitalOcean Kubernetes cluster, deploys the full PostgreSQ
 
 This runs automatically twice a month. If it fails, the backup is broken.
 
-### GitLab CI (hephaestus)
+### GitLab CI
 
-Application-level CI pipelines run on the self-hosted GitLab runner on `hephaestus` (192.168.1.124). SonarQube analysis is triggered from the same runner for any repo that warrants static analysis.
+~~Application-level CI pipelines ran on the self-hosted GitLab/GitHub runner on `hephaestus` (192.168.1.124).~~ The `hephaestus` VM was decommissioned on April 27, 2026. CI now runs exclusively on GitHub-hosted runners (`ubuntu-latest`). SonarQube analysis continues to run on the standalone SonarQube VM (192.168.1.125).
 
 ---
 
@@ -546,7 +540,6 @@ Application-level CI pipelines run on the self-hosted GitLab runner on `hephaest
 │   ├── core/                          # Production server configuration (the real stuff)
 │   │   ├── inventory.ini              # Ansible inventory (all hosts)
 │   │   ├── ubuntu-server/             # Docker host: apps, basic setup, monitoring, cron
-│   │   ├── hephaestus/                # CI/CD runner provisioning
 │   │   ├── teleport/                  # Zero-trust access proxy
 │   │   ├── vpn-server/                # OpenVPN configuration
 │   │   └── lxc/                       # LXC workloads (PostgreSQL, Kafka)

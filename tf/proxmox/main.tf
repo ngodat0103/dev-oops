@@ -202,29 +202,6 @@ module "vpn_server" {
   }
 }
 
-module "hephaestus" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
-  template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
-  name              = "hephaestus"
-  tags              = ["Gitlab-runner", "Github-runner", "production"]
-  hostname          = "hephaestus.local"
-  node_name         = local.node_name
-  ip_address        = "192.168.1.124/24"
-  bridge_name       = "vmbr0"
-  memory            = 1024 * 16
-  gateway           = local.lan_gateway
-  description       = "The server to run multiple CI tools such as Github Runner, Gitlab Runner"
-  on_boot           = true
-  boot_disk_size    = 150
-  cpu_cores         = 4
-  public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCrERHvr2Wb8+W9BtivbGS6O0Z7ggXtMYGUgfjWgG2xtVfy/3KjzrTuo/Qycb+sLOQUEYK3ciXe8UMEP0nsh3oLwH6ty19izzFqjptAXfErkWY43FV0SfOj/NmdoAfDT0VSawjcxKDZlaJuFynIzjweR4vt7zvwOohxbz6sJv1EOQzjhwV+dBR8B2sT0bt1pwGK/L9Yb6y0XBCafTCErwM32sraa0EJOI7614BxrQ4f57i3Qxru9vFkHmAcH45MOuXTdjYvmfAKs+TlePV0tSgZfR/NgI+/opzvwOxYK3m4myAf+SpObopfEqIclAdqPNytwgGjORXey7am7IzzUWOJ2f2WaCHxLgs6OezfCSewz1w4riN5XCD8k2AAm1UgYWKcjGr3iG4ipoUA3F3s5lDNu7TKW39WzuMsBD/LUexY6C6HCFnipM+BJZYJ97TDcQB8BrZCZgFPf7YpMr8OkUmDLgroiZsWWvpmUxj3VvMQmMOp/0QktS2N8QxTLptjzu0= akira@legion5"
-  network_model     = "e1000e"
-  startup_config = {
-    order      = 3
-    up_delay   = 30
-    down_delay = 1
-  }
-}
 module "k8s_masters" {
   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
   count             = 3
@@ -233,7 +210,7 @@ module "k8s_masters" {
   name              = "master-nodes-${count.index}"
   public_key        = local.k8s_public_key
   ip_address        = "192.168.1.18${count.index}/24"
-  tags              = ["development", "kubernetes-masters"]
+  tags              = ["production", "kubernetes-masters"]
   gateway           = "192.168.1.1"
   memory            = 1024*5 
   cpu_cores         = 2
@@ -256,11 +233,11 @@ module "k8s_workers" {
   name              = "worker-nodes-${count.index}"
   public_key        = local.k8s_public_key
   ip_address        = "192.168.1.19${count.index}/24"
-  tags              = ["development", "kubernetes-workers"]
-  boot_disk_size    = 100
+  tags              = ["production", "kubernetes-workers"]
+  boot_disk_size    = 250
   gateway           = "192.168.1.1"
-  memory            = 1024 * 8
-  cpu_cores         = 8
+  memory            = 1024 * 10
+  cpu_cores         = 10
   cpu_type = "host"
   node_name         = local.node_name
   datastore_id      = "local-lvm"

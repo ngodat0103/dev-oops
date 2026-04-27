@@ -1,6 +1,6 @@
 # PostgreSQL Disaster Recovery Plan
 > **Stack:** CloudNativePG · Barman Cloud Plugin · Cloudflare R2 · Kubernetes  
-> **Last Updated:** April 2026
+> **Last Updated:** April 27, 2026
 
 ---
 
@@ -41,6 +41,7 @@
 - **Barman Cloud plugin** (`barman-cloud.cloudnative-pg.io`) handles WAL archiving and base backups to object storage.
 - **Cloudflare R2** stores all base backups and WAL segments. No egress fees.
 - **ArgoCD** manages GitOps deployment of the Cluster manifest (sync-wave `"1"`).
+- **Kubernetes cluster** (Proxmox, on-prem) — 3 master nodes + 3 worker nodes, tagged `production`. Worker spec: 10 vCPU / 10 GB RAM / 250 GB boot disk.
 
 ---
 
@@ -340,7 +341,8 @@ kubectl get cluster -n <namespace> postgresql \
 
 ## 10. Automated Backup Verification (CI)
 
-**Workflow file:** `.github/workflows/postgresql-backup-test.yml`
+**Workflow file:** `.github/workflows/postgresql-backup-test.yml`  
+**Runs on:** GitHub-hosted `ubuntu-latest` (the `hephaestus` self-hosted runner was decommissioned April 27, 2026)
 
 An automated end-to-end backup verification runs on a schedule to prove that the R2 backup is actually restorable without human intervention.
 

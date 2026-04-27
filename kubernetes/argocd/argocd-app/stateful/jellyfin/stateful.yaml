@@ -32,11 +32,11 @@ spec:
         image: jellyfin/jellyfin:10.11.8@sha256:1694ff069f0c9dafb283c36765175606866769f5d72f2ed56b6a0f1be922fc37
         resources:
           requests:
-            cpu: 2000m
-            memory: 2Gi
-          limits:
-            cpu: 6000m
+            cpu: 1000m
             memory: 4Gi
+          limits:
+            cpu: 9000m
+            memory: 8Gi
         ports:
         - name: http
           containerPort: 8096
