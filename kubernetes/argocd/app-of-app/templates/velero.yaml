@@ -32,7 +32,7 @@ spec:
           volumeMounts:
             - mountPath: /target
               name: plugins
-      deployNodeAgent: true
+      deployNodeAgent: false
       configuration:
         volumeSnapshotLocation: []
         backupStorageLocation:

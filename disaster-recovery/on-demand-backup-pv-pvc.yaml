@@ -1,0 +1,17 @@
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: pv-pvc-manifest-ondemand-1
+  namespace: velero
+spec:
+  includedNamespaces: [ "jellyfin", "qbittorrent", "vaultwarden" ]
+
+  includedClusterScopedResources:
+  - persistentvolumes
+  includedNamespaceScopedResources:
+  - persistentvolumeclaims
+
+  defaultVolumesToFsBackup: false
+  snapshotVolumes: false
+  storageLocation: r2-cloudflare
+  ttl: 0s # never expires

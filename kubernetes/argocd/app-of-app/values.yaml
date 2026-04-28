@@ -7,7 +7,7 @@ openebs:
 postgresql:
   enabled: true
 velero:
-  enabled: false
+  enabled: true
 kubePrometheusStack:
   enabled: true
 mongoOperator:
