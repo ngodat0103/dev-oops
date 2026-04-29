@@ -8,7 +8,9 @@ spec:
   project: default
   syncPolicy:
     automated:
-      enabled: false
+      enabled: true
+      selfHeal: true
+      prune: true
   destination:
     namespace: kube-system
     name: in-cluster
@@ -17,5 +19,5 @@ spec:
     targetRevision: "v4.13.2"
     path: deploy
     directory:
-      exclude: "{csi-nfs-node-windows.yaml,storageclass.yaml}" # Don't need StorageClass, I rather to configure manually to control
+      exclude: "{csi-nfs-node-windows.yaml,storageclass.yaml,csi-snapshot-controller.yaml}" # Don't need StorageClass, I rather to configure manually to control
 {{- end }}
