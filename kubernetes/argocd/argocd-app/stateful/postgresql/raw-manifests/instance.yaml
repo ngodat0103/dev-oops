@@ -10,13 +10,26 @@ spec:
   affinity: {}
   # According to requirement of Gitlab
   # https://docs.gitlab.com/install/requirements/#postgresql-tuning
+  postgresql:
+    parameters:
+      shared_buffers: "2GB"
+      effective_cache_size: "6GB"
+      work_mem: "8MB"
+      maintenance_work_mem: "256MB"
+      max_connections: "400"
+      random_page_cost: "1.2"
+      effective_io_concurrency: "100"
+      checkpoint_completion_target: "0.9"
+      log_min_duration_statement: "1000"
+      statement_timeout: "0"
+      hot_standby_feedback: "on"
   resources:
     requests:
-      memory: 1Gi
-      cpu: 1
-    limits:
+      memory: 6Gi
       cpu: 2
-      memory: 1Gi
+    limits:
+      memory: 8Gi
+      cpu: 2
   enableSuperuserAccess: true
   superuserSecret:
     name: postgres-admin
@@ -50,6 +63,7 @@ spec:
     - name: gitlab
       ensure: present
       comment: "Role for Gitlab"
+      connectionLimit: 100
       login: true
       superuser: false
       passwordSecret:
@@ -58,6 +72,7 @@ spec:
       comment: Role for nextcloud
       login: true
       superuser: false
+      connectionLimit: 30
       ensure: present
       passwordSecret:
         name: nextcloud-db
@@ -77,6 +92,6 @@ spec:
         name: pgadmin-monitor-credentials
       inRoles:
       - pg_monitor
-  instances: 2
+  instances: 1
   storage:
     size: 30Gi
