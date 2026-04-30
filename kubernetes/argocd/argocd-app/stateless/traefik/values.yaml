@@ -1,16 +1,10 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/traefik/traefik-helm-chart/refs/tags/v37.4.0/traefik/values.yaml
 
 deployment:
-  # -- Enable deployment
   enabled: true
-  # -- Deployment or DaemonSet
   kind: Deployment
-  # -- Number of pods of the deployment (only applies when kind == Deployment)
   replicas: 1
-  # -- Number of old history to retain to allow rollback (If not set, default Kubernetes value is set to 10)
   revisionHistoryLimit: 3
-    # @schema type:[integer, null];minimum:0
-    # -- Amount of time (in seconds) before Kubernetes will send the SIGKILL signal if Traefik does not shut down
   additionalVolumes:
   - name: crowdsec-lapi-key
     secret:
@@ -42,49 +36,23 @@ ingressClass:
   enabled: true
   isDefaultClass: true
   name: "traefik"
-
-core:
-  # @schema additionalProperties: false
-  # -- Can be used to use globally v2 router syntax. Deprecated since v3.4 /!\.
-  # See https://doc.traefik.io/traefik/v3.0/migration/v2-to-v3/#new-v3-syntax-notable-changes
-  defaultRuleSyntax: ""
-
 # Traefik experimental features
 experimental:
-  # -- Defines whether all plugins must be loaded successfully for Traefik to start
-  abortOnPluginFailure: false
-  fastProxy:
-    # -- Enables the FastProxy implementation.
-    enabled: false
-    # -- Enable debug mode for the FastProxy implementation.
-    debug: false
-  kubernetesGateway:
-    # -- Enable traefik experimental GatewayClass CRD
-    enabled: false
-  # -- Enable experimental plugins
   plugins:
     bouncer:
       moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
       version: v1.5.1
-  # -- Enable experimental local plugins
-  localPlugins: {}
 
-gateway:
-  # -- When providers.kubernetesGateway.enabled, deploy a default gateway
-  enabled: false
-
-gatewayClass:
-  enabled: false
-  name: ""
-  labels: {}
-
+api:
+  dashboard: true
 # -- Only dashboard & healthcheck IngressRoute are supported. It's recommended to create workloads CR outside of this Chart.
 ingressRoute:
   dashboard:
     # -- Create an IngressRoute for the dashboard
     enabled: true
     # -- Additional ingressRoute annotations (e.g. for kubernetes.io/ingress.class)
-    annotations: {}
+    annotations:
+      kubernetes.io/ingress.class: traefik
     # -- Additional ingressRoute labels (e.g. for filtering IngressRoute by custom labels)
     labels: {}
     # -- The router match rule used for the dashboard ingressRoute
@@ -98,8 +66,7 @@ ingressRoute:
     # /!\ Do not expose your dashboard without any protection over the internet /!\
     entryPoints: [ "traefik" ]
     # -- Additional ingressRoute middlewares (e.g. for authentication)
-    middlewares:
-    - name: allow-local-ip-only
+    middlewares: []
     # -- TLS options (e.g. secret containing certificate)
     tls: {}
   healthcheck:
@@ -124,13 +91,10 @@ ingressRoute:
     tls: {}
 
 updateStrategy:
-  # @schema additionalProperties: false
-  # -- Customize updateStrategy of Deployment or DaemonSet
   type: RollingUpdate
   rollingUpdate:
-    maxUnavailable: 0 # @schema type:[integer, string, null]
-    maxSurge: 1 # @schema type:[integer, string, null]
-
+    maxUnavailable: 0
+    maxSurge: 1
 providers:
   # @schema additionalProperties: false
   kubernetesCRD:
@@ -143,7 +107,7 @@ providers:
     # -- Allows to return 503 when there is no endpoints available
     allowEmptyServices: true
     # -- When the parameter is set, only resources containing an annotation with the same value are processed. Otherwise, resources missing the annotation, having an empty value, or the value traefik are processed. It will also set required annotation on Dashboard and Healthcheck IngressRoute when enabled.
-    ingressClass: ""
+    ingressClass: "traefik"
     # labelSelector: environment=production,method=traefik
     # -- Array of namespaces to watch. If left empty, Traefik watches all namespaces. . When using `rbac.namespaced`, it will watch helm release namespace and namespaces listed in this array.
     namespaces: []
@@ -158,7 +122,7 @@ providers:
     # -- Allows to return 503 when there is no endpoints available
     allowEmptyServices: true
     # -- When ingressClass is set, only Ingresses containing an annotation with the same value are processed. Otherwise, Ingresses missing the annotation, having an empty value, or the value traefik are processed.
-    ingressClass:
+    ingressClass: "traefik"
       # @schema type:[string, null]
       # labelSelector: environment=production,method=traefik
 
@@ -167,7 +131,7 @@ providers:
     # IP used for Kubernetes Ingress endpoints
     publishedService:
       # -- Enable [publishedService](https://doc.traefik.io/traefik/providers/kubernetes-ingress/#publishedservice)
-      enabled: true
+      enabled: false
       # -- Override path of Kubernetes Service used to copy status from. Format: namespace/servicename.
       # Default to Service deployed with this Chart.
       pathOverride: ""
@@ -206,22 +170,6 @@ providers:
     watch: true
     # -- File content (YAML format, go template supported) (see https://doc.traefik.io/traefik/providers/file/)
     content: ""
-
-# -- Add volumes to the traefik pod. The volume name will be passed to tpl.
-# This can be used to mount a cert pair or a configmap that holds a config.toml file.
-# After the volume has been mounted, add the configs into traefik by using the `additionalArguments` list below, eg:
-# `additionalArguments:
-# - "--providers.file.filename=/config/dynamic.toml"
-# - "--ping"
-# - "--ping.entrypoint=web"`
-volumes: []
-# - name: '{{ printf "%s-configs" .Release.Name }}'
-#   mountPath: "/config"
-#   type: configMap
-# -- Additional volumeMounts to add to the Traefik container
-# -- For instance when using a logshipper for access logs
-# - name: traefik-logs
-#   mountPath: /var/log/traefik
 
 logs:
   general:
@@ -275,29 +223,15 @@ logs:
 
 metrics:
   # -- Enable metrics for internal resources. Default: false
-  addInternals: false
-
+  addInternals: true
   ## Prometheus is enabled by default.
   ## It can be disabled by setting "prometheus: null"
   prometheus:
     # -- Entry point used to expose metrics.
     entryPoint: metrics
-    # -- Enable metrics on entry points. Default: true
-    addEntryPointsLabels:
-      # @schema type:[boolean, null]
-      # -- Enable metrics on routers. Default: false
-
-    addRoutersLabels:
-      # @schema type:[boolean, null]
-      # -- Enable metrics on services. Default: true
-
-    addServicesLabels:
-      # @schema type:[boolean, null]
-      # -- Buckets for latency metrics. Default="0.1,0.3,1.2,5.0"
-
-    buckets: ""
-    # -- When manualRouting is true, it disables the default internal router in
-    ## order to allow creating a custom router for prometheus@internal service.
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
     manualRouting: false
     # -- Add HTTP header labels to metrics. See EXAMPLES.md or upstream doc for usage.
     headerLabels: {} # @schema type:[object, null]
@@ -310,13 +244,13 @@ metrics:
     disableAPICheck: # @schema type:[boolean, null]
     serviceMonitor:
       # -- Enable optional CR for Prometheus Operator. See EXAMPLES.md for more details.
-      enabled: false
+      enabled: true
       apiVersion: "monitoring.coreos.com/v1"
       metricRelabelings: []
       relabelings: []
       jobLabel: ""
       interval: ""
-      honorLabels: false
+      honorLabels: true
       scrapeTimeout: ""
       honorTimestamps: false
       enableHttp2: false
@@ -324,73 +258,18 @@ metrics:
       additionalLabels: {}
       namespace: ""
       namespaceSelector: {}
-    prometheusRule:
-      # -- Enable optional CR for Prometheus Operator. See EXAMPLES.md for more details.
-      enabled: false
-      apiVersion: "monitoring.coreos.com/v1"
-      additionalLabels: {}
-      namespace: ""
-
-  #  datadog:
-  #    ## Address instructs exporter to send metrics to datadog-agent at this address.
-  #    address: "127.0.0.1:8125"
-  #    ## The interval used by the exporter to push metrics to datadog-agent. Default=10s
-  #    # pushInterval: 30s
-  #    ## The prefix to use for metrics collection. Default="traefik"
-  #    # prefix: traefik
-  #    ## Enable metrics on entry points. Default=true
-  #    # addEntryPointsLabels: false
-  #    ## Enable metrics on routers. Default=false
-  #    # addRoutersLabels: true
-  #    ## Enable metrics on services. Default=true
-  #    # addServicesLabels: false
-  #  influxdb2:
-  #    ## Address instructs exporter to send metrics to influxdb v2 at this address.
-  #    address: localhost:8086
-  #    ## Token with which to connect to InfluxDB v2.
-  #    token: xxx
-  #    ## Organisation where metrics will be stored.
-  #    org: ""
-  #    ## Bucket where metrics will be stored.
-  #    bucket: ""
-  #    ## The interval used by the exporter to push metrics to influxdb. Default=10s
-  #    # pushInterval: 30s
-  #    ## Additional labels (influxdb tags) on all metrics.
-  #    # additionalLabels:
-  #    #   env: production
-  #    #   foo: bar
-  #    ## Enable metrics on entry points. Default=true
-  #    # addEntryPointsLabels: false
-  #    ## Enable metrics on routers. Default=false
-  #    # addRoutersLabels: true
-  #    ## Enable metrics on services. Default=true
-  #    # addServicesLabels: false
-  #  statsd:
-  #    ## Address instructs exporter to send metrics to statsd at this address.
-  #    address: localhost:8125
-  #    ## The interval used by the exporter to push metrics to influxdb. Default=10s
-  #    # pushInterval: 30s
-  #    ## The prefix to use for metrics collection. Default="traefik"
-  #    # prefix: traefik
-  #    ## Enable metrics on entry points. Default=true
-  #    # addEntryPointsLabels: false
-  #    ## Enable metrics on routers. Default=false
-  #    # addRoutersLabels: true
-  #    ## Enable metrics on services. Default=true
-  #    # addServicesLabels: false
   otlp:
     # -- Set to true in order to enable the OpenTelemetry metrics
     enabled: false
     # -- Enable metrics on entry points. Default: true
-    addEntryPointsLabels:
+    addEntryPointsLabels: true
       # @schema type:[boolean, null]
       # -- Enable metrics on routers. Default: false
-
-    addRoutersLabels:
+    addRoutersLabels: true
       # @schema type:[boolean, null]
       # -- Enable metrics on services. Default: true
 
-    addServicesLabels:
+    addServicesLabels: true
       # @schema type:[boolean, null]
       # -- Explicit boundaries for Histogram data points. Default: [.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10]
 
@@ -433,13 +312,6 @@ metrics:
         key: ""
         # -- When set to true, the TLS connection accepts any certificate presented by the server regardless of the hostnames it covers.
         insecureSkipVerify: false
-
-ocsp:
-  # -- Enable OCSP stapling support.
-  # See https://doc.traefik.io/traefik/https/ocsp/#overview
-  enabled: false
-  # -- Defines the OCSP responder URLs to use instead of the one provided by the certificate.
-  responderOverrides: {}
 
 ## Tracing
 # -- https://doc.traefik.io/traefik/observability/tracing/overview/
@@ -504,20 +376,6 @@ global:
   # -- Please take time to consider whether or not you wish to share anonymous data with us
   # See https://doc.traefik.io/traefik/contributing/data-collection/
   sendAnonymousUsage: false
-  # -- Required for Azure Marketplace integration.
-  # See https://learn.microsoft.com/en-us/partner-center/marketplace-offers/azure-container-technical-assets-kubernetes?tabs=linux,linux2#update-the-helm-chart
-  azure:
-    # -- Enable specific values for Azure Marketplace
-    enabled: false
-    images:
-      proxy:
-        image: traefik
-        tag: latest
-        registry: docker.io/library
-      hub:
-        image: traefik-hub
-        tag: latest
-        registry: ghcr.io/traefik
 
 # -- Additional arguments to be passed at Traefik's binary
 # See [CLI Reference](https://docs.traefik.io/reference/static-configuration/cli/)
@@ -615,16 +473,6 @@ ports:
     targetPort:
       # @schema type:[string, integer, null]; minimum:0
       ## -- The port protocol (TCP/UDP)
-
-    protocol: TCP
-    # -- See [upstream documentation](https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport)
-    nodePort:
-      # @schema type:[integer, null]; minimum:0
-      # -- See [upstream documentation](https://kubernetes.io/docs/concepts/services-networking/service/#application-protocol)
-
-    appProtocol:
-      # @schema type:[string, null]
-      # -- See [upstream documentation](https://doc.traefik.io/traefik/routing/entrypoints/#allowacmebypass)
 
     allowACMEByPass: false
     http3:
@@ -740,28 +588,6 @@ service:
   #   # externalIPs: []
   #   # ipFamilies: [ "IPv4","IPv6" ]
 
-autoscaling:
-  # @schema additionalProperties: false
-  # -- Create HorizontalPodAutoscaler object.
-  # See EXAMPLES.md for more details.
-  enabled: false
-  # -- minReplicas is the lower limit for the number of replicas to which the autoscaler can scale down. It defaults to 1 pod.
-  minReplicas:
-    # @schema type:[integer, null]; minimum:0
-    # -- maxReplicas is the upper limit for the number of pods that can be set by the autoscaler; cannot be smaller than MinReplicas.
-
-  maxReplicas:
-    # @schema type:[integer, null]; minimum:0
-    # -- metrics contains the specifications for which to use to calculate the desired replica count (the maximum replica count across all metrics will be used).
-
-  metrics: []
-  # -- behavior configures the scaling behavior of the target in both Up and Down directions (scaleUp and scaleDown fields respectively).
-  behavior: {}
-  # -- scaleTargetRef points to the target resource to scale, and is used to the pods for which metrics should be collected, as well as to actually change the replica count.
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: "{{ template \"traefik.fullname\" . }}"
 persistence:
   # -- Enable persistence using Persistent Volume Claims
   # ref: http://kubernetes.io/docs/user-guide/persistent-volumes/.
@@ -831,45 +657,6 @@ resources:
   limits:
     cpu: 500m
     memory: 256Mi
-# -- This example pod anti-affinity forces the scheduler to put traefik pods
-# -- on nodes where no other traefik pods are scheduled.
-# It should be used when hostNetwork: true to prevent port conflicts
-affinity: {}
-#  podAntiAffinity:
-#    requiredDuringSchedulingIgnoredDuringExecution:
-#      - labelSelector:
-#          matchLabels:
-#            app.kubernetes.io/name: '{{ template "traefik.name" . }}'
-#            app.kubernetes.io/instance: '{{ .Release.Name }}-{{ include "traefik.namespace" . }}'
-#        topologyKey: kubernetes.io/hostname
-
-# -- nodeSelector is the simplest recommended form of node selection constraint.
-nodeSelector: {}
-# -- Tolerations allow the scheduler to schedule pods with matching taints.
-tolerations: []
-# -- You can use topology spread constraints to control
-# how Pods are spread across your cluster among failure-domains.
-topologySpreadConstraints: []
-# This example topologySpreadConstraints forces the scheduler to put traefik pods
-# on nodes where no other traefik pods are scheduled.
-#  - labelSelector:
-#      matchLabels:
-#        app.kubernetes.io/name: '{{ template "traefik.name" . }}'
-#    maxSkew: 1
-#    topologyKey: kubernetes.io/hostname
-#    whenUnsatisfiable: DoNotSchedule
-
-# -- [Pod Priority and Preemption](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/)
-priorityClassName: ""
-
-# -- [SecurityContext](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context-1)
-# @default -- See _values.yaml_
-securityContext:
-  allowPrivilegeEscalation: false
-  capabilities:
-    drop: [ ALL ]
-  readOnlyRootFilesystem: true
-
 # -- [Pod Security Context](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context)
 # @default -- See _values.yaml_
 podSecurityContext:
@@ -878,204 +665,3 @@ podSecurityContext:
   runAsUser: 65532
   fsGroup: 65532
   fsGroupChangePolicy: "Always"
-#
-# -- Extra objects to deploy (value evaluated as a template)
-#
-# In some cases, it can avoid the need for additional, extended or adhoc deployments.
-# See #595 for more details and traefik/tests/values/extra.yaml for example.
-extraObjects: []
-
-# -- This field override the default Release Namespace for Helm.
-# It will not affect optional CRDs such as `ServiceMonitor` and `PrometheusRules`
-namespaceOverride: ""
-
-# -- This field override the default app.kubernetes.io/instance label for all Objects.
-instanceLabelOverride: ""
-
-# -- This field override the default version extracted from image.tag
-versionOverride: ""
-
-# Traefik Hub configuration. See https://doc.traefik.io/traefik-hub/
-hub:
-  # -- Name of `Secret` with key 'token' set to a valid license token.
-  # It enables API Gateway.
-  token: ""
-  # -- Disables all external network connections.
-  offline:
-    # @schema type:[boolean, null]
-    # -- By default, Traefik Hub provider watches all namespaces. When using `rbac.namespaced`, it will watch helm release namespace and namespaces listed in this array.
-
-  namespaces: [] # @schema required:true
-  apimanagement:
-    # -- Set to true in order to enable API Management. Requires a valid license token.
-    enabled: false
-    admission:
-      # -- WebHook admission server listen address. Default: "0.0.0.0:9943".
-      listenAddr: ""
-      # -- Certificate name of the WebHook admission server. Default: "hub-agent-cert".
-      secretName: "hub-agent-cert"
-      # -- Set custom certificate for the WebHook admission server. The certificate should be specified with _tls.crt_ and _tls.key_ in base64 encoding.
-      customWebhookCertificate: {}
-      # -- Set it to false if you need to disable Traefik Hub pod restart when mutating webhook certificate is updated. It's done with a label update.
-      restartOnCertificateChange: true
-      # -- Set custom annotations.
-      annotations: {}
-    openApi:
-      # -- When set to true, it will only accept paths and methods that are explicitly defined in its OpenAPI specification
-      validateRequestMethodAndPath: false
-
-  aigateway:
-    # -- Set to true in order to enable AI Gateway. Requires a valid license token.
-    enabled: false
-    # -- Hard limit for the size of request bodies inspected by the gateway. Accepts a plain integer representing **bytes**. The default value is `1048576` (1 MiB).
-    maxRequestBodySize: # @schema type:[integer, null]; minimum:0
-  providers:
-    consulCatalogEnterprise:
-      # -- Enable Consul Catalog Enterprise backend with default settings.
-      enabled: false
-      # -- Use local agent caching for catalog reads.
-      cache: false
-      # -- Enable Consul Connect support.
-      connectAware: false
-      # -- Consider every service as Connect capable by default.
-      connectByDefault: false
-      # -- Constraints is an expression that Traefik matches against the container's labels
-      constraints: ""
-      # -- Default rule.
-      defaultRule: "Host(`{{ normalize .Name }}`)"
-      endpoint:
-        # -- The address of the Consul server
-        address: ""
-        # -- Data center to use. If not provided, the default agent data center is used
-        datacenter: ""
-        # -- WaitTime limits how long a Watch will block. If not provided, the agent default
-        endpointWaitTime: 0
-        httpauth:
-          # -- Basic Auth password
-          password: ""
-          # -- Basic Auth username
-          username: ""
-        # -- The URI scheme for the Consul server
-        scheme: ""
-        tls:
-          # -- TLS CA
-          ca: ""
-          # -- TLS cert
-          cert: ""
-          # -- TLS insecure skip verify
-          insecureSkipVerify: false
-          # -- TLS key
-          key: ""
-        # -- Token is used to provide a per-request ACL token which overrides the agent's
-        token: ""
-      # -- Expose containers by default.
-      exposedByDefault: true
-      # -- Sets the namespaces used to discover services (Consul Enterprise only).
-      namespaces: ""
-      # -- Sets the partition used to discover services (Consul Enterprise only).
-      partition: ""
-      # -- Prefix for consul service tags.
-      prefix: "traefik"
-      # -- Interval for check Consul API.
-      refreshInterval: 15
-      # -- Forces the read to be fully consistent.
-      requireConsistent: false
-      # -- Name of the Traefik service in Consul Catalog (needs to be registered via the
-      serviceName: "traefik"
-      # -- Use stale consistency for catalog reads.
-      stale: false
-      # -- A list of service health statuses to allow taking traffic.
-      strictChecks: "passing, warning"
-      # -- Watch Consul API events.
-      watch: false
-    microcks:
-      # -- Enable Microcks provider.
-      enabled: false
-      auth:
-        # -- Microcks API client ID.
-        clientId: ""
-        # -- Microcks API client secret.
-        clientSecret: ""
-        # -- Microcks API endpoint.
-        endpoint: ""
-        # -- Microcks API token.
-        token: ""
-      # -- Microcks API endpoint.
-      endpoint: ""
-      # -- Polling interval for Microcks API.
-      pollInterval: 30
-      # -- Polling timeout for Microcks API.
-      pollTimeout: 5
-      tls:
-        # -- TLS CA
-        ca: ""
-        # -- TLS cert
-        cert: ""
-        # -- TLS insecure skip verify
-        insecureSkipVerify: false
-        # -- TLS key
-        key: ""
-  redis:
-    # -- Enable Redis Cluster. Default: true.
-    cluster:
-      # @schema type:[boolean, null]
-      # -- Database used to store information. Default: "0".
-
-    database:
-      # @schema type:[string, null]
-      # -- Endpoints of the Redis instances to connect to. Default: "".
-
-    endpoints: ""
-    # -- The username to use when connecting to Redis endpoints. Default: "".
-    username: ""
-    # -- The password to use when connecting to Redis endpoints. Default: "".
-    password: ""
-    sentinel:
-      # -- Name of the set of main nodes to use for main selection. Required when using Sentinel. Default: "".
-      masterset: ""
-      # -- Username to use for sentinel authentication (can be different from endpoint username). Default: "".
-      username: ""
-      # -- Password to use for sentinel authentication (can be different from endpoint password). Default: "".
-      password: ""
-    # -- Timeout applied on connection with redis. Default: "0s".
-    timeout: ""
-    tls:
-      # -- Path to the certificate authority used for the secured connection.
-      ca: ""
-      # -- Path to the public certificate used for the secure connection.
-      cert: ""
-      # -- Path to the private key used for the secure connection.
-      key: ""
-      # -- When insecureSkipVerify is set to true, the TLS connection accepts any certificate presented by the server. Default: false.
-      insecureSkipVerify: false
-  # Enable export of errors logs to the platform. Default: true.
-  sendlogs: # @schema type:[boolean, null]
-
-  tracing:
-    # -- Tracing headers to duplicate.
-    # To configure the following, tracing.otlp.enabled needs to be set to true.
-    additionalTraceHeaders:
-      enabled: false
-      traceContext:
-        # -- Name of the header that will contain the parent-id header copy.
-        parentId: ""
-        # -- Name of the header that will contain the trace-id copy.
-        traceId: ""
-        # -- Name of the header that will contain the traceparent copy.
-        traceParent: ""
-        # -- Name of the header that will contain the tracestate copy.
-        traceState: ""
-
-# -- Required for OCI Marketplace integration.
-# See https://docs.public.content.oci.oraclecloud.com/en-us/iaas/Content/Marketplace/understanding-helm-charts.htm
-oci_meta:
-  # -- Enable specific values for Oracle Cloud Infrastructure
-  enabled: false # -- It needs to be an ocir repo
-  repo: traefik
-  images:
-    proxy:
-      image: traefik
-      tag: latest
-    hub:
-      image: traefik-hub
-      tag: latest

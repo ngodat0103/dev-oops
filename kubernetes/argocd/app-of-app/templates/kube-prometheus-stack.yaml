@@ -62,6 +62,8 @@ spec:
             traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
             traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"
       grafana:
+        defaultDashboardsTimezone: Asia/Ho_Chi_Minh
+        defaultDashboardsEditable: false
         sidecar:
           dashboards:
             enabled: true

@@ -33,7 +33,7 @@ vaultwarden:
 certManager:
   enabled: true
 redis:
-  enabled: true
+  enabled: false
 nfsCsiDriver:
   enabled: true
 qbittorrent:
