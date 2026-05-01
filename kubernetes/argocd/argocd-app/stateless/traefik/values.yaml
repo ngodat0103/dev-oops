@@ -131,7 +131,7 @@ providers:
     # IP used for Kubernetes Ingress endpoints
     publishedService:
       # -- Enable [publishedService](https://doc.traefik.io/traefik/providers/kubernetes-ingress/#publishedservice)
-      enabled: false
+      enabled: true
       # -- Override path of Kubernetes Service used to copy status from. Format: namespace/servicename.
       # Default to Service deployed with this Chart.
       pathOverride: ""
@@ -592,7 +592,8 @@ persistence:
   # -- Enable persistence using Persistent Volume Claims
   # ref: http://kubernetes.io/docs/user-guide/persistent-volumes/.
   # It can be used to store TLS certificates along with `certificatesResolvers.<name>.acme.storage`  option
-  enabled: false
+  enabled: true
+  storageClass: "juicefs-sc-cloudflare-r2"
   name: data
   existingClaim: ""
   accessMode: ReadWriteOnce

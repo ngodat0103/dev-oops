@@ -93,6 +93,13 @@ spec:
             version: 1
       prometheus:
         prometheusSpec:
+          resources:
+            requests:
+              cpu: 1
+              memory: 1Gi
+            limits:
+              cpu: 1
+              memory: 1Gi
           podMonitorSelectorNilUsesHelmValues: false
           podMonitorNamespaceSelector:
             matchExpressions:

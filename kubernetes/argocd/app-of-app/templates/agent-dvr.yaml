@@ -1,0 +1,27 @@
+{{- if and (.Values.agentDvr) (.Values.agentDvr.enabled) -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: agent-dvr
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    automated:
+      enabled: false
+      prune: false
+      selfHeal: false
+  destination:
+    namespace: agent-dvr
+    name: in-cluster
+  source:
+    directory:
+      recurse: false
+    repoURL: https://github.com/ngodat0103/home-lab.git
+    targetRevision: master
+    path: kubernetes/argocd/argocd-app/stateful/agent-dvr
+{{- end }}

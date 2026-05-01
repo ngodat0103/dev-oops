@@ -73,8 +73,8 @@ The infrastructure follows a hybrid model in active transition: services are bei
 |  | Masters: .1.180-.182 (x3)  Workers: .1.190-.193 (x4)     | |
 |  | 10 vCPU / 10 GB RAM / 250 GB disk per worker (production) | |
 |  | ArgoCD, Traefik, MetalLB, OpenEBS, CloudNative-PG,       | |
-|  | Velero, kube-prometheus-stack, Strimzi Kafka, Redis,     | |
-|  | qBittorrent, Jellyfin (migrated from Docker)              | |
+|  | Velero, kube-prometheus-stack, Loki, Alloy,              | |
+|  | qBittorrent, Jellyfin, Agent DVR (migrated from Docker)  | |
 ||  |                                                            | |
 |  | "One day this will replace everything above.               | |
 |  |  That day has started. And it's tagged production."       | |
@@ -165,7 +165,7 @@ Internal records resolve to the Kubernetes Traefik ingress (via MetalLB) and are
 
 ### Kubernetes Cluster (Production)
 
-Deployed via Kubespray. Seven VMs pretending to be a datacenter — now tagged `production`. See [The Kubernetes Situation](#the-kubernetes-situation) for the full story.
+Deployed via Kubespray and managed by ArgoCD app-of-apps. The repository currently includes a local Kubespray inventory under `ansible/kubernetes/kubespray/inventory/local/hosts.ini`; actual production node sizing/count may differ from this local inventory snapshot. See [The Kubernetes Situation](#the-kubernetes-situation) for migration status.
 
 | Role    | Count | IP Range            | vCPU | RAM   | Disk   |
 |---------|-------|---------------------|------|-------|--------|
@@ -202,15 +202,16 @@ Server configuration and application deployment for all non-Kubernetes workloads
 
 ### ArgoCD (Kubernetes)
 
-GitOps deployment using the app-of-apps pattern. ArgoCD is installed via Helm and manages all cluster workloads. It's ArgoCD all the way down.
+GitOps deployment uses an app-of-apps chart at `kubernetes/argocd/app-of-app`. Feature toggles in `values.yaml` are the source of truth for what is active.
 
-| Category   | Applications                                                                      |
-|------------|-----------------------------------------------------------------------------------|
-| Daemon     | MetalLB, kube-prometheus-stack                                                    |
-| Stateful   | CloudNative-PG (PostgreSQL), Redis, Chaos Mesh, qBittorrent, Jellyfin             |
-| Stateless  | Traefik, Vaultwarden, Sealed Secrets, Metrics Server                              |
-| Operators  | Strimzi Kafka Operator, MongoDB Operator (disabled)                               |
-| Storage    | OpenEBS (localpv-provisioner), Velero, JuiceFS (Cloudflare R2), NFS CSI Driver   |
+**Enabled apps right now (`values.yaml`):**
+- `metallb`, `traefik`, `openebs`, `postgresql`, `velero`, `kubePrometheusStack`
+- `customManifest`, `loki`, `alloy`, `pgadmin4`, `sonarqube`
+- `juicefs`, `vaultwarden`, `certManager`, `nfsCsiDriver`
+- `qbittorrent`, `jellyfin`, `agentDvr`
+
+**Disabled right now:**
+- `mongoOperator`, `kafkaOperator`, `harbor`, `redis`
 
 ---
 
@@ -227,6 +228,12 @@ The remaining Docker services — to be migrated to Kubernetes as the cluster st
 | Nextcloud     | File synchronization     | nextcloud.datrollout.dev    | Docker        |
 | Jellyfin      | Media server             | jellyfin.datrollout.dev     | **Migrated → K8s** |
 | qBittorrent   | Torrent client           | qbittorrent.datrollout.dev  | **Migrated → K8s** |
+| Agent DVR     | Camera/NVR               | `http://<metallb-ip>:8090`  | **Migrated → K8s** |
+
+Agent DVR currently uses a direct Kubernetes `LoadBalancer` service (not Traefik ingress) and exposes:
+- Web UI: `8090/TCP`
+- TURN: `3478/TCP`, `3478/UDP`
+- TURN relay: `50000-50100/UDP`
 
 ### Production (Standalone)
 
@@ -238,27 +245,20 @@ The remaining Docker services — to be migrated to Kubernetes as the cluster st
 | Teleport      | 192.168.1.122    | Zero-trust infrastructure access  |
 | OpenVPN       | 192.168.1.123    | Remote VPN access with OTP        |
 
-### Kubernetes Cluster (Dev/Exploration)
+### Kubernetes Cluster (Production GitOps)
 
-| Application             | Namespace              | Chart Version | Source                    |
-|-------------------------|------------------------|---------------|---------------------------|
-| ArgoCD                  | argocd                 | 9.4.15        | argoproj/argo-helm        |
-| Traefik                 | traefik                | 37.4.0        | traefik/charts            |
-| MetalLB                 | metallb                | 0.15.2        | metallb/metallb           |
-| OpenEBS                 | openebs                | 4.3.3         | openebs/openebs           |
-| CloudNative-PG          | prod-postgresql        | 0.25.0        | cloudnative-pg            |
-| Velero                  | velero                 | 12.0.0        | vmware-tanzu/velero       |
-| kube-prometheus-stack   | kube-prometheus-stack  | 82.13.0       | prometheus-community      |
-| Strimzi Kafka Operator  | kafka                  | 0.50.0        | strimzi                   |
-| Sealed Secrets          | sealed-secrets         | 2.17.2        | bitnami-labs              |
-| Vaultwarden             | vaultwarden            | 0.32.1        | guerzon/vaultwarden       |
-| Redis                   | redis                  | 0.16.5        | ot-container-kit          |
-| Chaos Mesh              | chaos-mesh             | 2.8.0         | chaos-mesh                |
-| Metrics Server          | metrics-server         | 3.13.0        | metrics-server            |
-| JuiceFS CSI Driver      | juicefs                | 0.31.4        | wener/juicefs-csi-driver  |
-| NFS CSI Driver          | kube-system            | v4.13.2       | kubernetes-csi/csi-driver-nfs |
-| **qBittorrent**         | qbittorrent            | --            | raw manifests (migrated)  |
-| **Jellyfin**            | jellyfin               | --            | raw manifests (migrated)  |
+The cluster runtime is production-oriented, with staged migration from Docker workloads. Current app-of-app managed services:
+
+| Application Group       | Active Components |
+|-------------------------|-------------------|
+| Ingress / L4 networking | Traefik, MetalLB |
+| Platform / storage      | OpenEBS, JuiceFS, NFS CSI Driver, Velero |
+| Observability           | kube-prometheus-stack, Loki, Alloy |
+| Data / app platform     | CloudNative-PG, cert-manager, pgadmin4 |
+| User services           | Vaultwarden, SonarQube, qBittorrent, Jellyfin, Agent DVR |
+| Misc                    | custom-manifest |
+
+ArgoCD and chart versions evolve over time; use `kubernetes/argocd/app-of-app/templates/*.yaml` and app-specific values files as the canonical source for current revisions.
 
 CloudNative-PG manages databases for: `nextcloud`, `gitlabhq_production`, `vaultwarden`.
 
@@ -278,14 +278,15 @@ Internal-facing services (no public exposure, no user-facing SLA) are migrated f
 
 | Wave | Services | Status |
 |------|----------|--------|
-| 1 — Internal tools | qBittorrent, Jellyfin | **Done** |
+| 1 — Internal tools | qBittorrent, Jellyfin, Agent DVR | **Done** |
 | 2 — Self-hosted productivity | Nextcloud, Vaultwarden | Planned |
 | 3 — Critical infrastructure | GitLab | Last |
 
 **Storage approach for migrated services:**
-- Config / state → JuiceFS backed by Cloudflare R2 (survives node loss)
-- Media / large data → NFS PV pointing at existing disks on ubuntu-server
-- Ephemeral cache → `emptyDir`
+- Config / state (selected apps) → JuiceFS backed by Cloudflare R2
+- Media / large data → static NFS PV/PVC on `ubuntu-server` exports
+- Database state → OpenEBS local PV (CloudNative-PG)
+- Ephemeral cache/temp → `emptyDir` where appropriate
 
 **The plan:**
 
@@ -333,6 +334,7 @@ flowchart TD
             vaultwarden["Vaultwarden"]
             redis_ui["Redis UI"]
             cnpg["CloudNative-PG"]
+            agentdvr["Agent DVR"]
         end
     end
 
@@ -348,6 +350,7 @@ flowchart TD
     nfs_csi -->|"downloads PVC\n(read-write)"| qbittorrent
 
     openebs -->|"data PVC"| cnpg
+    nfs_csi -->|"data PVC + Commands subPath"| agentdvr
     emptydir -->|"cache volume"| jellyfin
 ```
 
@@ -453,7 +456,7 @@ crowdsecAppsecFailureBlock: true
 | Method          | Scope                                  |
 |-----------------|----------------------------------------|
 | Ansible Vault   | Infrastructure credentials             |
-| Sealed Secrets  | Kubernetes secrets committed to Git    |
+| Kubernetes Secrets / Helm values | In-cluster app secrets and runtime configuration |
 
 ---
 
@@ -463,7 +466,7 @@ Everything emits metrics or logs. If it doesn't, it gets added until it does.
 
 ### Metrics (Prometheus + Grafana)
 
-`kube-prometheus-stack` is the backbone. It scrapes everything: nodes, pods, Traefik, CloudNative-PG, Strimzi, ArgoCD, and anything else that exposes a `/metrics` endpoint.
+`kube-prometheus-stack` is the backbone. It scrapes nodes, pods, Traefik, CloudNative-PG, ArgoCD, and other workloads exposing `/metrics`.
 
 | Component              | Scrape Target                    | Notes                                    |
 |------------------------|----------------------------------|------------------------------------------|
@@ -471,8 +474,8 @@ Everything emits metrics or logs. If it doesn't, it gets added until it does.
 | Kubernetes API         | kube-state-metrics               | Deployments, pods, PVCs, events          |
 | Traefik                | Traefik `/metrics`               | Request rates, latency, error codes      |
 | CloudNative-PG         | CNPG exporter per pod            | Replication lag, WAL archiving status    |
-| CrowdSec               | CrowdSec exporter                | Bans, decisions, AppSec hits             |
 | ArgoCD                 | ArgoCD metrics service           | Sync status, health state                |
+| Loki / Alloy           | Loki + Alloy pipeline metrics    | Log ingestion and backend health         |
 
 Grafana is exposed internally at `grafana.datrollout.dev` via Traefik.
 
@@ -552,9 +555,9 @@ This runs automatically twice a month. If it fails, the backup is broken.
 │   │   ├── argocd-crd/                # ArgoCD installation (Helm)
 │   │   ├── app-of-app/                # App-of-apps Helm chart (values.yaml toggles)
 │   │   └── argocd-app/                # Per-application ArgoCD manifests and values
-│   │       ├── daemon/                # MetalLB, kube-prometheus-stack
-│   │       ├── stateful/              # PostgreSQL, Redis, Chaos Mesh, local-path
-│   │       └── stateless/             # Traefik, Vaultwarden, Sealed Secrets, metrics-server
+│   │       ├── daemon/                # Cluster daemons (MetalLB and related manifests)
+│   │       ├── stateful/              # Stateful apps (postgresql, qbittorrent, jellyfin, agent-dvr, ...)
+│   │       └── stateless/             # Stateless apps (traefik, vaultwarden, metric-server, ...)
 │   └── charts/                        # Custom Helm charts (Kafka operator, Mongo operator)
 │
 ├── tf/
@@ -571,49 +574,6 @@ This runs automatically twice a month. If it fails, the backup is broken.
 │
 └── plans/                             # Architecture decision records and future plans
 ```
-
----
-
-## Getting Started
-
-This repo is opinionated and wired to specific infrastructure. Nothing here will work out-of-the-box without the underlying hardware, secrets, and DigitalOcean account. That said:
-
-**To explore the Kubernetes manifests:**
-```bash
-# Browse ArgoCD app definitions
-ls kubernetes/argocd/argocd-app/
-
-# See what the app-of-app chart enables
-cat kubernetes/argocd/app-of-app/values.yaml
-```
-
-**To run the backup verification manually:**
-```bash
-gh workflow run postgresql-backup-test.yml \
-  --field region=nyc3 \
-  --field node_size=s-4vcpu-8gb \
-  --field node_count=2
-```
-
-**To understand the PostgreSQL disaster recovery procedure:**
-See [`disaster-recovery/postgresql/readme.md`](disaster-recovery/postgresql/readme.md).
-
-**Required secrets for the backup verification workflow** (set under `Settings → Environments → test-backup`):
-- `DIGITALOCEAN_TOKEN` — DigitalOcean API token
-- `R2_ACCESS_KEY` / `R2_SECRET_KEY` — Cloudflare R2 credentials
-
----
-
-## License
-
-This project is licensed under the "Works On My Machine" license.
-
-You're free to:
-- Copy this and break your own stuff
-- Learn from my mistakes
-- Judge my configuration choices
-- Wonder why anyone runs Chaos Mesh at home
-
 ---
 
 *Powered by caffeine, spite, and 56 Xeon threads that could heat a small apartment.*

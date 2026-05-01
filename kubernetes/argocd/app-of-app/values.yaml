@@ -40,3 +40,5 @@ qbittorrent:
   enabled: true
 jellyfin:
   enabled: true
+agentDvr:
+  enabled: true

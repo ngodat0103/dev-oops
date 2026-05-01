@@ -64,7 +64,6 @@ spec:
                 - open-cache=3
                 - attr-cache=3
                 - entry-cache=3
-                - compress=lz4
                 - writeback
           dashboard:
             ingress:

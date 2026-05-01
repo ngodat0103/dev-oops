@@ -1,9 +1,13 @@
+# Workload: Kubernetes — kubernetes/argocd/argocd-app/stateful/agent-dvr (Argo CD).
+# Legacy Docker deploy is opt-in via agent_dvr_deploy_docker: true.
+
 - name: Manage Agent DVR
   hosts: ubuntu-server
   become: yes
   vars:
     uid: 1011
     home_dir: /mnt/data2/agent_dvr
+    agent_dvr_deploy_docker: false
   pre_tasks:
   - name: Ensure directory is existed
     loop: ["{{home_dir}}","{{home_dir}}/Commands"]
@@ -20,6 +24,7 @@
       home: "{{home_dir}}"
   tasks:
   - name: Make sure Agent DVR is running
+    when: agent_dvr_deploy_docker | bool
     ansible.builtin.docker_container:
       memory: 512M
       recreate: true

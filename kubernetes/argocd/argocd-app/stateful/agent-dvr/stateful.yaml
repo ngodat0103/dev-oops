@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: agent-dvr
+spec:
+  replicas: 1
+  serviceName: agent-dvr
+  selector:
+    matchLabels:
+      app: agent-dvr
+  template:
+    metadata:
+      labels:
+        app: agent-dvr
+    spec:
+      initContainers:
+      - name: ensure-commands
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - mkdir -p /data/Commands
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: agent-dvr-data-pvc
+      containers:
+      - name: agent-dvr
+        image: mekayelanik/ispyagentdvr:6.6.1.0@sha256:69b1b4f3256a97558a9bb7f6997b388d2d1e2c62de26635fd478f4640c33f655
+        command:
+        - /bin/bash
+        - -lc
+        args:
+        - |
+          set -e;
+          BASE=/home/agentdvr/AgentDVR/Media;
+          mkdir -p $BASE/XML $BASE/WebServerRoot $BASE/WebServerRoot/Media;
+          chown -R 1011:1000 $BASE/XML $BASE/WebServerRoot;
+          chmod -R u=rwX,g=rwX,o=rX $BASE/XML $BASE/WebServerRoot;
+          exec /home/agentdvr/AgentDVR/Agent.sh
+        ports:
+        - name: web
+          containerPort: 8090
+        env:
+        - name: PUID
+          value: "1011"
+        - name: PGID
+          value: "1000"
+        - name: AGENTDVR_WEBUI_PORT
+          value: "8090"
+        - name: TZ
+          value: Asia/Ho_Chi_Minh
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: 256Mi
+          limits:
+            cpu: "2000m"
+            memory: 512Mi
+        readinessProbe:
+          tcpSocket:
+            port: web
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: web
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        volumeMounts:
+        - name: data
+          mountPath: /home/agentdvr/AgentDVR/Media
+        - name: data
+          mountPath: /home/agentdvr/AgentDVR/Commands
+          subPath: Commands
