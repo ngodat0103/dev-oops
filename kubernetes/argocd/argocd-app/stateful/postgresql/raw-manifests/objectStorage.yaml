@@ -4,6 +4,7 @@ kind: ObjectStore
 metadata:
   name: cloudflare-r2
 spec:
+  retentionPolicy: 7d
   configuration:
     destinationPath: s3://cnpg-postgresql/
     endpointURL: https://4c8ad4e9fa8213af3fd284bb97b68b5e.r2.cloudflarestorage.com
