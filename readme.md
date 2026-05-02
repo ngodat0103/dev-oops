@@ -121,7 +121,6 @@ DNS is managed via Cloudflare and Terraform.
 
 | Record                          | Type  | Proxied | Target        |
 |---------------------------------|-------|---------|---------------|
-| nextcloud.datrollout.dev        | CNAME | Yes     | DDNS endpoint |
 | gitlab.datrollout.dev           | CNAME | Yes     | DDNS endpoint |
 | bitwarden.datrollout.dev        | CNAME | Yes     | DDNS endpoint |
 | sonarqube.datrollout.dev        | CNAME | Yes     | DDNS endpoint |
@@ -129,18 +128,19 @@ DNS is managed via Cloudflare and Terraform.
 | prometheus.datrollout.dev       | CNAME | Yes     | DDNS endpoint |
 | grafana.datrollout.dev          | CNAME | Yes     | DDNS endpoint |
 
-**Internal DNS (unproxied A records pointing to K8s Traefik at `192.168.1.232`):**
+**Direct-to-Traefik DNS (unproxied A records pointing to K8s Traefik at `192.168.1.232`):**
 
 | Record                          | Type | Proxied | Target          |
 |---------------------------------|------|---------|-----------------|
+| nextcloud.datrollout.dev        | A    | No      | 192.168.1.232   |
+| jellyfin.datrollout.dev         | A    | No      | 192.168.1.232   |
 | core-harbor.datrollout.dev      | A    | No      | 192.168.1.232   |
 | kafka-ui.datrollout.dev         | A    | No      | 192.168.1.232   |
 | pgadmin4.datrollout.dev         | A    | No      | 192.168.1.232   |
 | argocd.datrollout.dev           | A    | No      | 192.168.1.232   |
-| jellyfin.datrollout.dev         | A    | No      | 192.168.1.232   |
 | qbittorrent.datrollout.dev      | A    | No      | 192.168.1.232   |
 
-Internal records resolve to the Kubernetes Traefik ingress (via MetalLB) and are only reachable from the local network or VPN.
+Direct records resolve to the Kubernetes Traefik ingress (via MetalLB). Media-heavy services such as Nextcloud and Jellyfin stay DNS-only to avoid Cloudflare media bandwidth limits and are protected at Traefik with CrowdSec.
 
 ---
 
