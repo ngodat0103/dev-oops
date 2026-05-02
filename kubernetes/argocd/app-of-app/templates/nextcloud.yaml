@@ -1,0 +1,28 @@
+{{- if and (.Values.nextcloud) (.Values.nextcloud.enabled) }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nextcloud
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+   namespace: nextcloud
+   name: in-cluster
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
+    automated:
+      enabled: false
+      prune: false
+      selfHeal: false
+  source:
+    directory:
+      recurse: false
+    repoURL: https://github.com/ngodat0103/home-lab.git
+    targetRevision: master
+    path: kubernetes/argocd/argocd-app/stateful/nextcloud
+{{- end }}

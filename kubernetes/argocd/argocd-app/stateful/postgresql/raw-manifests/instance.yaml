@@ -73,7 +73,7 @@ spec:
       connectionLimit: 30
       ensure: present
       passwordSecret:
-        name: nextcloud-db
+        name: nextcloud
     - name: juicefs
       login: true
       connectionLimit: 40

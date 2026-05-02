@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+spec:
+  replicas: 1
+  serviceName: nextcloud
+  selector:
+    matchLabels:
+      app: nextcloud
+  template:
+    metadata:
+      labels:
+        app: nextcloud
+    spec:
+      automountServiceAccountToken: false
+      volumes:
+      - name: app
+        persistentVolumeClaim:
+          claimName: nextcloud-app-pvc
+      - name: mnt
+        persistentVolumeClaim:
+          claimName: nextcloud-mnt-pvc
+      containers:
+      - name: nextcloud
+        image: linuxserver/nextcloud:33.0.2@sha256:cc73f7219452bb96b318af66603056f7465819508ac51d7fa47f59248ef39594
+        resources:
+          requests:
+            cpu: 4
+            memory: 2Gi
+          limits:
+            cpu: 4
+            memory: 4Gi
+        ports:
+        - name: http
+          containerPort: 80
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: Asia/Ho_Chi_Minh
+        volumeMounts:
+        - name: app
+          mountPath: /config
+          subPath: config
+        - name: app
+          mountPath: /data
+          subPath: data
+        - name: mnt
+          mountPath: /mnt

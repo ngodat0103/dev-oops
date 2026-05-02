@@ -42,3 +42,6 @@ jellyfin:
   enabled: true
 agentDvr:
   enabled: true
+nextcloud:
+  enabled: true
+  
