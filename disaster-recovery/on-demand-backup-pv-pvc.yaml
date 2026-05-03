@@ -1,10 +1,10 @@
 apiVersion: velero.io/v1
 kind: Backup
 metadata:
-  name: pv-pvc-manifest-ondemand-1
+  name: pv-pvc-manifest-ondemand-3
   namespace: velero
 spec:
-  includedNamespaces: [ "jellyfin", "qbittorrent", "vaultwarden" ]
+  includedNamespaces: [ "jellyfin", "qbittorrent", "vaultwarden", "nextcloud" ]
 
   includedClusterScopedResources:
   - persistentvolumes
