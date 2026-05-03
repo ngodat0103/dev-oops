@@ -56,6 +56,16 @@ spec:
               existingSecret: "cloudflare-r2"
               reclaimPolicy: Retain
               allowVolumeExpansion: true
+              mountPod:
+                resources:
+                  requests:
+                    cpu: 200m
+                    memory: 512Mi
+                  limits:
+                    cpu: 4
+                    memory: 2Gi
+                annotations:
+                  juicefs/mount-extra-args: "--upload-hours=19,23"
               mountOptions:
                 - cache-size=10240
                 - free-space-ratio=0.1
