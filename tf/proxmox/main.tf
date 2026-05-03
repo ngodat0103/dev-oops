@@ -106,12 +106,12 @@ module "ubuntu_server" {
   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   name              = "UbuntuServer"
-  tags              = ["production", "file-storage", "public-facing", "reverse-proxy"]
+  tags              = ["production", "file-storage","Gitlab"]
   node_name         = local.node_name
   ip_address        = "192.168.1.121/24"
   hostname          = "ubuntu-server.local"
   bridge_name       = "vmbr0"
-  memory            = 1024 * 12
+  memory            = 1024 * 8
   gateway           = local.lan_gateway
   protection        = true
   vm_id             = 101
