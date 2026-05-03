@@ -27,11 +27,11 @@ spec:
         image: linuxserver/nextcloud:33.0.2@sha256:cc73f7219452bb96b318af66603056f7465819508ac51d7fa47f59248ef39594
         resources:
           requests:
-            cpu: 4
+            cpu: 2
             memory: 2Gi
           limits:
-            cpu: 4
-            memory: 4Gi
+            cpu: 2
+            memory: 2Gi
         ports:
         - name: http
           containerPort: 80

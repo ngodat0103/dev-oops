@@ -74,7 +74,7 @@ The infrastructure follows a hybrid model in active transition: services are bei
 |  | 10 vCPU / 10 GB RAM / 250 GB disk per worker (production) | |
 |  | ArgoCD, Traefik, MetalLB, OpenEBS, CloudNative-PG,       | |
 |  | Velero, kube-prometheus-stack, Loki, Alloy,              | |
-|  | qBittorrent, Jellyfin, Agent DVR (migrated from Docker)  | |
+|  | qBittorrent, Jellyfin, Agent DVR, Vaultwarden, Nextcloud | |
 ||  |                                                            | |
 |  | "One day this will replace everything above.               | |
 |  |  That day has started. And it's tagged production."       | |
@@ -207,7 +207,7 @@ GitOps deployment uses an app-of-apps chart at `kubernetes/argocd/app-of-app`. F
 **Enabled apps right now (`values.yaml`):**
 - `metallb`, `traefik`, `openebs`, `postgresql`, `velero`, `kubePrometheusStack`
 - `customManifest`, `loki`, `alloy`, `pgadmin4`, `sonarqube`
-- `juicefs`, `vaultwarden`, `certManager`, `nfsCsiDriver`
+- `juicefs`, `vaultwarden`, `nextcloud`, `certManager`, `nfsCsiDriver`
 - `qbittorrent`, `jellyfin`, `agentDvr`
 
 **Disabled right now:**
@@ -219,13 +219,13 @@ GitOps deployment uses an app-of-apps chart at `kubernetes/argocd/app-of-app`. F
 
 ### Production (Docker on ubuntu-server)
 
-The remaining Docker services — to be migrated to Kubernetes as the cluster stabilises. Internal tools are being moved first.
+Services still on Docker. GitLab migration is pending / possibly aborted due to complexity.
 
 | Service       | Purpose                  | Exposed Domain              | Status        |
 |---------------|--------------------------|-----------------------------|---------------|
-| GitLab        | Source control and CI/CD | gitlab.datrollout.dev       | Docker        |
-| Vaultwarden   | Password management      | bitwarden.datrollout.dev    | Docker        |
-| Nextcloud     | File synchronization     | nextcloud.datrollout.dev    | Docker        |
+| GitLab        | Source control and CI/CD | gitlab.datrollout.dev       | Docker (migration pending/aborted) |
+| Vaultwarden   | Password management      | bitwarden.datrollout.dev    | **Migrated → K8s** |
+| Nextcloud     | File synchronization     | nextcloud.datrollout.dev    | **Migrated → K8s** |
 | Jellyfin      | Media server             | jellyfin.datrollout.dev     | **Migrated → K8s** |
 | qBittorrent   | Torrent client           | qbittorrent.datrollout.dev  | **Migrated → K8s** |
 | Agent DVR     | Camera/NVR               | `http://<metallb-ip>:8090`  | **Migrated → K8s** |
@@ -255,7 +255,7 @@ The cluster runtime is production-oriented, with staged migration from Docker wo
 | Platform / storage      | OpenEBS, JuiceFS, NFS CSI Driver, Velero |
 | Observability           | kube-prometheus-stack, Loki, Alloy |
 | Data / app platform     | CloudNative-PG, cert-manager, pgadmin4 |
-| User services           | Vaultwarden, SonarQube, qBittorrent, Jellyfin, Agent DVR |
+| User services           | Vaultwarden, Nextcloud, SonarQube, qBittorrent, Jellyfin, Agent DVR |
 | Misc                    | custom-manifest |
 
 ArgoCD and chart versions evolve over time; use `kubernetes/argocd/app-of-app/templates/*.yaml` and app-specific values files as the canonical source for current revisions.
@@ -279,8 +279,8 @@ Internal-facing services (no public exposure, no user-facing SLA) are migrated f
 | Wave | Services | Status |
 |------|----------|--------|
 | 1 — Internal tools | qBittorrent, Jellyfin, Agent DVR | **Done** |
-| 2 — Self-hosted productivity | Nextcloud, Vaultwarden | Planned |
-| 3 — Critical infrastructure | GitLab | Last |
+| 2 — Self-hosted productivity | Nextcloud, Vaultwarden | **Done** |
+| 3 — Critical infrastructure | GitLab | Pending / Aborted |
 
 **Storage approach for migrated services:**
 - Config / state (selected apps) → JuiceFS backed by Cloudflare R2
@@ -292,7 +292,7 @@ Internal-facing services (no public exposure, no user-facing SLA) are migrated f
 
 1. ~~Keep exploring and stabilizing the K8s environment~~ — done, it runs workloads
 2. ~~Prove it can run workloads reliably~~ — qBittorrent and Jellyfin are live
-3. Continue migrating internal tools wave by wave
+3. ~~Continue migrating internal tools wave by wave~~ — Nextcloud and Vaultwarden are live
 4. When budget allows, build a proper multi-node cluster with dedicated hardware
 5. Eventually decommission ubuntu-server as a Docker host entirely
 
@@ -332,6 +332,7 @@ flowchart TD
             jellyfin["Jellyfin"]
             qbittorrent["qBittorrent"]
             vaultwarden["Vaultwarden"]
+            nextcloud["Nextcloud"]
             redis_ui["Redis UI"]
             cnpg["CloudNative-PG"]
             agentdvr["Agent DVR"]
@@ -344,6 +345,7 @@ flowchart TD
     juicefs -->|"config PVC"| jellyfin
     juicefs -->|"config PVC"| qbittorrent
     juicefs -->|"config PVC"| vaultwarden
+    juicefs -->|"config PVC"| nextcloud
     juicefs -->|"config PVC"| redis_ui
 
     nfs_csi -->|"media PVC\n(read-only subPath)"| jellyfin
