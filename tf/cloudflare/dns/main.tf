@@ -22,24 +22,11 @@ module "ddns_records" {
   ddns_content         = var.ddns_content
   dns_records = {
     nextcloud = {
-      type    = "A"
-      proxied = false
-      content = local.traefik_k8s_lan_ip
+      type    = "CNAME"
+      proxied = true
       ttl     = 1
     }
     bitwarden = {
-      type    = "CNAME"
-      proxied = true
-    }
-    loki = {
-      type    = "CNAME"
-      proxied = true
-    }
-    prometheus = {
-      type    = "CNAME"
-      proxied = true
-    }
-    grafana = {
       type    = "CNAME"
       proxied = true
     }

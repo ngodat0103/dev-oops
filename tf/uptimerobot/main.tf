@@ -21,11 +21,6 @@ module "monitors_default" {
   source              = "git::https://github.com/ngodat0103/terraform-module.git//uptimerobot/monitor?ref=d1dd648524d9c4f492c09ac021742654f4184f11"
   uptimerobot_api_key = var.uptimerobot_api_key
   monitors = {
-    gitlab = {
-      type = "HTTP"
-      url  = "https://gitlab.datrollout.dev/-/liveness?token=wyBB2CFMykPhWLU_FExX"
-      tags = local.docker_containter_tag
-    },
     vaultwarden = {
       type = "HTTP"
       url  = "https://bitwarden.datrollout.dev/alive"
@@ -35,16 +30,6 @@ module "monitors_default" {
       type = "HTTP"
       url  = "https://nextcloud.datrollout.dev/index.php/login"
       tags = local.snap_tag
-    }
-    prometheus = {
-      type = "HTTP"
-      url  = "https://prometheus.datrollout.dev/-/healthy"
-      tags = local.docker_containter_tag
-    }
-    loki = {
-      type = "HTTP"
-      url  = "https://loki.datrollout.dev/metrics"
-      tags = local.docker_containter_tag
     }
   }
 }
