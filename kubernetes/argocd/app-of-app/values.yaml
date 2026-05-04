@@ -41,7 +41,6 @@ qbittorrent:
 jellyfin:
   enabled: true
 agentDvr:
-  enabled: true
+  enabled: false
 nextcloud:
   enabled: true
-  
