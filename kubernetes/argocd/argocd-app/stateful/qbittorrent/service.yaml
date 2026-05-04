@@ -4,7 +4,7 @@ metadata:
   name: qbittorrent
   namespace: qbittorrent
 spec:
-  clusterIP: None
+  type: LoadBalancer
   selector:
     app: qbittorrent
   ports:

@@ -14,6 +14,7 @@ spec:
       labels:
         app: qbittorrent
     spec:
+      automountServiceAccountToken: false
       volumes:
       - name: config
         persistentVolumeClaim:
