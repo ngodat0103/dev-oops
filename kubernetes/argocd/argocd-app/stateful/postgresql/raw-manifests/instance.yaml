@@ -12,24 +12,26 @@ spec:
   # https://docs.gitlab.com/install/requirements/#postgresql-tuning
   postgresql:
     parameters:
-      shared_buffers: "2GB"
-      effective_cache_size: "6GB"
-      work_mem: "8MB"
-      maintenance_work_mem: "256MB"
-      max_connections: "400"
+      shared_buffers: "1536MB"
+      effective_cache_size: "4GB"
+      work_mem: "4MB"
+      maintenance_work_mem: "128MB"
+      max_connections: "100"
       random_page_cost: "1.2"
       effective_io_concurrency: "100"
       checkpoint_completion_target: "0.9"
       log_min_duration_statement: "1000"
       statement_timeout: "0"
-      hot_standby_feedback: "on"
+      wal_buffers: "16MB"
+      min_wal_size: "512MB"
+      max_wal_size: "2GB"
   resources:
     requests:
       memory: 6Gi
       cpu: 2
     limits:
-      memory: 8Gi
-      cpu: 2
+      memory: 6Gi
+      cpu: 4
   enableSuperuserAccess: true
   superuserSecret:
     name: postgres-admin
