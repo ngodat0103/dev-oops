@@ -103,7 +103,7 @@ resource "proxmox_virtual_environment_download_file" "lxc" {
   url          = each.value
 }
 module "ubuntu_server" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=7bfd8fd06ced6ae216c4314d58f51b7c752d5223"
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   name              = "UbuntuServer"
   tags              = ["production", "file-storage","Gitlab"]
@@ -203,7 +203,7 @@ module "vpn_server" {
 }
 
 module "k8s_masters" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=7bfd8fd06ced6ae216c4314d58f51b7c752d5223"
   count             = 3
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   hostname          = "master-nodes-${count.index}.local"
@@ -212,7 +212,7 @@ module "k8s_masters" {
   ip_address        = "192.168.1.18${count.index}/24"
   tags              = ["production", "kubernetes-masters"]
   gateway           = "192.168.1.1"
-  memory            = 1024*5
+  memory            = 1024*4
   cpu_cores         = 2
   cpu_type = "host"
   node_name         = local.node_name
@@ -226,7 +226,7 @@ module "k8s_masters" {
   }
 }
 module "k8s_workers" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=fe948c3e53255a50a62a2021d69f5df0d3bcd2af"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=7bfd8fd06ced6ae216c4314d58f51b7c752d5223"
   count             = 4
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   hostname          = "worker-nodes-${count.index}.local"
