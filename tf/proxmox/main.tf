@@ -212,7 +212,7 @@ module "k8s_masters" {
   ip_address        = "192.168.1.18${count.index}/24"
   tags              = ["production", "kubernetes-masters"]
   gateway           = "192.168.1.1"
-  memory            = 1024*5 
+  memory            = 1024*5
   cpu_cores         = 2
   cpu_type = "host"
   node_name         = local.node_name
