@@ -20,7 +20,7 @@ spec:
       selfHeal: true
   source:
     repoURL: https://grafana.github.io/helm-charts
-    targetRevision: 1.6.2
+    targetRevision: 1.8.1
     chart: alloy
     helm:
       values: |
@@ -84,6 +84,10 @@ spec:
         clustering:
           enabled: false
         controller:
+          tolerations:
+            - effect: NoSchedule
+              key: node-role.kubernetes.io/control-plane
+              operator: Exists
           type: 'daemonset'
 
 {{- end }}
