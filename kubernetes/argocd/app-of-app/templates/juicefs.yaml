@@ -44,7 +44,7 @@ spec:
                     memory: 512Mi
                   limits:
                     cpu: 4
-                    memory: 2Gi
+                    memory: 1Gi
           webhook:
             certManager:
               enabled: false
@@ -64,8 +64,6 @@ spec:
                   limits:
                     cpu: 4
                     memory: 2Gi
-                annotations:
-                  juicefs/mount-extra-args: "--upload-hours=19,23"
               mountOptions:
                 - cache-size=10240
                 - free-space-ratio=0.1
