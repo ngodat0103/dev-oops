@@ -45,7 +45,7 @@ locals {
       mount_volume_size        = 50 #GB
       vm_id                    = 100
       hostname                 = "postgresql-16.internal"
-      tags                     = ["Production", "Database"]
+      tags                     = ["Deprecated", "Database"]
       protection               = true
       startup_config = {
         order      = 1

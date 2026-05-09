@@ -12,11 +12,11 @@ spec:
   # https://docs.gitlab.com/install/requirements/#postgresql-tuning
   postgresql:
     parameters:
-      shared_buffers: "1536MB"
+      shared_buffers: "2GB"
       effective_cache_size: "4GB"
       work_mem: "4MB"
-      maintenance_work_mem: "128MB"
-      max_connections: "100"
+      maintenance_work_mem: "64MB"
+      max_connections: "400"
       random_page_cost: "1.2"
       effective_io_concurrency: "100"
       checkpoint_completion_target: "0.9"
@@ -43,6 +43,14 @@ spec:
     parameters:
       barmanObjectName: cloudflare-r2
   managed:
+    services:
+      additional:
+      - selectorType: rw
+        serviceTemplate:
+          metadata:
+            name: postgresql-externnal-rw
+          spec:
+            type: LoadBalancer
     roles:
     - name: sonarqube
       ensure: present
@@ -55,7 +63,7 @@ spec:
     - name: vaultwarden
       ensure: present
       comment: Role for Vaultwarden
-      connectionLimit: 5
+      connectionLimit: 30
       login: true
       superuser: false
       passwordSecret:
@@ -63,11 +71,11 @@ spec:
     - name: gitlab
       ensure: present
       comment: "Role for Gitlab"
-      connectionLimit: 100
+      connectionLimit: -1
       login: true
       superuser: false
       passwordSecret:
-        name: gitlab-db
+        name: gitlab
     - name: nextcloud
       comment: Role for nextcloud
       login: true
@@ -78,7 +86,7 @@ spec:
         name: nextcloud
     - name: juicefs
       login: true
-      connectionLimit: 100
+      connectionLimit: 40
       comment: Role for juicefs
       superuser: false
       ensure: present
