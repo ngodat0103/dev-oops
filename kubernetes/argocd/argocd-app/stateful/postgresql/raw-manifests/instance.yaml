@@ -55,7 +55,7 @@ spec:
     - name: sonarqube
       ensure: present
       comment: Role for Sonarqube
-      connectionLimit: 20
+      connectionLimit: 40
       login: true
       superuser: false
       passwordSecret:
@@ -86,7 +86,7 @@ spec:
         name: nextcloud
     - name: juicefs
       login: true
-      connectionLimit: 40
+      connectionLimit: 100
       comment: Role for juicefs
       superuser: false
       ensure: present
