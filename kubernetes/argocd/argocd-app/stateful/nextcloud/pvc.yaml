@@ -4,7 +4,7 @@ metadata:
   name: nextcloud-app-pvc
   namespace: nextcloud
 spec:
-  storageClassName: juicefs-sc-cloudflare-r2
+  storageClassName: ""
   accessModes:
   - ReadWriteOnce
   resources:

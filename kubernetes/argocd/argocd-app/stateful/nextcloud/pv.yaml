@@ -12,3 +12,27 @@ spec:
   nfs:
     server: 192.168.1.121
     path: /mnt
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nextcloud-app-pv-hostpath
+spec:
+  capacity:
+    storage: 105Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  hostPath:
+    path: /var/nextcloud-data
+    type: DirectoryOrCreate # Creates the directory on the host if it doesn't exist
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - worker-nodes-2 # Forces pods using this PV to be scheduled on this specific node
