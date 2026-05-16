@@ -20,11 +20,13 @@ spec:
       selfHeal: true
   source:
     repoURL: https://prometheus-community.github.io/helm-charts
-    targetRevision: 82.13.0
+    targetRevision: 85.1.1
     chart: kube-prometheus-stack
     helm:
-     ## https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack/82.13.0?modal=values
+     #https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack/85.1.1?modal=values
      values: |
+      kubeProxy:
+        enabled: false
       alertmanager:
         alertmanagerSpec:
           secrets:
@@ -48,7 +50,6 @@ spec:
                   - alertname = "Watchdog"
                 receiver: 'null'
           receivers:
-            - name: 'null'
             - name: 'to-me'
               email_configs:
                 - to: 'ngovuminhdat@gmail.com'
