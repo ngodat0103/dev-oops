@@ -44,3 +44,5 @@ agentDvr:
   enabled: false
 nextcloud:
   enabled: true
+argus:
+  enabled: true

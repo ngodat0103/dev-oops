@@ -1,0 +1,21 @@
+{{- if and (.Values.argus) (.Values.argus.enabled) -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argus
+  namespace: argocd
+spec:
+  project: default
+  syncPolicy:
+    automated:
+      enabled: true
+      selfHeal: true
+      prune: true
+  destination:
+    namespace: argus
+    name: in-cluster
+  source:
+    repoURL: https://github.com/ngodat0103/argus
+    targetRevision: "master"
+    path: deploy
+{{- end }}
