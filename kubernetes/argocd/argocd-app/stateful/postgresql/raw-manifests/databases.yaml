@@ -57,3 +57,15 @@ spec:
     name: postgresql
   name: juicefs
   owner: juicefs
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: argus
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  cluster:
+    name: postgresql
+  name: argus
+  owner: argus

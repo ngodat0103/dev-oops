@@ -92,6 +92,14 @@ spec:
       ensure: present
       passwordSecret:
         name: juicefs
+    - name: argus
+      login: true
+      connectionLimit: 20
+      comment: Role for Argus
+      superuser: false
+      ensure: present
+      passwordSecret:
+        name: argus
     - name: pgadmin_monitor
       ensure: present
       login: true
