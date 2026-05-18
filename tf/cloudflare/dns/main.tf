@@ -31,18 +31,6 @@ module "ddns_records" {
       proxied = true
     }
     // Internal services
-    core-harbor = {
-      type    = "A"
-      proxied = false
-      content = local.traefik_k8s_lan_ip
-      ttl     = 1
-    }
-    kafka-ui = {
-      type    = "A"
-      proxied = false
-      content = local.traefik_k8s_lan_ip
-      ttl     = 1
-    }
     pgadmin4 = {
       type    = "A"
       proxied = false
@@ -56,10 +44,8 @@ module "ddns_records" {
       ttl     = 1
     }
     sonarqube = {
-      type    = "A"
-      proxied = false
-      content = local.traefik_k8s_lan_ip
-      ttl     = 1
+      type    = "CNAME"
+      proxied = true
     }
     jellyfin = {
       type    = "A"

@@ -11,12 +11,17 @@ spec:
   source:
     repoURL: https://SonarSource.github.io/helm-chart-sonarqube
     chart: sonarqube
-    targetRevision: 2026.2.0
+    targetRevision: 2026.2.1
     helm:
-      # https://artifacthub.io/packages/helm/sonarqube/sonarqube/2026.2.0?modal=values
+      # https://artifacthub.io/packages/helm/sonarqube/sonarqube/2026.2.1?modal=values
       values: |
         revisionHistoryLimit: 3
         deploymentType: Deployment
+        deploymentStrategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: 1
+            maxUnavailable: 0
         monitoringPasscode: somePassCode
         resources:
           limits:
@@ -43,7 +48,7 @@ spec:
           annotations:
             traefik.ingress.kubernetes.io/router.entrypoints: websecure
             traefik.ingress.kubernetes.io/router.tls: "true"
-            traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"
+            traefik.ingress.kubernetes.io/router.middlewares: "traefik-crowdsec@kubernetescrd"
             traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
           hosts:
           - name: sonarqube.datrollout.dev
