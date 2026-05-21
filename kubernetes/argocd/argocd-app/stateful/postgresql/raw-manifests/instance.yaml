@@ -108,6 +108,7 @@ spec:
         name: pgadmin-monitor-credentials
       inRoles:
       - pg_monitor
-  instances: 1
+  instances: 2
+  primaryUpdateMethod: "switchover"
   storage:
     size: 30Gi
