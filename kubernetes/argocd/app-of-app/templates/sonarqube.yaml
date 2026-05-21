@@ -26,11 +26,11 @@ spec:
         resources:
           limits:
             cpu: 2
-            memory: 4Gi
+            memory: 2Gi
             ephemeral-storage: 50Gi
           requests:
-            cpu: 1
-            memory: 4Gi
+            cpu: 2
+            memory: 2Gi
             ephemeral-storage: 50Gi
         community:
           enabled: true
