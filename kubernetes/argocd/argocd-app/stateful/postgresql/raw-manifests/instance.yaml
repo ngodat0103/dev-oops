@@ -100,6 +100,14 @@ spec:
       ensure: present
       passwordSecret:
         name: argus
+    - name: crowsec
+      login: true
+      connectionLimit: 20
+      comment: Role for crowsec
+      superuser: false
+      ensure: present
+      passwordSecret:
+        name: crowsec
     - name: pgadmin_monitor
       ensure: present
       login: true

@@ -69,3 +69,15 @@ spec:
     name: postgresql
   name: argus
   owner: argus
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: crowsec
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  cluster:
+    name: postgresql
+  name: crowsec
+  owner: crowsec
