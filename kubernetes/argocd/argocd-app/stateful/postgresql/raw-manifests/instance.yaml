@@ -8,29 +8,64 @@ metadata:
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:16.13
   affinity: {}
-  # According to requirement of Gitlab
-  # https://docs.gitlab.com/install/requirements/#postgresql-tuning
   postgresql:
     parameters:
-      shared_buffers: "2GB"
-      effective_cache_size: "4GB"
-      work_mem: "4MB"
-      maintenance_work_mem: "64MB"
-      max_connections: "400"
-      random_page_cost: "1.2"
-      effective_io_concurrency: "100"
-      checkpoint_completion_target: "0.9"
-      log_min_duration_statement: "1000"
-      statement_timeout: "0"
+      # ---------- Memory (sized for 2GB container) ----------
+      shared_buffers: "512MB" # 25% of RAM
+      effective_cache_size: "1536MB" # ~75% of RAM (planner hint, not allocation)
+      work_mem: "8MB" # safe because pooler caps real concurrency
+      maintenance_work_mem: "128MB" # for VACUUM, CREATE INDEX, restore
+      hash_mem_multiplier: "2.0" # PG13+: lets hash ops grow without bloating work_mem globally
+
+      # ---------- Connections ----------
+      max_connections: "100" # pooler fans in; keeps per-backend RAM bounded
+      superuser_reserved_connections: "5"
+      # ---------- Planner (assume SSD/NVMe) ----------
+      # ---------- Parallelism (2–4 vCPU) ----------
+      max_worker_processes: "8"
+      max_parallel_workers: "4"
+      max_parallel_workers_per_gather: "2"
+      max_parallel_maintenance_workers: "2"
+
+      # ---------- WAL & checkpoints ----------
       wal_buffers: "16MB"
       min_wal_size: "512MB"
       max_wal_size: "2GB"
+      checkpoint_completion_target: "0.9"
+      checkpoint_timeout: "15min" # fewer, longer checkpoints — less I/O spike
+
+      # ---------- Autovacuum (critical for GitLab/SonarQube churn) ----------
+      autovacuum: "on"
+      autovacuum_max_workers: "3"
+      autovacuum_naptime: "20s"
+      autovacuum_vacuum_scale_factor: "0.05" # more aggressive than default 0.2
+      autovacuum_analyze_scale_factor: "0.02"
+      autovacuum_vacuum_cost_limit: "1000" # SSDs can handle faster vacuum
+
+      # ---------- Logging / observability ----------
+      log_min_duration_statement: "1000"
+      log_checkpoints: "on"
+      log_lock_waits: "on"
+      log_temp_files: "0" # logs any spill to disk → tells you if work_mem is too small
+      log_autovacuum_min_duration: "1000"
+
+      # ---------- Misc safety ----------
+      statement_timeout: "0"
+      idle_in_transaction_session_timeout: "300000" # 5min — protects against stuck txns
+      lock_timeout: "30s"
+      jit: "off" # JIT overhead rarely pays off on small instances
+
+      # ---------- Stats ----------
+      track_io_timing: "on"
+      track_functions: "pl"
+      pg_stat_statements.track: "all"
+
   resources:
     requests:
-      memory: 6Gi
+      memory: 2Gi
       cpu: 2
     limits:
-      memory: 6Gi
+      memory: 2Gi
       cpu: 4
   enableSuperuserAccess: true
   superuserSecret:
@@ -48,75 +83,66 @@ spec:
       - selectorType: rw
         serviceTemplate:
           metadata:
-            name: postgresql-externnal-rw
+            name: postgresql-external-rw
           spec:
             type: LoadBalancer
     roles:
     - name: sonarqube
       ensure: present
       comment: Role for Sonarqube
-      connectionLimit: 40
+      connectionLimit: 20 # was 40 — pooler fans in
       login: true
       superuser: false
-      passwordSecret:
-        name: sonarqube
+      passwordSecret: { name: sonarqube }
     - name: vaultwarden
       ensure: present
       comment: Role for Vaultwarden
-      connectionLimit: 30
+      connectionLimit: 10 # was 30
       login: true
       superuser: false
-      passwordSecret:
-        name: vaultwarden
+      passwordSecret: { name: vaultwarden }
     - name: gitlab
       ensure: present
-      comment: "Role for Gitlab"
-      connectionLimit: -1
+      comment: Role for Gitlab
+      connectionLimit: 80
       login: true
       superuser: false
-      passwordSecret:
-        name: gitlab
+      passwordSecret: { name: gitlab }
     - name: nextcloud
+      ensure: present
       comment: Role for nextcloud
+      connectionLimit: 15
       login: true
       superuser: false
-      connectionLimit: 30
-      ensure: present
-      passwordSecret:
-        name: nextcloud
+      passwordSecret: { name: nextcloud }
     - name: juicefs
-      login: true
-      connectionLimit: 100
+      ensure: present
       comment: Role for juicefs
+      connectionLimit: 20
+      login: true
       superuser: false
-      ensure: present
-      passwordSecret:
-        name: juicefs
+      passwordSecret: { name: juicefs }
     - name: argus
-      login: true
-      connectionLimit: 20
+      ensure: present
       comment: Role for Argus
-      superuser: false
-      ensure: present
-      passwordSecret:
-        name: argus
-    - name: crowsec
+      connectionLimit: 10
       login: true
-      connectionLimit: 20
-      comment: Role for crowsec
       superuser: false
+      passwordSecret: { name: argus }
+    - name: crowsec
       ensure: present
-      passwordSecret:
-        name: crowsec
+      comment: Role for crowsec
+      connectionLimit: 10
+      login: true
+      superuser: false
+      passwordSecret: { name: crowsec }
     - name: pgadmin_monitor
       ensure: present
       login: true
       superuser: false
-      passwordSecret:
-        name: pgadmin-monitor-credentials
-      inRoles:
-      - pg_monitor
+      passwordSecret: { name: pgadmin-monitor-credentials }
+      inRoles: [ pg_monitor ]
   instances: 2
-  primaryUpdateMethod: "switchover"
+  primaryUpdateMethod: switchover
   storage:
     size: 30Gi
