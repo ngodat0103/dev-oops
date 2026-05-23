@@ -227,7 +227,7 @@ module "k8s_masters" {
 }
 module "k8s_workers" {
   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=7bfd8fd06ced6ae216c4314d58f51b7c752d5223"
-  count             = 4
+  count             = 3
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   hostname          = "worker-nodes-${count.index}.local"
   name              = "worker-nodes-${count.index}"
@@ -236,7 +236,7 @@ module "k8s_workers" {
   tags              = ["production", "kubernetes-workers"]
   boot_disk_size    = 250
   gateway           = "192.168.1.1"
-  memory            = 1024 * 10
+  memory            = 1024 * 13
   cpu_cores         = 10
   cpu_type = "host"
   node_name         = local.node_name

@@ -18,7 +18,7 @@ spec:
       hash_mem_multiplier: "2.0" # PG13+: lets hash ops grow without bloating work_mem globally
 
       # ---------- Connections ----------
-      max_connections: "100" # pooler fans in; keeps per-backend RAM bounded
+      max_connections: "200" # pooler fans in; keeps per-backend RAM bounded
       superuser_reserved_connections: "5"
       # ---------- Planner (assume SSD/NVMe) ----------
       # ---------- Parallelism (2–4 vCPU) ----------
@@ -90,14 +90,14 @@ spec:
     - name: sonarqube
       ensure: present
       comment: Role for Sonarqube
-      connectionLimit: 20 # was 40 — pooler fans in
+      connectionLimit: 40
       login: true
       superuser: false
       passwordSecret: { name: sonarqube }
     - name: vaultwarden
       ensure: present
       comment: Role for Vaultwarden
-      connectionLimit: 10 # was 30
+      connectionLimit: 20
       login: true
       superuser: false
       passwordSecret: { name: vaultwarden }
@@ -111,21 +111,21 @@ spec:
     - name: nextcloud
       ensure: present
       comment: Role for nextcloud
-      connectionLimit: 15
+      connectionLimit: 30
       login: true
       superuser: false
       passwordSecret: { name: nextcloud }
     - name: juicefs
       ensure: present
       comment: Role for juicefs
-      connectionLimit: 20
+      connectionLimit: 30
       login: true
       superuser: false
       passwordSecret: { name: juicefs }
     - name: argus
       ensure: present
       comment: Role for Argus
-      connectionLimit: 10
+      connectionLimit: 20
       login: true
       superuser: false
       passwordSecret: { name: argus }
