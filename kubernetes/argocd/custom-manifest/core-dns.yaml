@@ -26,6 +26,10 @@ data:
       forward . 1.1.1.1 8.8.8.8 {
           max_concurrent 2000
       }
+      hosts {
+            192.168.1.121 gitlab.datrollout.dev
+            fallthrough
+        }
       cache 120
       loop
       reload
