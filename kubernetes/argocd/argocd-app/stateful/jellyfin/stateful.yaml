@@ -14,6 +14,8 @@ spec:
       labels:
         app: jellyfin
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: worker-nodes-2
       automountServiceAccountToken: false
       securityContext:
         runAsUser: 1003
@@ -33,8 +35,8 @@ spec:
         image: jellyfin/jellyfin:10.11.8@sha256:1694ff069f0c9dafb283c36765175606866769f5d72f2ed56b6a0f1be922fc37
         resources:
           requests:
-            cpu: 1000m
-            memory: 2Gi
+            cpu: 4000m
+            memory: 4Gi
           limits:
             cpu: 8000m
             memory: 4Gi
