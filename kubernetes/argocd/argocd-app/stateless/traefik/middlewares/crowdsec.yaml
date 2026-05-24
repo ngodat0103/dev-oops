@@ -14,14 +14,14 @@ spec:
       httpTimeoutSeconds: 10
       crowdsecMode: live
       crowdsecAppsecEnabled: true
-      crowdsecAppsecHost: 192.168.1.127:7422
+      crowdsecAppsecHost: crowdsec-appsec-service.crowdsec.svc:7422
       crowdsecAppsecPath: "/"
       crowdsecAppsecFailureBlock: true
       crowdsecAppsecUnreachableBlock: true
       crowdsecAppsecBodyLimit: 10485760
       crowdsecLapiKeyFile: /etc/traefik/crowdsec/crowdsec-lapi-key
       crowdsecLapiScheme: http
-      crowdsecLapiHost: 192.168.1.127:8080
+      crowdsecLapiHost: crowdsec-service.crowdsec.svc:8080
       crowdsecLapiPath: "/"
       crowdsecLapiTLSInsecureVerify: false
       crowdsecCapiScenarios:

@@ -1,0 +1,90 @@
+{{- if and (.Values.crowdsec) (.Values.crowdsec.enabled) -}}
+apiVersion: "argoproj.io/v1alpha1"
+kind: Application
+metadata:
+  name: crowdsec
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  revisionHistoryLimit: 3
+  project: default
+  syncPolicy:
+    automated:
+      enabled: false
+      selfHeal: false
+      prune: true
+    retry:
+      limit: 1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+  destination:
+    namespace: crowdsec
+    name: in-cluster
+  sources:
+    - repoURL: https://crowdsecurity.github.io/helm-charts
+      chart: crowdsec
+      targetRevision: 0.24.0
+      # https://artifacthub.io/packages/helm/crowdsec/crowdsec/0.24.0?modal=values
+      helm:
+        values: |
+          agent:
+            enabled: false
+          appsec:
+            enabled: true
+            acquisitions:
+              - source: appsec
+                listen_addr: "0.0.0.0:7422"
+                path: /
+                appsec_configs:
+                  - crowdsecurity/appsec-default
+                  - crowdsecurity/crs
+                labels:
+                  type: appsec
+            env:
+              - name: COLLECTIONS
+                value: "crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-crs crowdsecurity/appsec-generic-rules"
+            metrics:
+              serviceMonitor:
+                enabled: true
+            strategy:
+              type: RollingUpdate
+          lapi:
+            persistentVolume:
+              data:
+                enabled: false
+              config:
+                enabled: false
+            envFrom:
+              - secretRef:
+                  name: crowdsec
+            metrics:
+              serviceMonitor:
+                enabled: true
+            strategy:
+              type: RollingUpdate
+          config:
+            config.yaml.local: |
+              api:
+                server:
+                  auto_registration:
+                    enabled: true
+                    token: "${REGISTRATION_TOKEN}"
+                    allowed_ranges:
+                      - "10.233.0.0/16"
+              db_config:
+                type: postgresql
+                user: crowsec
+                password: ${DB_PASSWORD}
+                db_name: crowsec
+                host: postgresql-rw.prod-postgresql.svc
+                port: 5432
+                flush:
+                  bouncers_autodelete:
+                    api_key: 1h
+                  agents_autodelete:
+                    login_password: 6h
+                    cert: 6h
+{{- end -}}

@@ -61,11 +61,11 @@ The infrastructure follows a hybrid model in active transition: services are bei
 |  | OpenVPN + OTP             |  | Zero-Trust Access         |  |
 |  +---------------------------+  +---------------------------+  |
 |                                                                |
-|  Production LXC                                                |
-|  +---------------------------+  +---------------------------+  |
-|  | postgresql-16  .99.2      |  | crowdsec       .1.127     |  |
-|  | The elephant in the room  |  | "you shall not pass"      |  |
-|  +---------------------------+  +---------------------------+  |
+|  Deprecated LXC (pending removal)                              |
+|  +---------------------------+                                 |
+|  | postgresql-16  .99.2      |                                 |
+|  | Superseded by CNPG in K8s |                                 |
+|  +---------------------------+                                 |
 |                                                                |
 |  Kubernetes Cluster (PRODUCTION — migration in progress)      |
 |  +----------------------------------------------------------+ |
@@ -74,7 +74,7 @@ The infrastructure follows a hybrid model in active transition: services are bei
 |  | ArgoCD, Traefik, MetalLB, OpenEBS, CloudNative-PG,       | |
 |  | Velero, kube-prometheus-stack, Loki, Alloy,              | |
 |  | qBittorrent, Jellyfin, Vaultwarden, Nextcloud, SonarQube | |
-|  | Argus (SRE assistant, active dev)                        | |
+|  | CrowdSec (WAF/IDS), Argus (SRE assistant, active dev)    | |
 ||  |                                                            | |
 |  | "One day this will replace everything above.               | |
 |  |  That day has started. And it's tagged production."       | |
@@ -161,8 +161,7 @@ Direct records resolve to the Kubernetes Traefik ingress (via MetalLB). Media-he
 
 | Host                    | IP             | OS           | vCPU | RAM  | Role                      |
 |-------------------------|----------------|--------------|------|------|---------------------------|
-| postgresql-16           | 192.168.99.2   | Ubuntu 22.04 | 1    | 2 GB | PostgreSQL 16 (production)|
-| crowdsec-detection      | 192.168.1.127  | Ubuntu 22.04 | 1    | 1 GB | CrowdSec LAPI + AppSec   |
+| postgresql-16           | 192.168.99.2   | Ubuntu 22.04 | 1    | 2 GB | PostgreSQL 16 (**deprecated** — pending removal; production runs on CloudNative-PG in K8s) |
 
 ### Kubernetes Cluster (Production)
 
@@ -209,7 +208,7 @@ GitOps deployment uses an app-of-apps chart at `kubernetes/argocd/app-of-app`. F
 - `metallb`, `traefik`, `openebs`, `postgresql`, `velero`, `kubePrometheusStack`
 - `customManifest`, `loki`, `alloy`, `pgadmin4`, `sonarqube`
 - `juicefs`, `vaultwarden`, `nextcloud`, `certManager`, `nfsCsiDriver`
-- `qbittorrent`, `jellyfin`, `argus`
+- `qbittorrent`, `jellyfin`, `argus`, `crowdsec`
 
 **Disabled right now:**
 - `mongoOperator`, `kafkaOperator`, `harbor`, `redis`, `agentDvr`
@@ -237,10 +236,10 @@ Services still on Docker. GitLab migration is pending / possibly aborted due to 
 
 | Service       | Host             | Purpose                           |
 |---------------|------------------|-----------------------------------|
-| PostgreSQL 16 | 192.168.99.2     | Primary relational database       |
-| CrowdSec      | 192.168.1.127    | Web application firewall / IDS    |
 | Teleport      | 192.168.1.122    | Zero-trust infrastructure access  |
 | OpenVPN       | 192.168.1.123    | Remote VPN access with OTP        |
+
+> The standalone `postgresql-16` LXC (`192.168.99.2`) is **deprecated** and pending removal in upcoming commits. Production PostgreSQL now runs on CloudNative-PG in the Kubernetes cluster, with continuous WAL archiving to Cloudflare R2 (see [Backup and Disaster Recovery](#backup-and-disaster-recovery)).
 
 ### Kubernetes Cluster (Production GitOps)
 
@@ -253,6 +252,7 @@ The cluster runtime is production-oriented, with staged migration from Docker wo
 | Observability           | kube-prometheus-stack, Loki, Alloy |
 | Data / app platform     | CloudNative-PG, cert-manager, pgadmin4 |
 | User services           | Vaultwarden, Nextcloud, SonarQube, qBittorrent, Jellyfin |
+| Security                | CrowdSec (LAPI + AppSec, Helm chart 0.24.0) |
 | SRE / automation        | Argus (intelligent SRE assistant — K8s incident response and workload management; active development) |
 | Misc                    | custom-manifest |
 
@@ -431,6 +431,8 @@ Internal-only applications in the Kubernetes lab stay behind Traefik and are res
 - Public apps must not use the local-only middleware
 
 ### Intrusion Detection (CrowdSec)
+
+Migrated from a standalone LXC (`192.168.1.127`) to an in-cluster Helm deployment (chart `0.24.0`) managed by ArgoCD. LAPI uses the existing CloudNative-PG PostgreSQL as its backend; Traefik bouncer middleware now routes to the in-cluster Services instead of a static IP.
 
 - LAPI running on port 8080, AppSec engine on port 7422
 - Detection scenarios: HTTP path traversal, XSS probing, generic brute force

@@ -46,3 +46,5 @@ nextcloud:
   enabled: true
 argus:
   enabled: true
+crowdsec:
+  enabled: true
