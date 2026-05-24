@@ -118,6 +118,7 @@ spec:
             version: 1
       prometheus:
         prometheusSpec:
+          scrapeInterval: 10s
           resources:
             requests:
               cpu: 2

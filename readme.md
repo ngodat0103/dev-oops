@@ -51,12 +51,11 @@ The infrastructure follows a hybrid model in active transition: services are bei
 |              One node to rule them all.                        |
 |                                                                |
 |  PRODUCTION (the stuff that must not go down)                  |
-|  +---------------------------+  +---------------------------+  |
-|  | ubuntu-server  .1.121     |  | sonarqube      .1.125     |  |
-|  | Traefik, Docker services  |  | "yes I lint my homelab"   |  |
-|  | Monitoring stack          |  |                           |  |
-|  | (the workhorse)           |  |                           |  |
-|  +---------------------------+  +---------------------------+  |
+|  +----------------------------------------------------------+  |
+|  | ubuntu-server  .1.121                                    |  |
+|  | Traefik, Docker services, Monitoring stack               |  |
+|  | GitLab, Agent DVR                  (the workhorse)       |  |
+|  +----------------------------------------------------------+  |
 |  +---------------------------+  +---------------------------+  |
 |  | vpn-server     .1.123     |  | teleport       .1.122     |  |
 |  | OpenVPN + OTP             |  | Zero-Trust Access         |  |
@@ -70,11 +69,12 @@ The infrastructure follows a hybrid model in active transition: services are bei
 |                                                                |
 |  Kubernetes Cluster (PRODUCTION — migration in progress)      |
 |  +----------------------------------------------------------+ |
-|  | Masters: .1.180-.182 (x3)  Workers: .1.190-.193 (x4)     | |
-|  | 10 vCPU / 10 GB RAM / 250 GB disk per worker (production) | |
+|  | Masters: .1.180-.182 (x3)  Workers: .1.190-.192 (x3)     | |
+|  | 13 vCPU / 13 GB RAM / 250 GB disk per worker (production) | |
 |  | ArgoCD, Traefik, MetalLB, OpenEBS, CloudNative-PG,       | |
 |  | Velero, kube-prometheus-stack, Loki, Alloy,              | |
-|  | qBittorrent, Jellyfin, Agent DVR, Vaultwarden, Nextcloud | |
+|  | qBittorrent, Jellyfin, Vaultwarden, Nextcloud, SonarQube | |
+|  | Argus (SRE assistant, active dev)                        | |
 ||  |                                                            | |
 |  | "One day this will replace everything above.               | |
 |  |  That day has started. And it's tagged production."       | |
@@ -124,15 +124,17 @@ DNS is managed via Cloudflare and Terraform.
 | gitlab.datrollout.dev           | CNAME | Yes     | DDNS endpoint |
 | bitwarden.datrollout.dev        | CNAME | Yes     | DDNS endpoint |
 | sonarqube.datrollout.dev        | CNAME | Yes     | DDNS endpoint |
-| loki.datrollout.dev             | CNAME | Yes     | DDNS endpoint |
-| prometheus.datrollout.dev       | CNAME | Yes     | DDNS endpoint |
-| grafana.datrollout.dev          | CNAME | Yes     | DDNS endpoint |
+| nextcloud.datrollout.dev        | CNAME | Yes     | DDNS endpoint |
+| loki.datrollout.dev             | CNAME | Yes     | DDNS endpoint ¹ |
+| prometheus.datrollout.dev       | CNAME | Yes     | DDNS endpoint ¹ |
+| grafana.datrollout.dev          | CNAME | Yes     | DDNS endpoint ¹ |
+
+> ¹ `loki`, `prometheus`, and `grafana` DNS records are managed manually (not in Terraform). They are routed via Traefik on ubuntu-server to Docker-hosted services.
 
 **Direct-to-Traefik DNS (unproxied A records pointing to K8s Traefik at `192.168.1.232`):**
 
 | Record                          | Type | Proxied | Target          |
 |---------------------------------|------|---------|-----------------|
-| nextcloud.datrollout.dev        | A    | No      | 192.168.1.232   |
 | jellyfin.datrollout.dev         | A    | No      | 192.168.1.232   |
 | core-harbor.datrollout.dev      | A    | No      | 192.168.1.232   |
 | kafka-ui.datrollout.dev         | A    | No      | 192.168.1.232   |
@@ -140,7 +142,7 @@ DNS is managed via Cloudflare and Terraform.
 | argocd.datrollout.dev           | A    | No      | 192.168.1.232   |
 | qbittorrent.datrollout.dev      | A    | No      | 192.168.1.232   |
 
-Direct records resolve to the Kubernetes Traefik ingress (via MetalLB). Media-heavy services such as Nextcloud and Jellyfin stay DNS-only to avoid Cloudflare media bandwidth limits and are protected at Traefik with CrowdSec.
+Direct records resolve to the Kubernetes Traefik ingress (via MetalLB). Media-heavy services such as Jellyfin stay DNS-only to avoid Cloudflare media bandwidth limits and are protected at Traefik with CrowdSec.
 
 ---
 
@@ -151,10 +153,9 @@ Direct records resolve to the Kubernetes Traefik ingress (via MetalLB). Media-he
 | Host           | IP             | OS           | vCPU | RAM   | Role                                 |
 |----------------|----------------|--------------|------|-------|--------------------------------------|
 | pve-master     | 192.168.1.120  | Proxmox VE   | --   | --    | Hypervisor (the boss)                |
-| ubuntu-server  | 192.168.1.121  | Ubuntu 22.04 | 4    | 16 GB | Docker host, Traefik, monitoring (the workhorse) |
+| ubuntu-server  | 192.168.1.121  | Ubuntu 22.04 | 4    | 12 GB | Docker host, Traefik, monitoring (the workhorse) |
 | teleport       | 192.168.1.122  | --           | --   | --    | Zero-trust access proxy              |
 | vpn-server     | 192.168.1.123  | Debian 13    | 1    | 2 GB  | OpenVPN with OTP (for remote chaos)  |
-| sonarqube      | 192.168.1.125  | Ubuntu 22.04 | 4    | 8 GB  | SonarQube -- yes, I run static analysis on my homelab code |
 
 ### LXC Containers
 
@@ -170,7 +171,7 @@ Deployed via Kubespray and managed by ArgoCD app-of-apps. The repository current
 | Role    | Count | IP Range            | vCPU | RAM   | Disk   |
 |---------|-------|---------------------|------|-------|--------|
 | Master  | 3     | 192.168.1.180-182   | 2    | 4 GB  | 50 GB  |
-| Worker  | 4     | 192.168.1.190-193   | 10   | 10 GB | 250 GB |
+| Worker  | 3     | 192.168.1.190-192   | 13   | 13 GB | 250 GB |
 
 ---
 
@@ -186,6 +187,7 @@ All infrastructure provisioning is managed through Terraform with reusable modul
 | `tf/cloudflare/dns`     | cloudflare/cloudflare ~5  | DNS records, WAF firewall rules               |
 | `tf/cloudflare/storage` | cloudflare/cloudflare     | R2 object storage (Velero backend)            |
 | `tf/uptimerobot`        | vexxhost/uptimerobot      | External uptime monitoring (the 3 AM alarm)   |
+| `tf/openstack`          | openstack provider        | OpenStack resource provisioning               |
 
 ### Ansible
 
@@ -197,7 +199,6 @@ Server configuration and application deployment for all non-Kubernetes workloads
 | `ansible/core/teleport`      | Teleport access proxy installation                    |
 | `ansible/core/vpn-server`    | OpenVPN server with OTP                               |
 | `ansible/core/lxc`           | PostgreSQL and Kafka configuration                    |
-| `ansible/sonarqube`          | SonarQube installation                                |
 | `ansible/kubernetes`          | Kubespray inventory and cluster configuration         |
 
 ### ArgoCD (Kubernetes)
@@ -208,10 +209,10 @@ GitOps deployment uses an app-of-apps chart at `kubernetes/argocd/app-of-app`. F
 - `metallb`, `traefik`, `openebs`, `postgresql`, `velero`, `kubePrometheusStack`
 - `customManifest`, `loki`, `alloy`, `pgadmin4`, `sonarqube`
 - `juicefs`, `vaultwarden`, `nextcloud`, `certManager`, `nfsCsiDriver`
-- `qbittorrent`, `jellyfin`, `agentDvr`
+- `qbittorrent`, `jellyfin`, `argus`
 
 **Disabled right now:**
-- `mongoOperator`, `kafkaOperator`, `harbor`, `redis`
+- `mongoOperator`, `kafkaOperator`, `harbor`, `redis`, `agentDvr`
 
 ---
 
@@ -228,12 +229,9 @@ Services still on Docker. GitLab migration is pending / possibly aborted due to 
 | Nextcloud     | File synchronization     | nextcloud.datrollout.dev    | **Migrated → K8s** |
 | Jellyfin      | Media server             | jellyfin.datrollout.dev     | **Migrated → K8s** |
 | qBittorrent   | Torrent client           | qbittorrent.datrollout.dev  | **Migrated → K8s** |
-| Agent DVR     | Camera/NVR               | `http://<metallb-ip>:8090`  | **Migrated → K8s** |
+| Agent DVR     | Camera/NVR               | `http://<ubuntu-server>:8090` | Docker (rolled back from K8s, May 2026) |
 
-Agent DVR currently uses a direct Kubernetes `LoadBalancer` service (not Traefik ingress) and exposes:
-- Web UI: `8090/TCP`
-- TURN: `3478/TCP`, `3478/UDP`
-- TURN relay: `50000-50100/UDP`
+> K8s manifests for Agent DVR exist (`argocd-app/stateful/agent-dvr/`) but are currently disabled (`agentDvr.enabled: false`). When re-enabled, it uses a direct `LoadBalancer` service exposing: Web UI `8090/TCP`, TURN `3478/TCP+UDP`, relay `50000-50100/UDP`.
 
 ### Production (Standalone)
 
@@ -241,7 +239,6 @@ Agent DVR currently uses a direct Kubernetes `LoadBalancer` service (not Traefik
 |---------------|------------------|-----------------------------------|
 | PostgreSQL 16 | 192.168.99.2     | Primary relational database       |
 | CrowdSec      | 192.168.1.127    | Web application firewall / IDS    |
-| SonarQube     | 192.168.1.125    | Static code analysis              |
 | Teleport      | 192.168.1.122    | Zero-trust infrastructure access  |
 | OpenVPN       | 192.168.1.123    | Remote VPN access with OTP        |
 
@@ -255,7 +252,8 @@ The cluster runtime is production-oriented, with staged migration from Docker wo
 | Platform / storage      | OpenEBS, JuiceFS, NFS CSI Driver, Velero |
 | Observability           | kube-prometheus-stack, Loki, Alloy |
 | Data / app platform     | CloudNative-PG, cert-manager, pgadmin4 |
-| User services           | Vaultwarden, Nextcloud, SonarQube, qBittorrent, Jellyfin, Agent DVR |
+| User services           | Vaultwarden, Nextcloud, SonarQube, qBittorrent, Jellyfin |
+| SRE / automation        | Argus (intelligent SRE assistant — K8s incident response and workload management; active development) |
 | Misc                    | custom-manifest |
 
 ArgoCD and chart versions evolve over time; use `kubernetes/argocd/app-of-app/templates/*.yaml` and app-specific values files as the canonical source for current revisions.
@@ -278,7 +276,8 @@ Internal-facing services (no public exposure, no user-facing SLA) are migrated f
 
 | Wave | Services | Status |
 |------|----------|--------|
-| 1 — Internal tools | qBittorrent, Jellyfin, Agent DVR | **Done** |
+| 1 — Internal tools | qBittorrent, Jellyfin | **Done** |
+| 1b — Rolled back | Agent DVR | Reverted to Docker (May 2026) — K8s manifests exist but disabled |
 | 2 — Self-hosted productivity | Nextcloud, Vaultwarden | **Done** |
 | 3 — Critical infrastructure | GitLab | Pending / Aborted |
 
@@ -335,7 +334,6 @@ flowchart TD
             nextcloud["Nextcloud"]
             redis_ui["Redis UI"]
             cnpg["CloudNative-PG"]
-            agentdvr["Agent DVR"]
         end
     end
 
@@ -352,7 +350,6 @@ flowchart TD
     nfs_csi -->|"downloads PVC\n(read-write)"| qbittorrent
 
     openebs -->|"data PVC"| cnpg
-    nfs_csi -->|"data PVC + Commands subPath"| agentdvr
     emptydir -->|"cache volume"| jellyfin
 ```
 
@@ -513,9 +510,7 @@ Vaultwarden data is backed up via a scheduled script. Restore scripts and instru
 
 ---
 
-## CI/CD
-
-### GitHub Actions
+## GitHub Actions
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
@@ -529,7 +524,7 @@ This runs automatically twice a month. If it fails, the backup is broken.
 
 ### GitLab CI
 
-~~Application-level CI pipelines ran on the self-hosted GitLab/GitHub runner on `hephaestus` (192.168.1.124).~~ The `hephaestus` VM was decommissioned on April 27, 2026. CI now runs exclusively on GitHub-hosted runners (`ubuntu-latest`). SonarQube analysis continues to run on the standalone SonarQube VM (192.168.1.125).
+~~Application-level CI pipelines ran on the self-hosted GitLab/GitHub runner on `hephaestus` (192.168.1.124).~~ The `hephaestus` VM was decommissioned on April 27, 2026. CI now runs exclusively on GitHub-hosted runners (`ubuntu-latest`). SonarQube analysis runs on the Kubernetes-hosted SonarQube deployment (migrated from standalone VM, April 2026).
 
 ---
 
@@ -549,7 +544,6 @@ This runs automatically twice a month. If it fails, the backup is broken.
 │   │   ├── vpn-server/                # OpenVPN configuration
 │   │   └── lxc/                       # LXC workloads (PostgreSQL, Kafka)
 │   ├── kubernetes/                    # Kubespray inventory and configuration
-│   ├── sonarqube/                     # SonarQube installation playbook
 │   └── proxmox/                       # Proxmox host configuration
 │
 ├── kubernetes/                        # Kubernetes cluster workloads
@@ -568,13 +562,12 @@ This runs automatically twice a month. If it fails, the backup is broken.
 │   │   ├── dns/                       # DNS records and WAF firewall rules
 │   │   └── storage/                   # R2 bucket for Velero
 │   ├── uptimerobot/                   # External uptime monitors
+│   ├── openstack/                     # OpenStack resource provisioning
 │   └── terraform-module/              # Shared Terraform modules (submodule)
 │
-├── disaster-recovery/
-│   ├── postgresql/                    # PostgreSQL DR plan, restore procedure, CI docs
-│   └── vaultwarden/                   # Vaultwarden backup and restore scripts
-│
-└── plans/                             # Architecture decision records and future plans
+└── disaster-recovery/
+    ├── postgresql/                    # PostgreSQL DR plan, restore procedure, CI docs
+    └── vaultwarden/                   # Vaultwarden backup and restore scripts
 ```
 ---
 
