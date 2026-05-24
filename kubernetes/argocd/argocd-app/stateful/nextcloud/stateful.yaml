@@ -28,10 +28,10 @@ spec:
         resources:
           requests:
             cpu: 2
-            memory: 2Gi
+            memory: 1Gi
           limits:
             cpu: 2
-            memory: 2Gi
+            memory: 1Gi
         ports:
         - name: http
           containerPort: 80

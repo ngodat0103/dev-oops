@@ -9,7 +9,7 @@ redis:
       cpu: 500m
       memory: 64Mi
     limits:
-      cpu: 1
+      cpu: 2
       memory: 128Mi
 controller:
   resources:
@@ -23,17 +23,17 @@ repoServer:
   resources:
     requests:
       cpu: 500m
-      memory: 256Mi
-    limits:
-      cpu: 1
       memory: 512Mi
+    limits:
+      cpu: 2
+      memory: 1Gi
 server:
   resources:
     requests:
       cpu: 500m
       memory: 128Mi
     limits:
-      cpu: 1
+      cpu: 2
       memory: 256Mi
   ingress:
     # -- Enable an ingress resource for the Argo CD server
