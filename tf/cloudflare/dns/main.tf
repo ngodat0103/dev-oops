@@ -23,12 +23,15 @@ module "ddns_records" {
   dns_records = {
     nextcloud = {
       type    = "CNAME"
-      proxied = true
-      ttl     = 1
+      proxied = false
     }
     bitwarden = {
       type    = "CNAME"
       proxied = true
+    }
+    jellyfin = {
+      type    = "CNAME"
+      proxied = false
     }
     // Internal services
     pgadmin4 = {
@@ -46,12 +49,6 @@ module "ddns_records" {
     sonarqube = {
       type    = "CNAME"
       proxied = true
-    }
-    jellyfin = {
-      type    = "A"
-      proxied = false
-      content = local.traefik_k8s_lan_ip
-      ttl     = 1
     }
     gitlab = {
       type    = "A"
