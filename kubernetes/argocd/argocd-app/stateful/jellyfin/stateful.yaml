@@ -14,8 +14,11 @@ spec:
       labels:
         app: jellyfin
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: worker-nodes-2
+      tolerations:
+      - key: "heavy-node"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
       automountServiceAccountToken: false
       securityContext:
         runAsUser: 1003
@@ -36,9 +39,9 @@ spec:
         resources:
           requests:
             cpu: 4000m
-            memory: 4Gi
+            memory: 6Gi
           limits:
-            memory: 4Gi
+            memory: 8Gi
         ports:
         - name: http
           containerPort: 8096
