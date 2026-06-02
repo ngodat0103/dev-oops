@@ -7,7 +7,12 @@ metadata:
     argocd.argoproj.io/sync-wave: "1"
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:16.13
-  affinity: {}
+  affinity:
+    tolerations:
+    - effect: NoSchedule
+      key: heavy-node
+      operator: Equal
+      value: 'true'
   postgresql:
     parameters:
       # ---------- Memory (sized for 2GB container) ----------
@@ -59,7 +64,6 @@ spec:
       track_io_timing: "on"
       track_functions: "pl"
       pg_stat_statements.track: "all"
-
   resources:
     requests:
       memory: 2Gi
