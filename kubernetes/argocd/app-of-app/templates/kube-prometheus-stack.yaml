@@ -23,7 +23,7 @@ spec:
     targetRevision: 86.2.2
     chart: kube-prometheus-stack
     helm:
-     #https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack/85.1.1?modal=values
+     #https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack/86.2.2?modal=values
      values: |
       kubeProxy:
         enabled: false
@@ -121,11 +121,11 @@ spec:
           scrapeInterval: 10s
           resources:
             requests:
-              cpu: 2
-              memory: 2Gi
+              cpu: 1
+              memory: 1.5Gi
             limits:
               cpu: 2
-              memory: 2Gi
+              memory: 1.5Gi
           podMonitorSelectorNilUsesHelmValues: false
           podMonitorNamespaceSelector:
             matchExpressions:
