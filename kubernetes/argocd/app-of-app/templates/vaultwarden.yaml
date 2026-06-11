@@ -31,7 +31,7 @@ spec:
       - "$config/kubernetes/argocd/argocd-app/stateless/vaultwarden/helm/values.yaml"
     repoURL: "https://guerzon.github.io/vaultwarden"
     chart: vaultwarden
-    targetRevision: 0.35.1
+    targetRevision: 0.38.0
   - repoURL: "https://github.com/ngodat0103/home-lab.git"
     targetRevision: master
     ref: "config"

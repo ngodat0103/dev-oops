@@ -1,111 +1,11 @@
 ## Instruction: when adding a new value, follow https://github.com/dani-garcia/vaultwarden/blob/main/.env.template as much as possible.
 
-## @section Kubernetes settings
-##
-image:
-  ## @param image.registry Vaultwarden image registry
-  ##
-  registry: docker.io
-  ## @param image.repository Vaultwarden image repository
-  ##
-  repository: vaultwarden/server
-  ##
-  ## @param image.tag Vaultwarden image tag
-  ## Ref: https://hub.docker.com/r/vaultwarden/server/tags
-  ##
-  tag: "1.35.2"
-  ## @param image.pullPolicy Vaultwarden image pull policy
-  ## ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
-  ##
-  pullPolicy: IfNotPresent
-  ## @param image.pullSecrets Specify docker-registry secrets
-  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-  ## Example:
-  ## pullSecrets:
-  ##   - name: myRegistryKeySecretName
-  ##
-  pullSecrets: []
-  ## @param image.extraSecrets Vaultwarden image extra secrets
-  ## Example:
-  ## extraSecrets:
-  ##   - key: SSO_CLIENT_SECRET
-  ##     value: secretStuff
-  ##
-  extraSecrets: []
-  ## @param image.extraVars Vaultwarden image extra vars
-  ## Example:
-  ## extraVars:
-  ##   - key: SSO_AUTHORITY
-  ##     value: https://bananaguy.com/auth
-  ##
-  extraVars: []
-  ## @param image.extraVarsCM Vaultwarden image extra vars ConfigMap
-  ## Example:
-  ## extraVarsCM: "vaultwarden-extra-vars"
-  extraVarsCM: ""
-  ## @param image.extraVarsSecret Vaultwarden image extra vars Secret
-  ## Example:
-  ## extraVarsSecret: "vaultwarden-extra-vars"
-  extraVarsSecret: ""
-
-## @param replicas Number of deployment replicas
-##
 replicas: 1
 
-## @param fullnameOverride String to override the application name.
-##
 fullnameOverride: "vaultwarden"
 
-## @param resourceType Can be either Deployment or StatefulSet
-## Overwrite automatic resource type detection by specifying the resource type
-##
 resourceType: "Deployment"
 
-## @param commonAnnotations Annotations for the deployment or statefulset
-##
-commonAnnotations: {}
-
-## @param configMapAnnotations Add extra annotations to the configmap
-##
-configMapAnnotations: {}
-
-## @param podAnnotations Add extra annotations to the pod
-##
-podAnnotations: {}
-
-## @param commonLabels Additional labels for the deployment or statefulset
-##
-commonLabels: {}
-
-## @param podLabels Add extra labels to the pod
-##
-podLabels: {}
-
-## @param initContainers extra init containers for initializing the vaultwarden instance
-##
-initContainers: []
-## @param sidecars extra containers running alongside the vaultwarden instance
-##
-sidecars: []
-
-## @param nodeSelector Node labels for pod assignment
-## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector
-##
-nodeSelector: {}
-
-## @param affinity Affinity for pod assignment
-## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
-##
-affinity: {}
-
-## @param tolerations Tolerations for pod assignment
-## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
-##
-tolerations: []
-
-## @param serviceAccount.create Create a service account
-## @param serviceAccount.name Name of the service account to create
-##
 serviceAccount:
   create: false
   name: "vaultwarden-svc"
@@ -116,100 +16,9 @@ podSecurityContext:
   runAsGroup: 1012
   runAsUser: 1012
   fsGroup: 1012
-## @param securityContext Default security options to run vault as read only container without privilege escalation
-securityContext: {}
-## @param dnsConfig Pod DNS options
-## Ref: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config
-dnsConfig: {}
-
-## @param enableServiceLinks Enable service links, Kubernetes default is true
-## Ref: https://kubernetes.io/docs/tutorials/services/connect-applications-service/#accessing-the-service
-##
-enableServiceLinks: true
-
-## @section Reliability configuration
-##
-
-## Liveness probe configuration
-##
-livenessProbe:
-  ## @param livenessProbe.enabled Enable liveness probe
-  ##
-  enabled: true
-  ## @param livenessProbe.initialDelaySeconds Delay before liveness probe is initiated
-  ##
-  initialDelaySeconds: 5
-  ## @param livenessProbe.timeoutSeconds How long to wait for the probe to succeed
-  ##
-  timeoutSeconds: 1
-  ## @param livenessProbe.periodSeconds How often to perform the probe
-  ##
-  periodSeconds: 10
-  ## @param livenessProbe.successThreshold Minimum consecutive successes for the probe to be considered successful
-  ##
-  successThreshold: 1
-  ## @param livenessProbe.failureThreshold Minimum consecutive failures for the probe to be considered failed
-  ##
-  failureThreshold: 10
-  ## @param livenessProbe.path Path on which the probe is exposed, default is "/alive". Replace when using non-root path deployment
-  ##
-  path: /alive
-
-## Readiness probe configuration
-##
-readinessProbe:
-  ## @param readinessProbe.enabled Enable readiness probe
-  ##
-  enabled: true
-  ## @param readinessProbe.initialDelaySeconds Delay before readiness probe is initiated
-  ##
-  initialDelaySeconds: 5
-  ## @param readinessProbe.timeoutSeconds How long to wait for the probe to succeed
-  ##
-  timeoutSeconds: 1
-  ## @param readinessProbe.periodSeconds How often to perform the probe
-  ##
-  periodSeconds: 10
-  ## @param readinessProbe.successThreshold Minimum consecutive successes for the probe to be considered successful
-  ##
-  successThreshold: 1
-  ## @param readinessProbe.failureThreshold Minimum consecutive failures for the probe to be considered failed
-  ##
-  failureThreshold: 3
-  ## @param readinessProbe.path Path on which the probe is exposed, default is "/alive". Replace when using non-root path deployment
-  ##
-  path: /alive
-
-## Startup probe configuration
-##
-startupProbe:
-  ## @param startupProbe.enabled Enable startup probe
-  ##
-  enabled: true
-  ## @param startupProbe.initialDelaySeconds Delay before startup probe is initiated
-  ##
-  initialDelaySeconds: 5
-  ## @param startupProbe.timeoutSeconds How long to wait for the probe to succeed
-  ##
-  timeoutSeconds: 1
-  ## @param startupProbe.periodSeconds How often to perform the probe
-  ##
-  periodSeconds: 10
-  ## @param startupProbe.successThreshold Minimum consecutive successes for the probe to be considered successful
-  ##
-  successThreshold: 1
-  ## @param startupProbe.failureThreshold Minimum consecutive failures for the probe to be considered failed
-  ##
-  failureThreshold: 10
-  ## @param startupProbe.path Path on which the probe is exposed, default is "/alive". Replace when using non-root path deployment
-  ##
-  path: /alive
-
-## @param resources Resource configurations
-##
 resources:
   limits:
-    cpu: 1000m
+    cpu: 500m
     memory: 256Mi
   requests:
     cpu: 500m
@@ -224,7 +33,7 @@ strategy:
 podDisruptionBudget:
   ## @param podDisruptionBudget.enabled Enable PodDisruptionBudget settings
   # ref: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
-  enabled: false
+  enabled: true
   ## @param podDisruptionBudget.minAvailable Minimum number/percentage of pods that should remain scheduled.
   # When it's set, maxUnavailable must be disabled by `maxUnavailable: null`
   minAvailable: 1
@@ -232,9 +41,6 @@ podDisruptionBudget:
   maxUnavailable: null
 
 ## @section Persistent data configuration
-##
-
-
 storage:
   ## @param storage.existingVolumeClaim If defined, the values here will be used for the data and
   ## attachments PV's. The custom values for data and attachments will be ignored if
@@ -252,7 +58,7 @@ storage:
     size: "3Gi"
     class: "juicefs-sc-cloudflare-r2"
     path: "/data"
-    keepPvc: false
+    keepPvc: true
     accessMode: "ReadWriteOnce"
   ## @param storage.attachments Attachments directory configuration, refer to values.yaml for parameters.
   ## By default, attachments/ is located inside the data directory.
@@ -385,26 +191,6 @@ sendsAllowed: "true"
 ##
 hibpApiKey: ""
 
-## @param orgAttachmentLimit Max Kilobytes of attachment storage allowed per organization.
-## When this limit is reached, organization members will not be allowed to upload further attachments for ciphers owned by that organization.
-##
-orgAttachmentLimit: ""
-
-## @param userAttachmentLimit Max kilobytes of attachment storage allowed per user.
-## When this limit is reached, the user will not be allowed to upload further attachments.
-##
-userAttachmentLimit: ""
-
-## @param userSendLimit Max kilobytes of send storage allowed per user.
-## When this limit is reached, the user will not be allowed to upload further sends.
-##
-userSendLimit: ""
-
-## @param trashAutoDeleteDays Number of days to wait before auto-deleting a trashed item.
-## If unset (the default), trashed items are not auto-deleted.
-## This setting applies globally, so make sure to inform all users of any changes to this setting.
-##
-trashAutoDeleteDays: ""
 
 ## @param signupsAllowed By default, anyone who can access your instance can register for a new account.
 ## To disable this, set this parameter to false. Even when signupsAllowed=false, an existing user who is

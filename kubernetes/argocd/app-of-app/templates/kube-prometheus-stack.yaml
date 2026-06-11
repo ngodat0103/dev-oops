@@ -20,7 +20,7 @@ spec:
       selfHeal: true
   source:
     repoURL: https://prometheus-community.github.io/helm-charts
-    targetRevision: 85.1.1
+    targetRevision: 86.2.2
     chart: kube-prometheus-stack
     helm:
      #https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack/85.1.1?modal=values
