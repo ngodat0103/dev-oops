@@ -15,12 +15,10 @@ spec:
   syncPolicy:
     syncOptions: [ "ServerSideApply=true", "CreateNamespace=true" ]
     automated:
-      enabled: true
-      selfHeal: true
-      prune: true
+      enabled: false
   sources:
   - repoURL: https://helm.runix.net
-    targetRevision: 1.62.0
+    targetRevision: 1.64.0
     chart: pgadmin4
     helm:
       values: |
@@ -53,6 +51,7 @@ spec:
             cpu: 100m
             memory: 512Mi
           limits:
+            cpu: 2
             memory: 1024Mi
         networkPolicy:
           enabled: false

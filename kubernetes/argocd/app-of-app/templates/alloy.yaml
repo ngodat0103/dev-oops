@@ -20,11 +20,18 @@ spec:
       selfHeal: true
   source:
     repoURL: https://grafana.github.io/helm-charts
-    targetRevision: 1.8.1
+    targetRevision: 1.9.0
     chart: alloy
     helm:
       values: |
         alloy:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
           mounts:
            varlog: true
            dockercontainers: false
@@ -72,14 +79,14 @@ spec:
 
               // Tail logs from Kubernetes pods
               loki.source.kubernetes "pod_logs" {
-                      targets = discovery.relabel.pod_logs.output
-                      forward_to = [loki.write.default.receiver]
+                targets = discovery.relabel.pod_logs.output
+                forward_to = [loki.write.default.receiver]
               }
               // Configure Loki endpoint
               loki.write "default" {
                       endpoint {
                       url = "http://loki.loki:3100/loki/api/v1/push"
-                      }
+                }
               }
         clustering:
           enabled: false
