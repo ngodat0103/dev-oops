@@ -36,6 +36,13 @@ spec:
             enabled: false
           appsec:
             enabled: true
+            resources:
+              requests:
+                cpu: 0.2
+                memory: 128Mi
+              limits:
+                cpu: 0.2
+                memory: 128Mi
             acquisitions:
               - source: appsec
                 listen_addr: "0.0.0.0:7422"
@@ -66,6 +73,13 @@ spec:
             strategy:
               type: RollingUpdate
           lapi:
+            resources:
+              requests:
+                cpu: 0.2
+                memory: 128Mi
+              limits:
+                cpu: 0.2
+                memory: 128Mi
             persistentVolume:
               data:
                 enabled: false
