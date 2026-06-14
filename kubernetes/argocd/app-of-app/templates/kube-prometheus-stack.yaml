@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: kube-prometheus-stack
   namespace: argocd
+  labels:
+    applicationType: stateless
   finalizers:
   - resources-finalizer.argocd.argoproj.io
 spec:

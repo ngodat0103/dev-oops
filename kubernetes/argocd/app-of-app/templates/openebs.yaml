@@ -4,6 +4,8 @@ kind: Application
 metadata:
   namespace: argocd
   name: openebs
+  labels:
+    applicationType: daemon
   finalizers:
    - resources-finalizer.argocd.argoproj.io
 spec:

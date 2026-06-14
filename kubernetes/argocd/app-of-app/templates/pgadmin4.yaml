@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: pgadmin4
   namespace: argocd
+  labels:
+    applicationType: stateful
   finalizers:
   - resources-finalizer.argocd.argoproj.io
 spec:

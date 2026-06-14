@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: cert-manager
   namespace: argocd
+  labels:
+    applicationType: stateless
 spec:
   project: default
   syncPolicy:

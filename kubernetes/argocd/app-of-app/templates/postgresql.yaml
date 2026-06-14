@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: prod-postgresql
   namespace: argocd
+  labels:
+    applicationType: stateful
 spec:
   project: default
   syncPolicy:

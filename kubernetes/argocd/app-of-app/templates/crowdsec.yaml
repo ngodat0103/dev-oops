@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: crowdsec
   namespace: argocd
+  labels:
+    applicationType: stateless
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: csi-driver-nfs
   namespace: argocd
+  labels:
+    applicationType: daemon
 spec:
   project: default
   syncPolicy:

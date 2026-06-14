@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: kafka-operator
   namespace: argocd
+  labels:
+    applicationType: stateful
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

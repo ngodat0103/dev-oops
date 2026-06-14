@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: juicefs
   namespace: argocd
+  labels:
+    applicationType: daemon
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -24,10 +26,10 @@ spec:
     namespace: juicefs
     name: in-cluster
   sources:
-    # https://artifacthub.io/packages/helm/wener/juicefs-csi-driver/0.31.7?modal=values
+    # https://artifacthub.io/packages/helm/wener/juicefs-csi-driver/0.31.10?modal=values
     - repoURL: https://charts.wener.tech
       chart: juicefs-csi-driver
-      targetRevision: 0.31.7
+      targetRevision: 0.31.10
       helm:
         values: |
           controller:
