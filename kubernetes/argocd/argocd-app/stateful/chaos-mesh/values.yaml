@@ -236,7 +236,11 @@ chaosDaemon:
   # Node labels for chaos-daemon pod assignment
   nodeSelector: {}
   # Toleration labels for chaos-daemon pod assignment
-  tolerations: []
+  tolerations:
+  - key: "heavy-node"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
   # Map of chaos-controller-manager node/pod affinities
   affinity: {}
 
