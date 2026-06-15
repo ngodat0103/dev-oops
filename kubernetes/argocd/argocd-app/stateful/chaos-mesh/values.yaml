@@ -343,8 +343,7 @@ dashboard:
 
     # Chaos Dashboard data Persistent Volume Storage Class.
     # If defined, storageClassName: <storageClass>
-    storageClassName: longhorn
-
+    storageClassName: juicefs-sc-cloudflare-r2
     # Chaos Dashboard data Persistent Volume mount root path
     #
     mountPath: /data
