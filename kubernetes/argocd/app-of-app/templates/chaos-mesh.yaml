@@ -13,7 +13,15 @@ spec:
   syncPolicy:
     syncOptions: [ "CreateNamespace=true","ServerSideApply=true" ]
     automated:
-      enabled: false
+      enabled: true
+      selfHeal: true
+      prune: true
+    retry:
+      limit: 1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
   destination:
     namespace: chaos-simulation
     name: in-cluster
