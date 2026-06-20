@@ -40,7 +40,7 @@ install_app_of_app() {
     --set openebs.enabled=false \
     --set postgresql.enabled=true \
     --set certManager.enabled=true \
-    --set kubePrometheusStack.enabled=true \
+    --set kubePrometheusStack.enabled=false \
     --set customManifest.enabled=false \
     --set loki.enabled=false \
     --set alloy.enabled=false \
