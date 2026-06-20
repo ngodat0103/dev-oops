@@ -27,7 +27,7 @@
 # Kubernetes / app config
 # ---------------------------------------------------------------------------
 : "${NAMESPACE:=prod-postgresql}"
-: "${RECOVERY_TAG:=postgresql-first-recovery-test}"
+: "${RECOVERY_TAG:=postgreql-recovery-sync}"
 : "${ARGOCD_CHART_VERSION:=9.5.22}"
 
 # Repo-relative path to the app-of-app helm chart.
