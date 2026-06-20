@@ -28,6 +28,7 @@ sonarqube:
   enabled: true
 juicefs:
   enabled: true
+  readOnly: false
 vaultwarden:
   enabled: true
 certManager:
