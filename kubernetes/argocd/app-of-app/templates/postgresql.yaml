@@ -35,12 +35,12 @@ spec:
         metadata:
          annotations:
           argocd.argoproj.io/sync-wave: "0"
-  - repoURL: https://cloudnative-pg.io/charts
-    chart: plugin-barman-cloud
-    targetRevision: 0.6.0
   - directory:
       recurse: true
     repoURL: https://github.com/ngodat0103/home-lab.git
     targetRevision: master
     path: kubernetes/argocd/argocd-app/stateful/postgresql/raw-manifests
+  - repoURL: https://cloudnative-pg.io/charts
+    chart: plugin-barman-cloud
+    targetRevision: 0.6.0
 {{- end }}
