@@ -18,21 +18,13 @@ on:
         default: "2"
         required: false
 
-env:
-  CLUSTER_NAME: pg-backup-test-${{ github.run_id }}
-  REGION: ${{ inputs.region || 'nyc3' }}
-  NODE_SIZE: ${{ inputs.node_size || 's-4vcpu-8gb' }}
-  NODE_COUNT: ${{ inputs.node_count || '2' }}
-  NAMESPACE: prod-postgresql
-  RECOVERY_TAG: postgresql-first-recovery-test
-  ARGOCD_CHART_VERSION: "9.4.15"
-
 jobs:
   backup-test:
     runs-on: ubuntu-latest
     environment: test-backup
     timeout-minutes: 45
     steps:
+      # --- dependency setup only; no business logic lives here ---
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -43,228 +35,23 @@ jobs:
 
       - name: Install ArgoCD CLI
         run: |
-          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/download/v3.3.4/argocd-linux-amd64
+          curl -sSL -o argocd \
+            https://github.com/argoproj/argo-cd/releases/download/v3.3.4/argocd-linux-amd64
           chmod +x argocd
           sudo mv argocd /usr/local/bin/
 
-      - name: Create DOKS cluster
-        run: |
-          doctl kubernetes cluster create "$CLUSTER_NAME" \
-            --region "$REGION" \
-            --size "$NODE_SIZE" \
-            --count "$NODE_COUNT" \
-            --wait
-      - name: Save kubeconfig
-        run: |
-          doctl kubernetes cluster kubeconfig save "$CLUSTER_NAME"
-          kubectl config set-context --current --namespace=argocd
-      - name: Install ArgoCD via Helm
-        run: |
-          helm repo add argo https://argoproj.github.io/argo-helm
-          helm repo update
-          helm install argocd argo/argo-cd \
-            --version "$ARGOCD_CHART_VERSION" \
-            --namespace argocd \
-            --create-namespace \
-            --wait \
-            --timeout 5m \
-            --set 'configs.params.server\.insecure=true'
+      # helm, kubectl, and jq are preinstalled on ubuntu-latest runners.
 
-      - name: Wait for ArgoCD to be ready
-        run: |
-          kubectl rollout status deployment/argocd-server -n argocd --timeout=120s
-          kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=120s
-          kubectl rollout status deployment/argocd-applicationset-controller -n argocd --timeout=120s
-
-      - name: Install app-of-app chart
-        run: |
-          helm install app-of-app ./kubernetes/argocd/app-of-app \
-            --namespace argocd \
-            --set metallb.enabled=false \
-            --set traefik.enabled=false \
-            --set openebs.enabled=false \
-            --set postgresql.enabled=true \
-            --set certManager.enabled=true \
-            --set kubePrometheusStack.enabled=true \
-            --set customManifest.enabled=false \
-            --set loki.enabled=true \
-            --set alloy.enabled=true \
-            --set pgadmin4.enabled=true \
-            --set sonarqube.enabled=false \
-            --set harbor.enabled=false \
-            --set velero.enabled=false \
-            --set mongoOperator.enabled=false \
-            --set kafkaOperator.enabled=false \
-            --set juicefs.enabled=false \
-            --set vaultwarden.enabled=true
-
-      - name: Sync cert-manager
-        run: |
-          argocd app sync cert-manager --core \
-          --retry-limit 5 \
-          --retry-backoff-duration 10s \
-          --retry-backoff-max-duration 3m \
-          --retry-backoff-factor 2
-      - name: Create namespace and secrets
+      # --- delegate all logic to the bash scripts ---
+      - name: Run DR drill
         env:
+          DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
           R2_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY }}
           R2_SECRET_KEY: ${{ secrets.R2_SECRET_KEY }}
+          RUN_ID: ${{ github.run_id }}
+          REGION: ${{ inputs.region || 'nyc3' }}
+          NODE_SIZE: ${{ inputs.node_size || 's-4vcpu-8gb' }}
+          NODE_COUNT: ${{ inputs.node_count || '2' }}
         run: |
-          kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-          kubectl create secret generic cloudflare-r2 \
-            -n "$NAMESPACE" \
-            --from-literal=ACCESS_KEY="$R2_ACCESS_KEY" \
-            --from-literal=SECRET_KEY="$R2_SECRET_KEY" \
-            --dry-run=client -o yaml | kubectl apply -f -
-          kubectl create secret generic postgres-admin \
-            -n "$NAMESPACE" \
-            --from-literal=username=postgres \
-            --from-literal=password=backup-test-dummy \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Override PostgreSQL app revision to recovery tag
-        run: |
-          argocd app set prod-postgresql \
-            --core \
-            --source-position 2 \
-            --revision "$RECOVERY_TAG"
-      - name: Sync PostgreSQL (App)
-        continue-on-error: true
-        run: |
-          argocd app sync prod-postgresql --core \
-            --retry-limit 3 \
-            --retry-backoff-duration 5s \
-            --retry-backoff-max-duration 1m \
-            --retry-backoff-factor 2
-      - name: Sync PostgreSQL (Cluster Resource)
-        continue-on-error: true
-        run: |
-          argocd app sync prod-postgresql --core \
-            --resource postgresql.cnpg.io:Cluster:postgresql \
-            --retry-limit 5 \
-            --retry-backoff-duration 5s \
-            --retry-backoff-max-duration 1m \
-            --retry-backoff-factor 2
-    
-      - name: Wait for cluster healthy state
-        run: |
-          echo "Waiting for CloudNativePG cluster to reach healthy state..."
-          for i in $(seq 1 90); do
-            phase=$(kubectl get cluster -n "$NAMESPACE" postgresql \
-              -o jsonpath='{.status.phase}' 2>/dev/null || echo "unknown")
-            echo "  Attempt $i/90: phase=$phase"
-            if [ "$phase" = "Cluster in healthy state" ]; then
-              echo "Cluster is healthy."
-              exit 0
-            fi
-            sleep 10
-          done
-          echo "ERROR: Cluster did not reach healthy state within 15 minutes."
-          kubectl get cluster -n "$NAMESPACE" postgresql -o yaml || true
-          kubectl get pods -n "$NAMESPACE" -l cnpg.io/cluster=postgresql || true
-          exit 1
-
-      - name: Validate restored data
-        run: |
-          POD=$(kubectl get pods -n "$NAMESPACE" \
-            -l cnpg.io/cluster=postgresql,role=primary \
-            -o jsonpath='{.items[0].metadata.name}')
-          echo "Primary pod: $POD"
-
-          echo "--- Connectivity check ---"
-          kubectl exec -n "$NAMESPACE" "$POD" -- \
-            psql -U postgres -c "SELECT 1 AS connectivity_check;"
-
-          echo "--- Database listing ---"
-          kubectl exec -n "$NAMESPACE" "$POD" -- \
-            psql -U postgres -c "\l"
-
-          echo "--- Verify expected databases exist ---"
-          EXPECTED_DBS="sonarqube"
-          for db in $EXPECTED_DBS; do
-            count=$(kubectl exec -n "$NAMESPACE" "$POD" -- \
-              psql -U postgres -tAc "SELECT count(*) FROM pg_database WHERE datname = '$db';")
-            if [ "$count" -eq 0 ]; then
-              echo "FAIL: Database '$db' not found."
-              exit 1
-            fi
-            echo "OK: Database '$db' exists."
-          done
-
-          echo "--- Count user tables across databases ---"
-          for db in $EXPECTED_DBS; do
-            table_count=$(kubectl exec -n "$NAMESPACE" "$POD" -- \
-              psql -U postgres -d "$db" -tAc \
-              "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname NOT IN ('pg_catalog','information_schema');" \
-              2>/dev/null || echo "0")
-            echo "Database '$db': $table_count user table(s)"
-          done
-          echo "All validation checks passed."
-      - name: Destroy DOKS cluster and associated infra
-        if: always()
-        run: |
-          CLUSTER_ID=$(doctl kubernetes cluster get "$CLUSTER_NAME" \
-            --format ID --no-header 2>/dev/null || echo "")
-
-          if [ -z "$CLUSTER_ID" ]; then
-            echo "Cluster '$CLUSTER_NAME' not found, nothing to clean up."
-            exit 0
-          fi
-
-          echo "Cluster ID: $CLUSTER_ID"
-
-          # Collect LB IPs now while kubectl still works — needed after cluster is gone
-          LB_IPS=$(kubectl get svc -A \
-            -o jsonpath='{.items[?(@.spec.type=="LoadBalancer")].status.loadBalancer.ingress[0].ip}' \
-            2>/dev/null || echo "")
-
-          # --- Scale down all node pools then delete the cluster ---
-          echo "=== Scaling down node pools ==="
-          POOL_IDS=$(doctl kubernetes cluster node-pool list "$CLUSTER_NAME" \
-            --format ID --no-header 2>/dev/null || echo "")
-          for pool_id in $POOL_IDS; do
-            echo "Scaling node pool $pool_id to 0..."
-            doctl kubernetes cluster node-pool update "$CLUSTER_NAME" "$pool_id" \
-              --count 0 || true
-          done
-          [ -n "$POOL_IDS" ] && sleep 30 || true
-
-          echo "=== Deleting DOKS cluster ==="
-          doctl kubernetes cluster delete "$CLUSTER_NAME" --force --dangerous || true
-
-          # --- Delete DigitalOcean Block Storage Volumes ---
-          # The DOKS CSI driver tags every provisioned volume with k8s:<cluster-id>
-          echo "=== Cleaning up DigitalOcean Block Storage Volumes ==="
-          VOL_IDS=$(doctl compute volume list -o json \
-            | jq -r --arg tag "k8s:$CLUSTER_ID" \
-              '.[] | select(.tags? and (.tags[] == $tag)) | .id' 2>/dev/null || echo "")
-          if [ -n "$VOL_IDS" ]; then
-            for vol_id in $VOL_IDS; do
-              echo "Deleting volume: $vol_id"
-              doctl compute volume delete "$vol_id" --force || true
-            done
-          else
-            echo "No block storage volumes found for cluster $CLUSTER_ID."
-          fi
-
-          # --- Delete DigitalOcean Load Balancers ---
-          # Primary: match by IPs collected before cluster was deleted
-          echo "=== Cleaning up DigitalOcean Load Balancers ==="
-          for lb_ip in $LB_IPS; do
-            LB_ID=$(doctl compute load-balancer list -o json \
-              | jq -r --arg ip "$lb_ip" '.[] | select(.ip == $ip) | .id')
-            if [ -n "$LB_ID" ]; then
-              echo "Deleting load balancer $LB_ID (IP: $lb_ip)"
-              doctl compute load-balancer delete "$LB_ID" --force || true
-            fi
-          done
-          # Fallback: catch any LBs still tagged with the cluster ID
-          TAGGED_LB_IDS=$(doctl compute load-balancer list -o json \
-            | jq -r --arg tag "k8s:$CLUSTER_ID" \
-              '.[] | select(.tags? and (.tags[] == $tag)) | .id' 2>/dev/null || echo "")
-          for lb_id in $TAGGED_LB_IDS; do
-            echo "Deleting tagged load balancer: $lb_id"
-            doctl compute load-balancer delete "$lb_id" --force 2>/dev/null || true
-          done
-
-          echo "Destroy complete."
+          chmod +x dr-drill/run.sh dr-drill/scripts/*.sh
+          ./dr-drill/run.sh
