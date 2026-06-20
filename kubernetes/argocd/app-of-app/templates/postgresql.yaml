@@ -42,5 +42,5 @@ spec:
     path: kubernetes/argocd/argocd-app/stateful/postgresql/raw-manifests
   - repoURL: https://cloudnative-pg.io/charts
     chart: plugin-barman-cloud
-    targetRevision: 0.6.0
+    targetRevision: 0.7.0
 {{- end }}
