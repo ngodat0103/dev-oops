@@ -29,7 +29,6 @@ spec:
         monitoring:
           grafanaDashboard:
             create: true
-            namespace: kube-prometheus-stack
             labels:
               grafana_dashboard: "1"    
         metadata:
