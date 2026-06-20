@@ -14,8 +14,6 @@ spec:
   syncPolicy:
     automated:
       enabled: false
-      selfHeal: false
-      prune: true
     retry:
       limit: 1
       backoff:
@@ -54,7 +52,7 @@ spec:
                 memory: 128Mi
               limits:
                 cpu: 1
-                memory: 256Mi            
+                memory: 256Mi
           mountMode: mountpod
           metrics:
             enabled: true
@@ -82,6 +80,12 @@ spec:
               reclaimPolicy: Retain
               allowVolumeExpansion: true
               mountOptions:
+                {{- if .Values.juicefs.readOnly }}
+                # DR read-only: blocks writes to the prod R2 prefix AND
+                # disables background GC/trash cleanup, so a DR drill can
+                # never delete or mutate production objects.
+                - ro
+                {{- end }}
                 - cache-size=10240
                 - free-space-ratio=0.1
                 - prefetch=3
