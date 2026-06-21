@@ -25,8 +25,9 @@ source "$REPO_ROOT/scripts/00-create-cluster.sh"
 source "$REPO_ROOT/scripts/01-install-argocd.sh"
 source "$REPO_ROOT/scripts/02-install-apps.sh"
 source "$REPO_ROOT/scripts/03-recover-postgres.sh"
-source "$REPO_ROOT/scripts/04-validate.sh"
-source "$REPO_ROOT/scripts/05-validate-vaultwarden.sh"
+source "$REPO_ROOT/scripts/04-sync-juicefs.sh"
+source "$REPO_ROOT/scripts/05-validate.sh"
+source "$REPO_ROOT/scripts/06-validate-vaultwarden.sh"
 source "$REPO_ROOT/scripts/99-destroy.sh"
 
 # --- argument parsing ------------------------------------------------------
@@ -80,7 +81,7 @@ main() {
   recover_postgres
   validate_data
 
-  # Data layer: JuiceFS (read-only) then Vaultwarden on top of it.
+  # Data layer: JuiceFS sync (needs the metaurl DB up) → Vaultwarden on top.
   sync_juicefs
   sync_vaultwarden
   validate_vaultwarden

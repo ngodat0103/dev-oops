@@ -55,7 +55,10 @@ spec:
                 memory: 256Mi
           mountMode: mountpod
           metrics:
-            enabled: true
+            # metrics.enabled=true makes the chart emit a ServiceMonitor, which
+            # needs the monitoring.coreos.com CRDs. Tie it to juicefs.monitoring
+            # so DR drills (no kube-prometheus-stack) don't fail on the missing CRD.
+            enabled: {{ .Values.juicefs.monitoring }}
             port: 9567
             service:
               servicePort: 9567
@@ -114,8 +117,12 @@ spec:
                   paths:
                     - path: /
                       pathType: ImplementationSpecific
-    # Raw manifests (ServiceMonitor, etc.) tracked in Git
+    {{- if .Values.juicefs.monitoring }}
+    # Raw manifests (ServiceMonitor, etc.) tracked in Git.
+    # CRDs (installed by kube-prometheus-stack). Disabled for DR drills where
+    # that stack isn't deployed, otherwise ArgoCD fails on the missing CRD.
     - repoURL: https://github.com/ngodat0103/dev-oops.git
       targetRevision: master
       path: kubernetes/argocd/argocd-app/daemon/juicefs
+    {{- end }}
 {{- end -}}
