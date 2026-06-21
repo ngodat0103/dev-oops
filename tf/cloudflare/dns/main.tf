@@ -11,7 +11,7 @@ locals {
   zone_id              = "ab6606e8b3aad0b66008eb26f2dd3660"
   share_comment        = "Managed by Terraform"
   account_id           = "4c8ad4e9fa8213af3fd284bb97b68b5e"
-  traefik_k8s_lan_ip= "192.168.1.232"
+  traefik_k8s_lan_ip= "192.168.1.230"
   traefik_docker_ip = "192.168.1.121"
 }
 module "ddns_records" {
