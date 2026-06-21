@@ -84,7 +84,7 @@ module "ubuntu_server" {
   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=7bfd8fd06ced6ae216c4314d58f51b7c752d5223"
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   name              = "UbuntuServer"
-  tags              = ["production", "file-storage","gitlab","gitlab-runner"]
+  tags              = ["production", "file-storage", "gitlab", "gitlab-runner"]
   node_name         = local.node_name
   ip_address        = "192.168.1.121/24"
   hostname          = "ubuntu-server.local"
@@ -190,9 +190,9 @@ module "k8s_masters" {
   ip_address        = "192.168.1.18${count.index}/24"
   tags              = ["production", "kubernetes-masters"]
   gateway           = "192.168.1.1"
-  memory            = 1024*4
+  memory            = 1024 * 6
   cpu_cores         = 2
-  cpu_type = "host"
+  cpu_type          = "host"
   node_name         = local.node_name
   boot_disk_size    = 50
   datastore_id      = "local-lvm"
@@ -216,7 +216,7 @@ module "k8s_workers" {
   gateway           = "192.168.1.1"
   memory            = 1024 * 13
   cpu_cores         = 13
-  cpu_type = "host"
+  cpu_type          = "host"
   node_name         = local.node_name
   datastore_id      = "local-lvm"
   bridge_name       = "vmbr0"

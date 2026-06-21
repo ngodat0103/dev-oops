@@ -18,6 +18,7 @@ Private infrastructure repository managing a single-node Proxmox environment tha
 - [Platform Tooling](#platform-tooling)
 - [Deployed Services](#deployed-services)
 - [The Kubernetes Situation](#the-kubernetes-situation)
+- [War Stories (Incidents)](#war-stories-incidents)
 - [Storage Architecture](#storage-architecture)
 - [Security](#security)
 - [Observability](#observability)
@@ -296,6 +297,44 @@ Internal-facing services (no public exposure, no user-facing SLA) are migrated f
 5. Eventually decommission ubuntu-server as a Docker host entirely
 
 The cluster now runs production workloads.
+
+---
+
+## War Stories (Incidents)
+
+> *"It works on day 1."* — Every flag I never flipped again.
+
+Production means production incidents. We log them here so I can pretend I learned something.
+
+### INCIDENT-0: The Great Kubespray Civil War (2026-06-21)
+
+**Duration:** 1h 18m of downtime | **Blast radius:** Nextcloud, Vaultwarden, qBittorrent, Jellyfin, ArgoCD, Traefik, MetalLB | **Body count:** my evening.
+
+I upgraded the cluster Kubernetes version with Kubespray. What could go wrong? Everything. Everything could go wrong.
+
+**The plot:** Back on day 1, I let Kubespray bootstrap ArgoCD, Traefik, and MetalLB with `_enabled: true`. Then I quietly migrated all three to my own Helm/GitOps stack and *never flipped the flags back*. For months, two owners co-existed in blissful denial. The next `cluster.yml` run woke them both up at once, and they immediately started fist-fighting over who owns which resource:
+
+```
+Error: UPGRADE FAILED: conflict occurred while applying object ...
+conflict with "kubectl-client-side-apply" using v1 ...
+```
+
+That's the sound of `kubectl-client-side-apply` (Kubespray) and my Helm server-side-apply both grabbing the same wheel. MetalLB speakers got stuck `Pending` because two installs tried to bind the same `hostPort` (turns out `hostPort` is a node-level singleton — who knew, besides everyone). Traefik went down, so Nextcloud started returning connection timeouts to the family. ArgoCD CrashLooped on duplicate pods, which is delightful because ArgoCD was supposed to be the thing fixing everything.
+
+**The near-death experience:** To restart the broken ArgoCD I deleted the `Application` CRs — forgetting they carried `resources-finalizer.argocd.argoproj.io`, a.k.a. *the "cascade-delete everything I manage, including your PVCs" finalizer*. So I personally instructed the cluster to nuke qBittorrent's and Jellyfin's PVCs. It complied. Enthusiastically.
+
+**Why I still have a job (with myself):** every stateful PV was set to `Retain`, not `Delete`. The PVs survived as orphaned `Released` volumes with the data intact on disk. A `claimRef` patch + PVC re-bind later, everyone came back from the dead. CNPG escaped untouched because its auto-sync was fully disabled and it manages its own PVCs. Luck, dressed up as architecture.
+
+**One-line root cause:** a single stale `=true` flag set at bootstrap and never flipped. That's it. That's the incident.
+
+**Lessons, abbreviated:**
+- Bootstrap flags are temporary scaffolding, not permanent config. Flip them in the *same* change you GitOps-ify a component.
+- Pick ONE deployer per component. Kubespray **or** Helm. Never both. They do not share custody amicably.
+- `Retain` reclaim policy is the difference between "annoying afternoon" and "permanent data loss." Use it on every stateful PV.
+- The ArgoCD finalizer cascade-deletes everything. Strip the finalizer *before* deleting any Application that manages stateful workloads.
+- Audit all enabled addons in one pass before upgrading instead of playing whack-a-mole three times in a row (ArgoCD → Traefik → MetalLB) like I did.
+
+Full postmortem, the PV→PVC rebind procedure, the field-manager (SSA vs CSA) deep-dive, and the pre-upgrade checklist I will absolutely read next time: [`ansible/kubernetes/INCIDENT-0.md`](ansible/kubernetes/INCIDENT-0.md).
 
 ---
 

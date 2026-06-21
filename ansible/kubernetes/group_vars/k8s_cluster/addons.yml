@@ -7,7 +7,7 @@
 helm_enabled: false
 
 # Registry deployment
-registry_enabled: true
+registry_enabled: false
 # registry_namespace: kube-system
 # registry_storage_class: ""
 # registry_disk_size: "10Gi"
@@ -145,7 +145,7 @@ cert_manager_enabled: false
 #   - "--dns01-recursive-nameservers=1.1.1.1:53,8.8.8.8:53"
 
 # MetalLB deployment
-metallb_enabled: true
+metallb_enabled: false
 metallb_speaker_enabled: "{{ metallb_enabled }}"
 metallb_namespace: "metallb-system"
 # metallb_protocol: "layer2"
@@ -208,7 +208,7 @@ metallb_namespace: "metallb-system"
 #           address_pool:
 #             - pool2
 
-argocd_enabled: true
+argocd_enabled: false
 # argocd_namespace: argocd
 # Default password:
 #   - https://argo-cd.readthedocs.io/en/stable/getting_started/#4-login-using-the-cli
