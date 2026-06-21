@@ -23,12 +23,105 @@ spec:
   destination:
     namespace: juicefs
     name: in-cluster
-  source:
-    repoURL: https://github.com/ngodat0103/dev-oops.git
-    targetRevision: master
-    path: kubernetes/argocd/argocd-app/platform/juicefs
-    helm:
-      valueFiles:
-      - values.yaml
-      - secrets://cloudflare-r2-prod-secret.enc.yaml
+  sources:
+    # https://artifacthub.io/packages/helm/wener/juicefs-csi-driver/0.32.0?modal=values
+    - repoURL: https://charts.wener.tech
+      chart: juicefs-csi-driver
+      targetRevision: 0.32.0
+      helm:
+        values: |
+          defaultMountImage:
+            ce: docker.io/juicedata/mount:ce-v1.4.0
+          controller:
+            resources:
+              requests:
+                cpu: 200m
+                memory: 128Mi
+              limits:
+                cpu: 1
+                memory: 256Mi
+          node:
+            tolerations:
+            - key: heavy-node
+              operator: Exists
+            - key: CriticalAddonsOnly
+              operator: Exists
+            resources:
+              requests:
+                cpu: 200m
+                memory: 128Mi
+              limits:
+                cpu: 1
+                memory: 256Mi
+          mountMode: mountpod
+          metrics:
+            # metrics.enabled=true makes the chart emit a ServiceMonitor, which
+            # needs the monitoring.coreos.com CRDs. Tie it to juicefs.monitoring
+            # so DR drills (no kube-prometheus-stack) don't fail on the missing CRD.
+            enabled: {{ .Values.juicefs.monitoring }}
+            port: 9567
+            service:
+              servicePort: 9567
+          globalConfig:
+            mountPodPatch:
+              - resources:
+                  requests:
+                    cpu: 300m
+                    memory: 512Mi
+                  limits:
+                    memory: 1Gi
+                ceMountImage: "juicedata/mount:ce-v1.4.0"
+          webhook:
+            certManager:
+              enabled: false
+          controller:
+            replicas: 1
+          storageClasses:
+            - name: "juicefs-sc-cloudflare-r2"
+              enabled: true
+              existingSecret: "cloudflare-r2"
+              reclaimPolicy: Retain
+              allowVolumeExpansion: true
+              mountOptions:
+                {{- if .Values.juicefs.readOnly }}
+                # DR read-only: blocks writes to the prod R2 prefix AND
+                # disables background GC/trash cleanup, so a DR drill can
+                # never delete or mutate production objects.
+                - ro
+                {{- end }}
+                - cache-size=10240
+                - free-space-ratio=0.1
+                - prefetch=3
+                - max-readahead=67108864
+                - open-cache=3
+                - attr-cache=3
+                - entry-cache=3
+          dashboard:
+            resources:
+              requests:
+                cpu: 200m
+                memory: 128Mi
+              limits:
+                cpu: 1
+                memory: 128Mi
+            ingress:
+              enabled: true
+              className: "traefik"
+              annotations:
+                traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
+                traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"
+                traefik.ingress.kubernetes.io/router.tls: "true"
+                traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+              hosts:
+                - host: "juicefs.datrollout.dev"
+                  paths:
+                    - path: /
+                      pathType: ImplementationSpecific
+    {{- if .Values.juicefs.monitoring }}
+    # Raw manifests (ServiceMonitor, etc.) tracked in Git.
+    # CRDs (installed by kube-prometheus-stack). Disabled for DR drills where
+    # that stack isn't deployed, otherwise ArgoCD fails on the missing CRD.
+    - repoURL: https://github.com/ngodat0103/dev-oops.git
+      targetRevision: master
+      path: kubernetes/argocd/argocd-app/platform/juicefs
 {{- end -}}

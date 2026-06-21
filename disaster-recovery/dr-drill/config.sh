@@ -47,6 +47,7 @@
 # ---------------------------------------------------------------------------
 : "${JUICEFS_ENABLED:=true}"
 : "${JUICEFS_READONLY:=true}"          # injects the `ro` mount option
+: "${JUICEFS_MONITORING:=false}"
 : "${JUICEFS_NAMESPACE:=juicefs}"
 : "${JUICEFS_SECRET_NAME:=cloudflare-r2}"
 : "${JUICEFS_VOLUME_NAME:=cloudflare-r2-prod}"
@@ -60,7 +61,7 @@ fi
 # The rw service for a CNPG cluster named "postgresql" is "postgresql-rw".
 : "${JUICEFS_META_USER:=juicefs}"
 : "${JUICEFS_META_HOST:=postgresql-rw.${NAMESPACE}.svc}"
-: "${JUICEFS_META_DB:=juicefs_prod}"
+: "${JUICEFS_META_DB:=juicefs}"
 # JUICEFS_META_PASSWORD must be exported (the juicefs DB role password from the
 # restored cluster). If you'd rather supply the whole URL, set JUICEFS_METAURL.
 : "${JUICEFS_METAURL:=postgres://${JUICEFS_META_USER}:${JUICEFS_META_PASSWORD:-}@${JUICEFS_META_HOST}:5432/${JUICEFS_META_DB}?sslmode=disable}"

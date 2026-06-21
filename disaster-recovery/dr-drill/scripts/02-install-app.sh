@@ -36,6 +36,12 @@ install_app_of_app() {
   helm upgrade --install app-of-app "$REPO_ROOT/$APP_OF_APP_CHART" \
     --namespace argocd \
     --set metallb.enabled=false \
+    --set argus.enabled=false \
+    --set chaosMesh.enabled=false \
+    --set nextcloud.enabled=false \
+    --set nfsCsiDriver.enabled=false \
+    --set jellyfin.enabled=false \
+    --set qbittorrent.enabled=false \
     --set traefik.enabled=true \
     --set openebs.enabled=false \
     --set postgresql.enabled=true \
@@ -52,6 +58,7 @@ install_app_of_app() {
     --set kafkaOperator.enabled=false \
     --set juicefs.enabled="$JUICEFS_ENABLED" \
     --set juicefs.readOnly="$JUICEFS_READONLY" \
+    --set juicefs.monitoring="$JUICEFS_MONITORING" \
     --set vaultwarden.enabled=true
   log_ok "app-of-app installed"
 }
