@@ -1,4 +1,5 @@
 ---
+kube_version: 1.33.1
 ## Directory where the binaries will be installed
 bin_dir: /usr/local/bin
 # Kube VIP
