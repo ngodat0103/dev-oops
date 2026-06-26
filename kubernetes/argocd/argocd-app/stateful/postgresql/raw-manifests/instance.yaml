@@ -108,7 +108,7 @@ spec:
     - name: gitlab
       ensure: present
       comment: Role for Gitlab
-      connectionLimit: 80
+      connectionLimit: 150
       login: true
       superuser: false
       passwordSecret: { name: gitlab }
