@@ -22,7 +22,7 @@ spec:
       prune: false
   sources:
   - repoURL: https://metallb.github.io/metallb
-    targetRevision: 0.15.2
+    targetRevision: 0.16.1
     chart: metallb
   - repoURL: https://github.com/ngodat0103/home-lab.git
     targetRevision: master
