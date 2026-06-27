@@ -31,29 +31,6 @@ locals {
       bridge_comment = "This network can't be reached from outside and is used for stateful applications."
     },
   }
-  lxc = {
-    postgresql_16 = {
-      ip_address               = "192.168.99.2/24"
-      gateway                  = "192.168.99.1"
-      network_interface_name   = "eth0"
-      network_interface_bridge = "private"
-      template_file_id         = resource.proxmox_virtual_environment_download_file.lxc["ubuntu_2204"].id
-      operating_system_type    = "ubuntu"
-      cores                    = 1
-      memory                   = 1024 * 2
-      node_name                = local.node_name
-      mount_volume_size        = 50 #GB
-      vm_id                    = 100
-      hostname                 = "postgresql-16.internal"
-      tags                     = ["Deprecated", "Database"]
-      protection               = true
-      startup_config = {
-        order      = 1
-        up_delay   = 10
-        down_delay = 10
-      }
-    }
-  }
   lan_gateway    = "192.168.1.1"
   k8s_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCxraGdlzJDPInNQ4zbyr1usD3nSbeofvjx+kRTN/7lFmEoCujn8UyEfaQfe6k/shGQyH8ghb61XzISkDv3Dcir+apQ1x4ajALZX6m+miF4G0R7tOTObj+2MCdOCZ1iklFolhjSJ/wPunoQD5x9jz8mnmr03zZcCr+xVQzMPDHPCeMZlXN0mDg2AJj4+RxolZeW7T9/v0h2l300ZFYbpbUWG+WkJWAy2iqpf2z3TRt74sCyby0sPPeLbg3G9XqWVpx+lVrI/XfG3mirGx+NgEcGBQNNM7HcobHuJ3IejFsVCCenQHiPrMjMk8XhflJ4Vk8ydTTaMNHY5kn9qSyJIA9JxlWypqmIhJYilUADjPCMYt97ahQR8C8BTFxcFGTH8Nf27db6C9rFaZ/WPlbkWOdmW+IFKTVmqyw6l+KBAIKu1pl3wLbY9eot0kQCODlk6ZSbn5yy6e2HU7zpPCbMVGVqwbiOUlVfcTjTEDrlFUZgVhAp5Z/vu9FjdMeDrTQppKE= akira@legion5"
 }
@@ -89,7 +66,7 @@ module "ubuntu_server" {
   ip_address        = "192.168.1.121/24"
   hostname          = "ubuntu-server.local"
   bridge_name       = "vmbr0"
-  memory            = 1024 * 12
+  memory            = 1024 * 8
   gateway           = local.lan_gateway
   protection        = true
   vm_id             = 101
@@ -134,28 +111,6 @@ resource "proxmox_virtual_environment_metrics_server" "influxdb_server" {
   influx_bucket       = "proxmox"
   influx_db_proto     = "http"
   influx_token        = var.influxdb_token
-}
-
-module "lxc_production" {
-  source                   = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/lxc?ref=5057455e75f154313b393aacac1a854b52988676"
-  for_each                 = local.lxc
-  ip_address               = each.value.ip_address
-  gateway                  = each.value.gateway
-  network_interface_name   = each.value.network_interface_name
-  template_file_id         = each.value.template_file_id
-  operating_system_type    = each.value.operating_system_type
-  network_interface_bridge = each.value.network_interface_bridge
-  cores                    = each.value.cores
-  memory                   = each.value.memory
-  vm_id                    = each.value.vm_id
-  node_name                = each.value.node_name
-  tags                     = each.value.tags
-  hostname                 = each.value.hostname
-  mount_volume_size        = each.value.mount_volume_size
-  protection               = each.value.protection
-  startup_config           = each.value.startup_config
-  datastore_id             = "local-lvm"
-  mount_volume_name        = "local-lvm"
 }
 module "vpn_server" {
   source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
@@ -225,10 +180,6 @@ module "k8s_workers" {
     up_delay   = 5
     down_delay = 30
   }
-}
-output "lxc_default" {
-  value     = module.lxc_production
-  sensitive = true
 }
 output "k8s-masters" {
   value = module.k8s_masters
