@@ -1,5 +1,5 @@
 ---
-kube_version: 1.33.1
+kube_version: 1.34.3
 ## Directory where the binaries will be installed
 bin_dir: /usr/local/bin
 # Kube VIP
@@ -144,8 +144,7 @@ ntp_servers:
   - "2.pool.ntp.org iburst"
   - "3.pool.ntp.org iburst"
 
-## Used to control no_log attribute
-unsafe_show_logs: false
+unsafe_show_logs: true
 
 ## If enabled it will allow kubespray to attempt setup even if the distribution is not supported. For unsupported distributions this can lead to unexpected failures in some cases.
 allow_unsupported_distribution_setup: false
