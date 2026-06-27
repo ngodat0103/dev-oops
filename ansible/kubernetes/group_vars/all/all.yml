@@ -14,7 +14,6 @@ supplementary_addresses_in_ssl_keys:
   - 192.168.1.135
 kube_apiserver_pod_eviction_not_ready_timeout_seconds: "30"
 kube_apiserver_pod_eviction_unreachable_timeout_seconds: "30"
-
 ## The access_ip variable is used to define how other nodes should access
 ## the node.  This is used in flannel to allow other flannel nodes to see
 ## this node for example.  The access_ip is really useful AWS and Google
