@@ -3,8 +3,8 @@
 # etcd_compaction_retention: 0
 
 ## Set level of detail for etcd exported metrics, specify 'extensive' to include histogram metrics.
-# etcd_metrics: basic
-
+etcd_metrics: extensive
+etcd_listen_metrics_urls: http://0.0.0.0:2381
 ## Etcd is restricted by default to 512M on systems under 4GB RAM, 512MB is not enough for much more than testing.
 ## Set this if your etcd nodes have less than 4GB but you want more RAM for etcd. Set to 0 for unrestricted RAM.
 ## This value is only relevant when deploying etcd with `etcd_deployment_type: docker`

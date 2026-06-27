@@ -9,6 +9,7 @@ kube_proxy_strict_arp: true
 kube_vip_controlplane_enabled: true
 kube_vip_address: 192.168.1.135
 kube_vip_interface: "eth0"
+kube_proxy_metrics_bind_address: "0.0.0.0:10249"
 supplementary_addresses_in_ssl_keys:
   - 192.168.1.135
 kube_apiserver_pod_eviction_not_ready_timeout_seconds: "30"
