@@ -3,7 +3,7 @@
 deployment:
   enabled: true
   kind: Deployment
-  replicas: 1
+  replicas: 2
   revisionHistoryLimit: 3
   additionalVolumes:
   - name: crowdsec-lapi-key
@@ -612,7 +612,7 @@ persistence:
   storageClass: "juicefs-sc-cloudflare-r2"
   name: data
   existingClaim: ""
-  accessMode: ReadWriteOnce
+  accessMode: ReadWriteMany
   size: 128Mi
   volumeName: ""
   path: /data
