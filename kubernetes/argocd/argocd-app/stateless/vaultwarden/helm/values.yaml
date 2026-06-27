@@ -1,6 +1,6 @@
 ## Instruction: when adding a new value, follow https://github.com/dani-garcia/vaultwarden/blob/main/.env.template as much as possible.
 
-replicas: 1
+replicas: 2
 
 fullnameOverride: "vaultwarden"
 
@@ -29,7 +29,7 @@ strategy:
   type: RollingUpdate
   rollingUpdate:
     maxSurge: 1
-    maxUnavailable: 0
+    maxUnavailable: 1
 podDisruptionBudget:
   ## @param podDisruptionBudget.enabled Enable PodDisruptionBudget settings
   # ref: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
@@ -59,7 +59,7 @@ storage:
     class: "juicefs-sc-cloudflare-r2"
     path: "/data"
     keepPvc: true
-    accessMode: "ReadWriteOnce"
+    accessMode: "ReadWriteMany"
   ## @param storage.attachments Attachments directory configuration, refer to values.yaml for parameters.
   ## By default, attachments/ is located inside the data directory.
   ##
@@ -69,7 +69,7 @@ storage:
     class: "juicefs-sc-cloudflare-r2"
     path: /files
     keepPvc: true
-    accessMode: "ReadWriteOnce"
+    accessMode: "ReadWriteMany"
 
 ## @param webVaultEnabled Enable Web Vault
 ##
@@ -190,7 +190,6 @@ sendsAllowed: "true"
 ## @param hibpApiKey HaveIBeenPwned API Key
 ##
 hibpApiKey: ""
-
 
 ## @param signupsAllowed By default, anyone who can access your instance can register for a new account.
 ## To disable this, set this parameter to false. Even when signupsAllowed=false, an existing user who is
