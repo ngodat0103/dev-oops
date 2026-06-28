@@ -20,11 +20,12 @@ spec:
       enabled: false
   sources:
   - repoURL: https://helm.runix.net
-    targetRevision: 1.64.0
+    targetRevision: 1.65.0
     chart: pgadmin4
     helm:
+      # https://artifacthub.io/packages/helm/runix/pgadmin4/1.65.0?modal=values
       values: |
-        revisionHistoryLimit: 2
+        revisionHistoryLimit: 3
         replicaCount: 1
         env:
           email: ngovuminhdat@gmail.com
@@ -36,6 +37,7 @@ spec:
           enabled: true
           size: 5Gi
           accessMode: ReadWriteOnce
+          storageClass: "juicefs-sc-cloudflare-r2"
         ingress:
           enabled: true
           annotations:
@@ -50,7 +52,7 @@ spec:
               pathType: Prefix
         resources:
           requests:
-            cpu: 100m
+            cpu: 300m
             memory: 512Mi
           limits:
             cpu: 2
