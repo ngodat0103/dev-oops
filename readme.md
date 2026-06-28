@@ -62,11 +62,8 @@ The infrastructure follows a hybrid model in active transition: services are bei
 |  | OpenVPN + OTP             |  | Zero-Trust Access         |  |
 |  +---------------------------+  +---------------------------+  |
 |                                                                |
-|  Deprecated LXC (pending removal)                              |
-|  +---------------------------+                                 |
-|  | postgresql-16  .99.2      |                                 |
-|  | Superseded by CNPG in K8s |                                 |
-|  +---------------------------+                                 |
+|  (No more LXC. The postgresql-16 container was evicted;        |
+|   CNPG in K8s does its job now and holds no grudges.)          |
 |                                                                |
 |  Kubernetes Cluster (PRODUCTION — migration in progress)      |
 |  +----------------------------------------------------------+ |
@@ -113,7 +110,7 @@ One server. Everything runs on one server. Yes, the "cluster" too. No, it's not 
 | Network              | Subnet             | Purpose                              |
 |----------------------|---------------------|--------------------------------------|
 | LAN                  | 192.168.1.0/24     | Primary network for all VMs and LXCs |
-| Private              | 192.168.99.0/24    | Isolated network for stateful services -- cannot be reached from the outside, which is the whole point |
+| Private              | 192.168.99.0/24    | Isolated network for stateful LXCs -- now unused since the postgresql-16 LXC was removed, but kept around for the next thing that needs to hide from the outside |
 | Docker internal      | 192.168.30.0/24    | Bridge network for Docker containers on ubuntu-server |
 | MetalLB pool         | 192.168.1.230-240  | Kubernetes LoadBalancer IP range     |
 
@@ -154,23 +151,21 @@ Direct records resolve to the Kubernetes Traefik ingress (via MetalLB). Media-he
 | Host           | IP             | OS           | vCPU | RAM   | Role                                 |
 |----------------|----------------|--------------|------|-------|--------------------------------------|
 | pve-master     | 192.168.1.120  | Proxmox VE   | --   | --    | Hypervisor (the boss)                |
-| ubuntu-server  | 192.168.1.121  | Ubuntu 22.04 | 4    | 12 GB | Docker host, Traefik, monitoring (the workhorse) |
+| ubuntu-server  | 192.168.1.121  | Ubuntu 22.04 | 4    | 8 GB  | Docker host, Traefik, monitoring (the workhorse) |
 | teleport       | 192.168.1.122  | --           | --   | --    | Zero-trust access proxy              |
 | vpn-server     | 192.168.1.123  | Debian 13    | 1    | 2 GB  | OpenVPN with OTP (for remote chaos)  |
 
 ### LXC Containers
 
-| Host                    | IP             | OS           | vCPU | RAM  | Role                      |
-|-------------------------|----------------|--------------|------|------|---------------------------|
-| postgresql-16           | 192.168.99.2   | Ubuntu 22.04 | 1    | 2 GB | PostgreSQL 16 (**deprecated** — pending removal; production runs on CloudNative-PG in K8s) |
+None. The lone `postgresql-16` LXC (`192.168.99.2`) was **removed** — production PostgreSQL now lives on CloudNative-PG in K8s, and the Terraform config no longer defines any LXC at all. Everything on Proxmox is a VM now.
 
 ### Kubernetes Cluster (Production)
 
-Deployed via Kubespray and managed by ArgoCD app-of-apps. The repository currently includes a local Kubespray inventory under `ansible/kubernetes/kubespray/inventory/local/hosts.ini`; actual production node sizing/count may differ from this local inventory snapshot. See [The Kubernetes Situation](#the-kubernetes-situation) for migration status.
+Deployed via Kubespray (currently **v1.34.3**) and managed by ArgoCD app-of-apps. The repository currently includes a local Kubespray inventory under `ansible/kubernetes/kubespray/inventory/local/hosts.ini`; actual production node sizing/count may differ from this local inventory snapshot. See [The Kubernetes Situation](#the-kubernetes-situation) for migration status.
 
 | Role    | Count | IP Range            | vCPU | RAM   | Disk   |
 |---------|-------|---------------------|------|-------|--------|
-| Master  | 3     | 192.168.1.180-182   | 2    | 4 GB  | 50 GB  |
+| Master  | 3     | 192.168.1.180-182   | 2    | 6 GB  | 50 GB  |
 | Worker  | 3     | 192.168.1.190-192   | 13   | 13 GB | 250 GB |
 
 ---
@@ -198,7 +193,6 @@ Server configuration and application deployment for all non-Kubernetes workloads
 | `ansible/core/ubuntu-server` | Docker host setup, app deployment, monitoring, cron   |
 | `ansible/core/teleport`      | Teleport access proxy installation                    |
 | `ansible/core/vpn-server`    | OpenVPN server with OTP                               |
-| `ansible/core/lxc`           | PostgreSQL and Kafka configuration                    |
 | `ansible/kubernetes`          | Kubespray inventory and cluster configuration         |
 
 ### ArgoCD (Kubernetes)
@@ -240,7 +234,7 @@ Services still on Docker. GitLab migration is pending / possibly aborted due to 
 | Teleport      | 192.168.1.122    | Zero-trust infrastructure access  |
 | OpenVPN       | 192.168.1.123    | Remote VPN access with OTP        |
 
-> The standalone `postgresql-16` LXC (`192.168.99.2`) is **deprecated** and pending removal in upcoming commits. Production PostgreSQL now runs on CloudNative-PG in the Kubernetes cluster, with continuous WAL archiving to Cloudflare R2 (see [Backup and Disaster Recovery](#backup-and-disaster-recovery)).
+> The standalone `postgresql-16` LXC (`192.168.99.2`) has been **removed** (Terraform config dropped in `fad73ce`). Production PostgreSQL now runs on CloudNative-PG in the Kubernetes cluster, with continuous WAL archiving to Cloudflare R2 (see [Backup and Disaster Recovery](#backup-and-disaster-recovery)).
 
 ### Kubernetes Cluster (Production GitOps)
 
@@ -256,6 +250,8 @@ The cluster runtime is production-oriented, with staged migration from Docker wo
 | Security                | CrowdSec (LAPI + AppSec, Helm chart 0.24.0) |
 | SRE / automation        | Argus (intelligent SRE assistant — K8s incident response and workload management; active development) |
 | Misc                    | custom-manifest |
+
+Traefik and Vaultwarden now run **2 replicas** for HA, backed by `ReadWriteMany` JuiceFS volumes so multiple pods can share state without fighting over the mount.
 
 ArgoCD and chart versions evolve over time; use `kubernetes/argocd/app-of-app/templates/*.yaml` and app-specific values files as the canonical source for current revisions.
 
@@ -516,6 +512,10 @@ Everything emits metrics or logs. If it doesn't, it gets added until it does.
 | CloudNative-PG         | CNPG exporter per pod            | Replication lag, WAL archiving status    |
 | ArgoCD                 | ArgoCD metrics service           | Sync status, health state                |
 | Loki / Alloy           | Loki + Alloy pipeline metrics    | Log ingestion and backend health         |
+| etcd                   | `kubeEtcd` ServiceMonitor on `:2381` (masters .180-.182) | etcd health, leader, latency, DB size |
+| Control plane          | kube-proxy `:10249`, kube-scheduler | Proxy/scheduler internals             |
+
+The scheduler is configured with `MostAllocated` (bin-packing) scoring to pack pods onto busy nodes and squeeze the homelab's limited RAM.
 
 Grafana is exposed internally at `grafana.datrollout.dev` via Traefik.
 
@@ -582,8 +582,7 @@ This runs automatically twice a month. If it fails, the backup is broken.
 │   │   ├── inventory.ini              # Ansible inventory (all hosts)
 │   │   ├── ubuntu-server/             # Docker host: apps, basic setup, monitoring, cron
 │   │   ├── teleport/                  # Zero-trust access proxy
-│   │   ├── vpn-server/                # OpenVPN configuration
-│   │   └── lxc/                       # LXC workloads (PostgreSQL, Kafka)
+│   │   └── vpn-server/                # OpenVPN configuration
 │   ├── kubernetes/                    # Kubespray inventory and configuration
 │   └── proxmox/                       # Proxmox host configuration
 │
@@ -606,9 +605,12 @@ This runs automatically twice a month. If it fails, the backup is broken.
 │   ├── openstack/                     # OpenStack resource provisioning
 │   └── terraform-module/              # Shared Terraform modules (submodule)
 │
-└── disaster-recovery/
-    ├── postgresql/                    # PostgreSQL DR plan, restore procedure, CI docs
-    └── vaultwarden/                   # Vaultwarden backup and restore scripts
+├── disaster-recovery/
+│   ├── postgresql/                    # PostgreSQL DR plan, restore procedure, CI docs
+│   └── vaultwarden/                   # Vaultwarden backup and restore scripts
+│
+└── proposed-automation/              # High-level automation proposals (not yet implemented)
+    └── readme-doc-sync.md            # Idea: scheduled agent that keeps this readme honest
 ```
 ---
 
