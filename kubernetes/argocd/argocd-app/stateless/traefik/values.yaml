@@ -1,5 +1,13 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/traefik/traefik-helm-chart/refs/tags/v37.4.0/traefik/values.yaml
 
+topologySpreadConstraints:
+- labelSelector:
+    matchLabels:
+      app.kubernetes.io/name: '{{ template "traefik.name" . }}'
+      app.kubernetes.io/instance: '{{ .Release.Name }}-{{ include "traefik.namespace" . }}'
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: DoNotSchedule
 deployment:
   enabled: true
   kind: Deployment
@@ -93,7 +101,7 @@ ingressRoute:
 updateStrategy:
   type: RollingUpdate
   rollingUpdate:
-    maxUnavailable: 0
+    maxUnavailable: 1
     maxSurge: 1
 providers:
   # @schema additionalProperties: false

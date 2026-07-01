@@ -1,4 +1,5 @@
-## https://artifacthub.io/packages/helm/argo/argo-cd/9.5.14?modal=values
+## https://artifacthub.io/packages/helm/argo/argo-cd/10.1.0?modal=values
+
 dex:
   enabled: false
 notifications:
@@ -52,6 +53,8 @@ server:
       traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"
 global:
   domain: argocd.datrollout.dev
+  networkPolicy:
+    create: false ## Temporary, cluster not implement network Policy implemtnation yet
 configs:
   params:
     server.insecure: true
