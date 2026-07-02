@@ -75,12 +75,22 @@ spec:
   superuserSecret:
     name: postgres-admin
   monitoring:
-    enablePodMonitor: true
-  plugins:
-  - name: barman-cloud.cloudnative-pg.io
-    isWALArchiver: true
-    parameters:
-      barmanObjectName: cloudflare-r2
+    enablePodMonitor: false
+  bootstrap:
+    recovery:
+      source: origin
+  externalClusters:
+  - name: origin
+    plugin:
+      name: barman-cloud.cloudnative-pg.io
+      parameters:
+        barmanObjectName: cloudflare-r2
+        serverName: postgresql
+  # plugins:
+  # - name: barman-cloud.cloudnative-pg.io
+  #   isWALArchiver: true
+  #   parameters:
+  #     barmanObjectName: cloudflare-r2
   managed:
     services:
       additional:
@@ -90,62 +100,62 @@ spec:
             name: postgresql-external-rw
           spec:
             type: LoadBalancer
-    roles:
-    - name: sonarqube
-      ensure: present
-      comment: Role for Sonarqube
-      connectionLimit: 40
-      login: true
-      superuser: false
-      passwordSecret: { name: sonarqube }
-    - name: vaultwarden
-      ensure: present
-      comment: Role for Vaultwarden
-      connectionLimit: 20
-      login: true
-      superuser: false
-      passwordSecret: { name: vaultwarden }
-    - name: gitlab
-      ensure: present
-      comment: Role for Gitlab
-      connectionLimit: 150
-      login: true
-      superuser: false
-      passwordSecret: { name: gitlab }
-    - name: nextcloud
-      ensure: present
-      comment: Role for nextcloud
-      connectionLimit: 30
-      login: true
-      superuser: false
-      passwordSecret: { name: nextcloud }
-    - name: juicefs
-      ensure: present
-      comment: Role for juicefs
-      connectionLimit: 30
-      login: true
-      superuser: false
-      passwordSecret: { name: juicefs }
-    - name: argus
-      ensure: present
-      comment: Role for Argus
-      connectionLimit: 20
-      login: true
-      superuser: false
-      passwordSecret: { name: argus }
-    - name: crowsec
-      ensure: present
-      comment: Role for crowsec
-      connectionLimit: 10
-      login: true
-      superuser: false
-      passwordSecret: { name: crowsec }
-    - name: pgadmin_monitor
-      ensure: present
-      login: true
-      superuser: false
-      passwordSecret: { name: pgadmin-monitor-credentials }
-      inRoles: [ pg_monitor ]
+    # roles:
+    # - name: sonarqube
+    #   ensure: present
+    #   comment: Role for Sonarqube
+    #   connectionLimit: 40
+    #   login: true
+    #   superuser: false
+    #   passwordSecret: { name: sonarqube }
+    # - name: vaultwarden
+    #   ensure: present
+    #   comment: Role for Vaultwarden
+    #   connectionLimit: 20
+    #   login: true
+    #   superuser: false
+    #   passwordSecret: { name: vaultwarden }
+    # - name: gitlab
+    #   ensure: present
+    #   comment: Role for Gitlab
+    #   connectionLimit: 80
+    #   login: true
+    #   superuser: false
+    #   passwordSecret: { name: gitlab }
+    # - name: nextcloud
+    #   ensure: present
+    #   comment: Role for nextcloud
+    #   connectionLimit: 30
+    #   login: true
+    #   superuser: false
+    #   passwordSecret: { name: nextcloud }
+    # - name: juicefs
+    #   ensure: present
+    #   comment: Role for juicefs
+    #   connectionLimit: 30
+    #   login: true
+    #   superuser: false
+    #   passwordSecret: { name: juicefs }
+    # - name: argus
+    #   ensure: present
+    #   comment: Role for Argus
+    #   connectionLimit: 20
+    #   login: true
+    #   superuser: false
+    #   passwordSecret: { name: argus }
+    # - name: crowsec
+    #   ensure: present
+    #   comment: Role for crowsec
+    #   connectionLimit: 10
+    #   login: true
+    #   superuser: false
+    #   passwordSecret: { name: crowsec }
+    # - name: pgadmin_monitor
+    #   ensure: present
+    #   login: true
+    #   superuser: false
+    #   passwordSecret: { name: pgadmin-monitor-credentials }
+    #   inRoles: [ pg_monitor ]
   instances: 2
   primaryUpdateMethod: switchover
   storage:
