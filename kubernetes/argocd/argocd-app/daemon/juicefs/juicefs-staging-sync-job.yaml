@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: juicefs-staging-sync-job
+spec:
+  schedule: "0 2 * * *"
+  timeZone: "Asia/Ho_Chi_Minh"
+  concurrencyPolicy: Forbid #
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: rclone
+            image: rclone/rclone:1.70.3
+            args:
+            - sync
+            - juicefs-prod-r2:juicefs-prod/juicefs-prod
+            - juicefs-staging-r2:juicefs-staging/juicefs-staging
+            - --progress
+            - --transfers=16
+            - --checkers=32
+            - --log-level=INFO
+            volumeMounts:
+            - name: rclone-config
+              mountPath: /config/rclone/rclone.conf
+              subPath: rclone.conf
+              readOnly: true
+            resources:
+              requests:
+                cpu: 500m
+                memory: 256Mi
+              limits:
+                cpu: 1000m
+                memory: 512Mi
+          volumes:
+          - name: rclone-config
+            secret:
+              secretName: cloudflare-r2

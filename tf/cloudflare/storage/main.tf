@@ -31,7 +31,12 @@ resource "cloudflare_r2_bucket" "juicefs" {
   location      = "apac"
   storage_class = "Standard"
 }
-
+resource "cloudflare_r2_bucket" "juicefs_staging" {
+  account_id    = local.account_id
+  name          = "juicefs-staging"
+  location      = "apac"
+  storage_class = "Standard"
+}
 resource "cloudflare_r2_bucket" "cnpg_postgresql" {
   account_id    = local.account_id
   name          = "cnpg-postgresql"
