@@ -22,8 +22,8 @@ spec:
   sources:
   - repoURL: https://cloudnative-pg.github.io/charts
     chart: cloudnative-pg
-    targetRevision: 0.28.3
-    ## https://artifacthub.io/packages/helm/cloudnative-pg/cloudnative-pg/0.28.2?modal=values
+    targetRevision: 0.29.0
+    ## https://artifacthub.io/packages/helm/cloudnative-pg/cloudnative-pg/0.29.0?modal=values
     helm:
       values: |
         monitoring:
