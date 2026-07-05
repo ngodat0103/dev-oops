@@ -11,8 +11,8 @@ locals {
   zone_id              = "ab6606e8b3aad0b66008eb26f2dd3660"
   share_comment        = "Managed by Terraform"
   account_id           = "4c8ad4e9fa8213af3fd284bb97b68b5e"
-  traefik_k8s_lan_ip= "192.168.1.230"
-  traefik_docker_ip = "192.168.1.121"
+  traefik_k8s_lan_ip   = "192.168.1.230"
+  traefik_docker_ip    = "192.168.1.121"
 }
 module "ddns_records" {
   source               = "git::https://github.com/ngodat0103/terraform-module.git//cloudflare/dns-records?ref=9efc538229c94814818587dccad17a7ccf878310"
@@ -54,6 +54,18 @@ module "ddns_records" {
       type    = "A"
       proxied = false
       content = local.traefik_docker_ip
+      ttl     = 1
+    }
+    crowdsec-ui = {
+      type    = "A"
+      proxied = false
+      content = local.traefik_k8s_lan_ip
+      ttl     = 1
+    }
+    juicefs = {
+      type    = "A"
+      proxied = false
+      content = local.traefik_k8s_lan_ip
       ttl     = 1
     }
   }

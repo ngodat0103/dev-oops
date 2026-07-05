@@ -13,7 +13,7 @@ spec:
   project: default
   syncPolicy:
     automated:
-      enabled: true
+      enabled: false
       selfHeal: true
       prune: true
     retry:
@@ -26,6 +26,11 @@ spec:
     namespace: crowdsec
     name: in-cluster
   sources:
+    - repoURL: https://github.com/ngodat0103/home-lab.git
+      directory:
+        recurse: false
+      targetRevision: master
+      path: kubernetes/argocd/argocd-app/stateful/crowdsec-ui/
     - repoURL: https://crowdsecurity.github.io/helm-charts
       chart: crowdsec
       targetRevision: 0.24.0

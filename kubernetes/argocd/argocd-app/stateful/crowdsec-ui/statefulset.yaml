@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: crowdsec-web-ui
+  labels:
+    app: crowdsec-web-ui
+spec:
+  serviceName: crowdsec-web-ui
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crowdsec-web-ui
+  template:
+    metadata:
+      labels:
+        app: crowdsec-web-ui
+    spec:
+      containers:
+      - name: crowdsec-web-ui
+        image: ghcr.io/theduffman85/crowdsec-web-ui:2026.7.3
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: CROWDSEC_URL
+          value: "http://crowdsec-service:8080"
+
+        - name: CROWDSEC_PROMETHEUS_URL
+          value: "http://crowdsec-service:6060/metrics"
+        - name: AUTH_ENABLED
+          value: "false"
+        - name: CROWDSEC_USER
+          value: "crowdsec-ui"
+        - name: CROWDSEC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: crowdsec-ui
+              key: CROWDSEC_PASSWORD
+        - name: TZ
+          value: "Asia/Ho_Chi_Minh"
+        - name: CROWDSEC_TIME_FORMAT
+          value: "24h"
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        resources:
+          requests:
+            cpu: 500m
+            memory: 128Mi
+          limits:
+            cpu: 1000m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: juicefs-sc-cloudflare-r2
+      resources:
+        requests:
+          storage: 1Gi
