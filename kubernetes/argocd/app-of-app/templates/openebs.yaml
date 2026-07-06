@@ -23,9 +23,9 @@ spec:
   sources:
   - repoURL: https://openebs.github.io/openebs
     chart: openebs
-    targetRevision: 4.3.3
+    targetRevision: 4.5.1
     helm:
-     ## https://github.com/openebs/openebs/blob/v4.3.3/charts/values.yaml
+     # https://artifacthub.io/packages/helm/openebs/openebs/4.5.1?modal=values
      values: |
       loki:
         enabled: false
