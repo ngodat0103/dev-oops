@@ -78,7 +78,7 @@ spec:
   comment: "Role for juicefs"
   login: true
   superuser: false
-  connectionLimit: 30
+  connectionLimit: 70
   databaseRoleReclaimPolicy: retain
   passwordSecret:
     name: juicefs

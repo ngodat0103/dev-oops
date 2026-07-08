@@ -26,12 +26,14 @@ spec:
     namespace: juicefs
     name: in-cluster
   sources:
-    # https://artifacthub.io/packages/helm/wener/juicefs-csi-driver/0.31.10?modal=values
+    # https://artifacthub.io/packages/helm/wener/juicefs-csi-driver/0.32.0?modal=values
     - repoURL: https://charts.wener.tech
       chart: juicefs-csi-driver
-      targetRevision: 0.31.10
+      targetRevision: 0.32.0
       helm:
         values: |
+          defaultMountImage:
+            ce: docker.io/juicedata/mount:ce-v1.4.0
           controller:
             resources:
               requests:
@@ -67,6 +69,7 @@ spec:
                     memory: 512Mi
                   limits:
                     memory: 1Gi
+                ceMountImage: "juicedata/mount:ce-v1.4.0"
           webhook:
             certManager:
               enabled: false
