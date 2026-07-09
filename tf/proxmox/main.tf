@@ -152,6 +152,7 @@ module "k8s_masters" {
   boot_disk_size    = 50
   datastore_id      = "local-lvm"
   bridge_name       = "vmbr0"
+  on_boot           = true
   startup_config = {
     order      = 3
     up_delay   = 5
@@ -175,6 +176,7 @@ module "k8s_workers" {
   node_name         = local.node_name
   datastore_id      = "local-lvm"
   bridge_name       = "vmbr0"
+  on_boot           = true
   startup_config = {
     order      = 4
     up_delay   = 5
