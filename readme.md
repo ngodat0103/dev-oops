@@ -204,6 +204,7 @@ GitOps deployment uses an app-of-apps chart at `kubernetes/argocd/app-of-app`. F
 - `customManifest`, `loki`, `alloy`, `pgadmin4`, `sonarqube`
 - `juicefs`, `vaultwarden`, `nextcloud`, `certManager`, `nfsCsiDriver`
 - `qbittorrent`, `jellyfin`, `argus`, `crowdsec`
+- `chaosMesh`
 
 **Disabled right now:**
 - `mongoOperator`, `kafkaOperator`, `harbor`, `redis`, `agentDvr`
@@ -249,6 +250,7 @@ The cluster runtime is production-oriented, with staged migration from Docker wo
 | User services           | Vaultwarden, Nextcloud, SonarQube, qBittorrent, Jellyfin |
 | Security                | CrowdSec (LAPI + AppSec, Helm chart 0.24.0) |
 | SRE / automation        | Argus (intelligent SRE assistant — K8s incident response and workload management; active development) |
+| Chaos engineering       | Chaos Mesh (actively enabled, used for resilience testing) |
 | Misc                    | custom-manifest |
 
 Traefik and Vaultwarden now run **2 replicas** for HA, backed by `ReadWriteMany` JuiceFS volumes so multiple pods can share state without fighting over the mount.
