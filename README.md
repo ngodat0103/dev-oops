@@ -73,8 +73,7 @@ The infrastructure follows a hybrid model in active transition: services are bei
 |  | Velero, kube-prometheus-stack, Loki, Alloy,              | |
 |  | qBittorrent, Jellyfin, Vaultwarden, Nextcloud, SonarQube | |
 |  | CrowdSec (WAF/IDS), Argus (SRE assistant, active dev)    | |
-||  |                                                            | |
-|  | "One day this will replace everything above.               | |
+|  | "One day this will replace everything above.             | |
 |  |  That day has started. And it's tagged production."       | |
 |  +----------------------------------------------------------+ |
 +---------------------------------------------------------------+
@@ -87,6 +86,8 @@ Client -> Cloudflare (proxy/WAF) -> Traefik (reverse proxy) -> CrowdSec (middlew
                                                                      |
                                                               "papers, please"
 ```
+
+A maintenance-mode override is available via a Cloudflare Workers-hosted page and a Cloudflare page rule, managed by the scripts in [`maintainPage/`](#maintainpage---cloudflare-maintenance-mode).
 
 ---
 
@@ -115,6 +116,7 @@ One server. Everything runs on one server. Yes, the "cluster" too. No, it's not 
 | MetalLB pool         | 192.168.1.230-240  | Kubernetes LoadBalancer IP range     |
 
 DNS is managed via Cloudflare and Terraform.
+
 **Public DNS (proxied CNAME via Cloudflare):**
 
 | Record                          | Type  | Proxied | Target        |
@@ -155,6 +157,12 @@ Direct records resolve to the Kubernetes Traefik ingress (via MetalLB). Media-he
 | teleport       | 192.168.1.122  | --           | --   | --    | Zero-trust access proxy              |
 | vpn-server     | 192.168.1.123  | Debian 13    | 1    | 2 GB  | OpenVPN with OTP (for remote chaos)  |
 
+#### Decommissioned VMs
+
+| Host           | IP             | OS           | Notes                                     |
+|----------------|----------------|--------------|-------------------------------------------|
+| hephaestus     | 192.168.1.124  | --           | Decommissioned 2026-04-27. Former self-hosted GitLab/GitHub runner. |
+
 ### LXC Containers
 
 None. The lone `postgresql-16` LXC (`192.168.99.2`) was **removed** — production PostgreSQL now lives on CloudNative-PG in K8s, and the Terraform config no longer defines any LXC at all. Everything on Proxmox is a VM now.
@@ -194,6 +202,10 @@ Server configuration and application deployment for all non-Kubernetes workloads
 | `ansible/core/teleport`      | Teleport access proxy installation                    |
 | `ansible/core/vpn-server`    | OpenVPN server with OTP                               |
 | `ansible/kubernetes`          | Kubespray inventory and cluster configuration         |
+| `ansible/kubernetes/rbac`    | Teleport RBAC configuration for Kubernetes            |
+| `ansible/proxmox`            | Proxmox host configuration (GRUB, power, firewall)   |
+
+Legacy configurations from the old bare-metal era are preserved in `ansible/old-bare-metal/` for reference.
 
 ### ArgoCD (Kubernetes)
 
@@ -330,7 +342,7 @@ That's the sound of `kubectl-client-side-apply` (Kubespray) and my Helm server-s
 - The ArgoCD finalizer cascade-deletes everything. Strip the finalizer *before* deleting any Application that manages stateful workloads.
 - Audit all enabled addons in one pass before upgrading instead of playing whack-a-mole three times in a row (ArgoCD → Traefik → MetalLB) like I did.
 
-Full postmortem, the PV→PVC rebind procedure, the field-manager (SSA vs CSA) deep-dive, and the pre-upgrade checklist I will absolutely read next time: [`ansible/kubernetes/INCIDENT-0.md`](ansible/kubernetes/INCIDENT-0.md).
+Full postmortem, the PV→PVC rebind procedure, the field-manager (SSA vs CSA) deep-dive, and the pre-upgrade checklist: [`ansible/kubernetes/INCIDENT-0.md`](ansible/kubernetes/INCIDENT-0.md).
 
 ---
 
@@ -432,6 +444,10 @@ flowchart LR
 | Ephemeral | `emptyDir` | Node disk | Transcoding cache | Lost on pod restart |
 | Local block | OpenEBS localpv | Worker node disk | PostgreSQL data | Single-node |
 
+### Performance Notes
+
+A JuiceFS + R2 high-write diagnosis (see [`findings/juicefs-r2-high-write-report.md`](findings/juicefs-r2-high-write-report.md)) identified that Jellyfin's SQLite WAL flushes during playback generated excessive Class A operations to R2. The fix: adding `upload-delay=3h` mount option to JuiceFS, reducing writes by ~97.5%.
+
 ---
 
 ## Security
@@ -454,7 +470,7 @@ Traffic goes through multiple layers before it reaches anything useful. I'd rath
 
 ### Kubernetes Internal Ingress Policy
 
-Internal-only applications in the Kubernetes lab stay behind Traefik and are restricted with an IP allowlist middleware.
+Internal-only applications in the Kubernetes cluster stay behind Traefik and are restricted with an IP allowlist middleware.
 
 - Internal-only apps: `sonarqube`, `juicefs`, `grafana`, `alertmanager`, `pgadmin4`, `chaos-mesh`
 - Harbor follows the same policy when enabled
@@ -551,7 +567,9 @@ Vaultwarden data is backed up via a scheduled script. Restore scripts and instru
 
 ---
 
-## GitHub Actions
+## CI/CD
+
+### GitHub Actions
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
@@ -569,6 +587,22 @@ This runs automatically twice a month. If it fails, the backup is broken.
 
 ---
 
+## Findings & Technical Reports
+
+The repository captures detailed investigations into infrastructure behavior:
+
+| Report | File |
+|--------|------|
+| JuiceFS + Cloudflare R2 — High Write Diagnosis | [`findings/juicefs-r2-high-write-report.md`](findings/juicefs-r2-high-write-report.md) |
+| PostgreSQL Latency Benchmark | [`findings/postgresql-latency-benchmark-report.md`](findings/postgresql-latency-benchmark-report.md) |
+
+Key findings:
+- ✅ **PostgreSQL is healthy** (~1.5ms intra-cluster latency); pgAdmin4's 80ms reports were web-app overhead, not database slowness.
+- ✅ **kube-proxy adds no measurable overhead** compared to direct pod-IP connections.
+- ✅ **Jellyfin's SQLite WAL flushes on JuiceFS** caused high `object.put` to R2; fixed with `upload-delay=3h` mount option (~97.5% reduction).
+
+---
+
 ## Repository Structure
 
 ```
@@ -577,23 +611,38 @@ This runs automatically twice a month. If it fails, the backup is broken.
 │   └── workflows/
 │       └── postgresql-backup-test.yml # Automated backup verification (runs 1st & 15th)
 │
+├── .vscode/                           # VS Code workspace settings
+│
 ├── ansible/
 │   ├── core/                          # Production server configuration (the real stuff)
 │   │   ├── inventory.ini              # Ansible inventory (all hosts)
 │   │   ├── ubuntu-server/             # Docker host: apps, basic setup, monitoring, cron
 │   │   ├── teleport/                  # Zero-trust access proxy
-│   │   └── vpn-server/                # OpenVPN configuration
-│   ├── kubernetes/                    # Kubespray inventory and configuration
+│   │   ├── vpn-server/                # OpenVPN configuration
+│   │   └── hephaestus/                # ⚰️ Decommissioned VM configs (2026-04-27)
+│   ├── kubernetes/                    # Kubespray inventory and cluster configuration
+│   │   ├── credentials/               # Kubeadm certificate key
+│   │   ├── docs/                      # Cluster screenshots
+│   │   ├── group_vars/                # Kubespray group variables
+│   │   ├── rbac/                      # Teleport RBAC for Kubernetes
+│   │   ├── kubespray/                 # Kubespray submodule (git)
+│   │   └── INCIDENT-0.md             # Full postmortem & lessons
+│   ├── old-bare-metal/                # Legacy configs from the pre-VM era
 │   └── proxmox/                       # Proxmox host configuration
+│       ├── firewall.yaml              # Firewall rules
+│       ├── grub.yaml                  # GRUB boot config
+│       ├── power.yaml                 # Power management
+│       └── node-exporter.yaml         # Node metrics export
 │
 ├── kubernetes/                        # Kubernetes cluster workloads
 │   ├── argocd/
 │   │   ├── argocd-crd/                # ArgoCD installation (Helm)
 │   │   ├── app-of-app/                # App-of-apps Helm chart (values.yaml toggles)
-│   │   └── argocd-app/                # Per-application ArgoCD manifests and values
-│   │       ├── daemon/                # Cluster daemons (MetalLB and related manifests)
-│   │       ├── stateful/              # Stateful apps (postgresql, qbittorrent, jellyfin, agent-dvr, ...)
-│   │       └── stateless/             # Stateless apps (traefik, vaultwarden, metric-server, ...)
+│   │   ├── argocd-app/                # Per-application ArgoCD manifests and values
+│   │   │   ├── daemon/                # Cluster daemons (MetalLB and related)
+│   │   │   ├── stateful/              # Stateful apps (postgresql, qbittorrent, jellyfin, agent-dvr, ...)
+│   │   │   └── stateless/             # Stateless apps (traefik, vaultwarden, metric-server, ...)
+│   │   └── custom-manifest/           # Ad-hoc Kubernetes manifests
 │   └── charts/                        # Custom Helm charts (Kafka operator, Mongo operator)
 │
 ├── tf/
@@ -605,13 +654,94 @@ This runs automatically twice a month. If it fails, the backup is broken.
 │   ├── openstack/                     # OpenStack resource provisioning
 │   └── terraform-module/              # Shared Terraform modules (submodule)
 │
+├── maintainPage/                      # Cloudflare maintenance mode tooling
+│   ├── index.html                     # Maintenance page (Cloudflare Workers)
+│   └── maintenance.sh                 # Script to enable/disable Cloudflare page rule
+│
 ├── disaster-recovery/
 │   ├── postgresql/                    # PostgreSQL DR plan, restore procedure, CI docs
 │   └── vaultwarden/                   # Vaultwarden backup and restore scripts
 │
+├── findings/                          # Technical investigations & reports
+│   ├── juicefs-r2-high-write-report.md
+│   └── postgresql-latency-benchmark-report.md
+│
 └── proposed-automation/              # High-level automation proposals (not yet implemented)
     └── readme-doc-sync.md            # Idea: scheduled agent that keeps this readme honest
 ```
+
+---
+
+## Troubleshooting
+
+Common issues and resolutions are documented in [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md). Topics include:
+
+- LXC private network internet access (NAT with iptables/nftables)
+- Vagrant network conflict with custom Proxmox bridges
+- Terraform QEMU guest agent hangs
+- Promiscuous mode for nested virtualization
+- AMD CPU random reboot issue on Proxmox
+- MongoDB illegal instruction (CPU type passthrough)
+- JuiceFS CSI "too many open files" with SonarQube co-location
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+To work with this repository locally, you need:
+
+- **Terraform** >= 1.0 — for provisioning infrastructure
+- **Ansible** — for configuring VMs and services
+- **kubectl** — for interacting with the Kubernetes cluster
+- **Helm** — for managing Kubernetes charts
+- **argocd** CLI — for GitOps operations
+- **doctl** — for DigitalOcean API operations (backup testing)
+- Cloudflare API credentials for DNS management
+- Access to the target Proxmox host
+
+### Quick Start
+
+1. **Clone the repository** (including submodules):
+   ```bash
+   git clone --recurse-submodules https://github.com/ngodat0103/dev-oops.git
+   cd dev-oops
+   ```
+
+2. **Provision infrastructure** via Terraform:
+   ```bash
+   cd tf/proxmox
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+3. **Configure VMs** via Ansible:
+   ```bash
+   cd ansible/core
+   ansible-playbook -i inventory.ini ubuntu-server/main.yaml
+   ```
+
+4. **Deploy the Kubernetes cluster** (if not already running):
+   ```bash
+   cd ansible/kubernetes/kubespray
+   ansible-playbook -i inventory/local/hosts.ini cluster.yml
+   ```
+
+5. **Access ArgoCD** to manage workloads:
+   ```bash
+   argocd login argocd.datrollout.dev
+   argocd app list
+   ```
+
+### Important Notes
+
+- This is a **single-node homelab** — not HA, not cloud-grade, not guaranteed.
+- Always verify `group_vars` are loaded from the correct inventory context when working with Kubespray.
+- Stateful PVs use `Retain` reclaim policy — this is intentional and critical.
+- Never `kubectl delete app` on an ArgoCD Application with the `resources-finalizer.argocd.argoproj.io` finalizer without stripping it first (see [INCIDENT-0](#incident-0-the-great-kubespray-civil-war-2026-06-21)).
+
 ---
 
 *Powered by caffeine, spite, and 56 Xeon threads that could heat a small apartment.*
