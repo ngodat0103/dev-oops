@@ -10,9 +10,11 @@ spec:
   project: default
   syncPolicy:
     automated:
-      enabled: true
+      enabled: false
       selfHeal: true
       prune: true
+    syncOptions:
+      - CreateNamespace=true
   destination:
     namespace: argus
     name: in-cluster

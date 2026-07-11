@@ -50,6 +50,10 @@ module "ddns_records" {
       type    = "CNAME"
       proxied = true
     }
+    argus = {
+      type    = "CNAME"
+      proxied = true
+    }
     gitlab = {
       type    = "A"
       proxied = false
