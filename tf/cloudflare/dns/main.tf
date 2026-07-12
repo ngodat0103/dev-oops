@@ -100,6 +100,15 @@ module "personal_firewall" {
       }
     },
     {
+      description = "Allow GitHub Webhooks"
+      expression  = "(ip.src.asnum eq 36459 and http.request.uri.path eq \"/webhook\")"
+      enabled     = true
+      action      = "skip"
+      action_parameters = {
+        ruleset = "current"
+      }
+    },
+    {
       action      = "block"
       description = "Block requests originating from outside Vietnam"
       enabled     = true
