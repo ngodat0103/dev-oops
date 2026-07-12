@@ -27,7 +27,7 @@ spec:
           claimName: qbittorrent-data2-pvc
       containers:
       - name: qbittorrent
-        image: lscr.io/linuxserver/qbittorrent:5.2.2
+        image: lscr.io/linuxserver/qbittorrent:5.2.3
         resources:
           requests:
             cpu: 1000m
