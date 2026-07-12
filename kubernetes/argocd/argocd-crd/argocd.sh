@@ -4,7 +4,7 @@
 set -euo pipefail
 
 MODE=${1:-"--diff"}
-HELM_VERSION=10.1.0
+HELM_VERSION=10.1.3
 
 helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update argo
