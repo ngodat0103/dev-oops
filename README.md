@@ -267,6 +267,8 @@ Traefik and Vaultwarden now run **2 replicas** for HA, backed by `ReadWriteMany`
 
 ArgoCD and chart versions evolve over time; use `kubernetes/argocd/app-of-app/templates/*.yaml` and app-specific values files as the canonical source for current revisions.
 
+**SOPS + Age secret encryption:** ArgoCD's repo-server is configured with init containers that install `sops`, `age`, and `helm-secrets` (see `argocd-crd/values.yaml`). This enables Helm value files like `secrets+age-import:///sops-age/keys.txt?secret.enc.yaml` to be decrypted at sync time. The Vaultwarden chart is the first app using this pattern — its `Chart.yaml` wraps the upstream `guerzon/vaultwarden` chart, with secrets encrypted via SOPS (Age backend) in `secret.enc.yaml` and decryption rules defined in `argocd-crd/.sops.yaml`.
+
 CloudNative-PG manages databases for: `nextcloud`, `gitlabhq_production`, `vaultwarden`.
 
 ---
@@ -509,6 +511,7 @@ crowdsecAppsecFailureBlock: true
 |-----------------|----------------------------------------|
 | Ansible Vault   | Infrastructure credentials             |
 | Kubernetes Secrets / Helm values | In-cluster app secrets and runtime configuration |
+| SOPS + Age (helm-secrets)       | Encrypted Helm values decrypted at ArgoCD sync time (e.g. Vaultwarden `secret.enc.yaml`) |
 
 ---
 
@@ -636,7 +639,7 @@ Key findings:
 │
 ├── kubernetes/                        # Kubernetes cluster workloads
 │   ├── argocd/
-│   │   ├── argocd-crd/                # ArgoCD installation (Helm)
+│   │   ├── argocd-crd/                # ArgoCD installation (Helm) + SOPS/Age config
 │   │   ├── app-of-app/                # App-of-apps Helm chart (values.yaml toggles)
 │   │   ├── argocd-app/                # Per-application ArgoCD manifests and values
 │   │   │   ├── daemon/                # Cluster daemons (MetalLB and related)
