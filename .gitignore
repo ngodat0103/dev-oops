@@ -6,7 +6,8 @@
 
 # OSX trash
 .DS_Store
-
+*secrets.yaml
+*secret.yaml
 # Python
 *.pyc
 
