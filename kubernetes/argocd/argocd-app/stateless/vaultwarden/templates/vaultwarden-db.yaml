@@ -1,0 +1,7 @@
+apiVersion: v1
+data:
+ DATABASE_URL: {{ .Values.DATABASE_URL | quote }}
+kind: Secret
+metadata:
+  name: vaultwarden-db
+type: Opaque
