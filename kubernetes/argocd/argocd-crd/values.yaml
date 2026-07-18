@@ -28,6 +28,71 @@ repoServer:
     limits:
       cpu: 2
       memory: 1Gi
+
+  # --- SOPS: init container installs sops + age + helm-secrets ---
+  initContainers:
+  - name: install-sops-tools
+    image: alpine:3.19
+    command:
+    - sh
+    - -c
+    - |
+      wget -O /custom-tools/sops \
+        https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.amd64
+      chmod +x /custom-tools/sops
+
+      wget -O /tmp/age.tar.gz \
+        https://github.com/FiloSottile/age/releases/download/v1.1.1/age-v1.1.1-linux-amd64.tar.gz
+      tar xf /tmp/age.tar.gz -C /tmp
+      mv /tmp/age/age /custom-tools/
+      mv /tmp/age/age-keygen /custom-tools/
+      chmod +x /custom-tools/age /custom-tools/age-keygen
+
+      mkdir -p /custom-tools/helm-plugins
+      wget -qO- https://github.com/jkroepke/helm-secrets/releases/download/v4.6.0/helm-secrets.tar.gz \
+        | tar -C /custom-tools/helm-plugins -xzf-
+      cp /custom-tools/helm-plugins/helm-secrets/scripts/wrapper/helm.sh /custom-tools/helm
+      chmod +x /custom-tools/helm
+    volumeMounts:
+    - name: custom-tools
+      mountPath: /custom-tools
+
+  env:
+  - name: HELM_PLUGINS
+    value: /custom-tools/helm-plugins
+  - name: HELM_SECRETS_WRAPPER_ENABLED
+    value: "true"
+  - name: HELM_SECRETS_VALUES_ALLOW_ABSOLUTE_PATH
+    value: "true"
+  - name: HELM_SECRETS_DECRYPT_SECRETS_IN_TMP_DIR
+    value: "true"
+  - name: HELM_SECRETS_HELM_PATH
+    value: /usr/local/bin/helm
+  - name: SOPS_AGE_KEY_FILE
+    value: /sops-age/keys.txt
+
+  volumeMounts:
+  - name: custom-tools
+    mountPath: /custom-tools
+  - name: custom-tools
+    mountPath: /usr/local/bin/sops
+    subPath: sops
+  - name: custom-tools
+    mountPath: /usr/local/bin/age
+    subPath: age
+  - name: custom-tools
+    mountPath: /usr/local/sbin/helm
+    subPath: helm
+  - name: sops-age-key
+    mountPath: /sops-age
+    readOnly: true
+  volumes:
+  - name: custom-tools
+    emptyDir: {}
+  - name: sops-age-key
+    secret:
+      secretName: sops-age-key
+  # --- end SOPS ---
 server:
   resources:
     requests:
@@ -37,15 +102,9 @@ server:
       cpu: 2
       memory: 256Mi
   ingress:
-    # -- Enable an ingress resource for the Argo CD server
     enabled: true
-    # -- Specific implementation for ingress controller. One of `generic`, `aws` or `gke`
-    ## Additional configuration might be required in related configuration sections
     controller: generic
-    # -- Additional ingress labels
     labels: {}
-    # -- Additional ingress annotations
-    ## Ref: https://argo-cd.readthedocs.io/en/stable/operator-manual/ingress/#option-1-ssl-passthrough
     annotations:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
@@ -54,13 +113,16 @@ server:
 global:
   domain: argocd.datrollout.dev
   networkPolicy:
-    create: false ## Temporary, cluster not implement network Policy implemtnation yet
+    create: false
 configs:
   params:
     server.insecure: true
   tls:
     create: true
   cm:
+    # --- SOPS: allow helm-secrets value file schemes ---
+    helm.valuesFileSchemes: >-
+      secrets+age-import, secrets+age-import-kubernetes, secrets, secrets+literal, https
     resource.exclusions: |
       ### Internal Kubernetes resources excluded reduce the number of watched events
       - apiGroups:
@@ -111,7 +173,5 @@ configs:
         - UpdateRequest
 
 crds:
-  # -- Install and upgrade CRDs
   install: true
-  # -- Keep CRDs on chart uninstall
   keep: false
