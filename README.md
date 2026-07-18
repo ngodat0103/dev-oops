@@ -508,7 +508,10 @@ crowdsecAppsecFailureBlock: true
 | Method          | Scope                                  |
 |-----------------|----------------------------------------|
 | Ansible Vault   | Infrastructure credentials             |
+| SOPS + Age (via helm-secrets) | In-cluster app secrets committed as encrypted `.yaml` files |
 | Kubernetes Secrets / Helm values | In-cluster app secrets and runtime configuration |
+
+SOPS with Age encryption is integrated into the ArgoCD repoServer (via init containers that install `sops`, `age`, and `helm-secrets`), allowing encrypted `secret.enc.yaml` files to be stored in Git and decrypted at sync time. Unencrypted `*secret.yaml` files are excluded by `.gitignore` to prevent accidental commits of plaintext secrets.
 
 ---
 
@@ -636,7 +639,7 @@ Key findings:
 │
 ├── kubernetes/                        # Kubernetes cluster workloads
 │   ├── argocd/
-│   │   ├── argocd-crd/                # ArgoCD installation (Helm)
+│   │   ├── argocd-crd/                # ArgoCD installation (Helm) + SOPS/Age config
 │   │   ├── app-of-app/                # App-of-apps Helm chart (values.yaml toggles)
 │   │   ├── argocd-app/                # Per-application ArgoCD manifests and values
 │   │   │   ├── daemon/                # Cluster daemons (MetalLB and related)
