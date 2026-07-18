@@ -508,6 +508,7 @@ crowdsecAppsecFailureBlock: true
 | Method          | Scope                                  |
 |-----------------|----------------------------------------|
 | Ansible Vault   | Infrastructure credentials             |
+| SOPS / age      | Encrypted Helm values files (`secret.enc.yaml`) decrypted at deploy-time via ArgoCD's repo-server init container |
 | Kubernetes Secrets / Helm values | In-cluster app secrets and runtime configuration |
 
 ---
@@ -636,12 +637,14 @@ Key findings:
 │
 ├── kubernetes/                        # Kubernetes cluster workloads
 │   ├── argocd/
-│   │   ├── argocd-crd/                # ArgoCD installation (Helm)
+│   │   ├── argocd-crd/                # ArgoCD installation (Helm), with SOPS/age integration
+│   │   │   └── .sops.yaml             # SOPS encryption rules
 │   │   ├── app-of-app/                # App-of-apps Helm chart (values.yaml toggles)
 │   │   ├── argocd-app/                # Per-application ArgoCD manifests and values
 │   │   │   ├── daemon/                # Cluster daemons (MetalLB and related)
 │   │   │   ├── stateful/              # Stateful apps (postgresql, qbittorrent, jellyfin, agent-dvr, ...)
 │   │   │   └── stateless/             # Stateless apps (traefik, vaultwarden, metric-server, ...)
+│   │   │       └── vaultwarden/       # Vaultwarden Helm chart (Chart.yaml, templates/, secret.enc.yaml encrypted with SOPS/age)
 │   │   └── custom-manifest/           # Ad-hoc Kubernetes manifests
 │   └── charts/                        # Custom Helm charts (Kafka operator, Mongo operator)
 │
