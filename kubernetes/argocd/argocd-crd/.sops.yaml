@@ -1,0 +1,6 @@
+creation_rules:
+- path_regex: .*secrets.*\.yaml$
+  # homelab-local
+  unencrypted_regex: ^(apiVersion|kind|metadata|type|name|namespace|labels|annotations)$
+  age: >-
+    age1fuj3pug8qvqe3mlls0qjgysepn68gmqpcdk8dpsmpl7tq3fqydhqpu9p7p
