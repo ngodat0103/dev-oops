@@ -211,6 +211,8 @@ Legacy configurations from the old bare-metal era are preserved in `ansible/old-
 
 GitOps deployment uses an app-of-apps chart at `kubernetes/argocd/app-of-app`. Feature toggles in `values.yaml` are the source of truth for what is active.
 
+**Secret decryption:** ArgoCD's repo-server is configured with a SOPS + Age init container (in `kubernetes/argocd/argocd-crd/values.yaml`) that decrypts `secrets+age-import://` value files at deploy time. The `.sops.yaml` at `kubernetes/argocd/argocd-crd/.sops.yaml` defines the encryption rules; encrypted secrets like `vaultwarden/secret.enc.yaml` are committed to Git and decrypted automatically during sync.
+
 **Enabled apps right now (`values.yaml`):**
 - `metallb`, `traefik`, `openebs`, `postgresql`, `velero`, `kubePrometheusStack`
 - `customManifest`, `loki`, `alloy`, `pgadmin4`, `sonarqube`
@@ -509,6 +511,7 @@ crowdsecAppsecFailureBlock: true
 |-----------------|----------------------------------------|
 | Ansible Vault   | Infrastructure credentials             |
 | Kubernetes Secrets / Helm values | In-cluster app secrets and runtime configuration |
+| SOPS + Age + helm-secrets | Encrypted secrets committed to Git, decrypted at deploy time by ArgoCD repo server (`kubernetes/argocd/argocd-crd/.sops.yaml`) |
 
 ---
 
@@ -642,6 +645,14 @@ Key findings:
 │   │   │   ├── daemon/                # Cluster daemons (MetalLB and related)
 │   │   │   ├── stateful/              # Stateful apps (postgresql, qbittorrent, jellyfin, agent-dvr, ...)
 │   │   │   └── stateless/             # Stateless apps (traefik, vaultwarden, metric-server, ...)
+│   │   │       ├── vaultwarden/       # Vaultwarden Helm chart with SOPS-encrypted secrets
+│   │   │       │   ├── Chart.yaml
+│   │   │       │   ├── values.yaml
+│   │   │       │   ├── .helmignore
+│   │   │       │   ├── secret.enc.yaml    (SOPS/Age encrypted)
+│   │   │       │   └── templates/
+│   │   │       │       └── vaultwarden-db.yaml
+│   │   │       └── vaultwarden-backup/
 │   │   └── custom-manifest/           # Ad-hoc Kubernetes manifests
 │   └── charts/                        # Custom Helm charts (Kafka operator, Mongo operator)
 │
