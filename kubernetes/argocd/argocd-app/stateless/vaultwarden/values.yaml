@@ -1,0 +1,407 @@
+vaultwarden:
+  ## Instruction: when adding a new value, follow https://github.com/dani-garcia/vaultwarden/blob/main/.env.template as much as possible.
+  replicas: 2
+  fullnameOverride: "vaultwarden"
+  resourceType: "Deployment"
+  serviceAccount:
+    create: false
+    name: "vaultwarden-svc"
+  podSecurityContext:
+    runAsGroup: 1012
+    runAsUser: 1012
+    fsGroup: 1012
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 500m
+      memory: 256Mi
+  ## @param strategy Resource configurations
+  ##
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  podDisruptionBudget:
+    ## @param podDisruptionBudget.enabled Enable PodDisruptionBudget settings
+    # ref: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+    enabled: true
+    ## @param podDisruptionBudget.minAvailable Minimum number/percentage of pods that should remain scheduled.
+    # When it's set, maxUnavailable must be disabled by `maxUnavailable: null`
+    minAvailable: 1
+    ## @param podDisruptionBudget.maxUnavailable Maximum number/percentage of pods that may be made unavailable
+    maxUnavailable: null
+
+  ## @section Persistent data configuration
+  storage:
+    data:
+      name: "vaultwarden-data"
+      size: "3Gi"
+      class: "juicefs-sc-cloudflare-r2"
+      path: "/data"
+      keepPvc: true
+      accessMode: "ReadWriteMany"
+    attachments:
+      name: "vaultwarden-attachments"
+      size: "5Gi"
+      class: "juicefs-sc-cloudflare-r2"
+      path: /files
+      keepPvc: true
+      accessMode: "ReadWriteMany"
+
+  ## @param webVaultEnabled Enable Web Vault
+  ##
+  webVaultEnabled: "true"
+
+  ## @section Database settings
+  ##
+  database:
+    type: "postgresql"
+    dbName: "vaultwarden"
+    connectionRetries: 15
+    enableWal: false # Postgresql can't use this, only for sqllite
+    existingSecret: "vaultwarden-db"
+    existingSecretKey: "DATABASE_URL"
+    uriOverride: ""
+    minConnections: 1
+  ## @section Push Notifications
+  ## Supported since 1.29.0.
+  ## Refer to https://github.com/dani-garcia/vaultwarden/wiki/Enabling-Mobile-Client-push-notification for details
+  ##
+  pushNotifications:
+    ## @param pushNotifications.enabled Enable the push notification service
+    ##
+    enabled: false
+    ## @param pushNotifications.existingSecret Name of an existing secret containing the Bitwarden installation id and key
+    ##
+    existingSecret: ""
+    installationId:
+      ## @param pushNotifications.installationId.value Bitwarden installation id string
+      ## Example: installationIdGoesHere
+      ##
+      value: ""
+      ## @param pushNotifications.installationId.existingSecretKey When using an existing secret, specify the key which contains the installation id.
+      ## Example: INSTALLATION_ID
+      ##
+      existingSecretKey: ""
+    installationKey:
+      ## @param pushNotifications.installationKey.value Bitwarden installation key string
+      ## Example: superSecretInstallationKey
+      ##
+      value: ""
+      ## @param pushNotifications.installationKey.existingSecretKey When using an existing secret, specify the key which contains the installation key.
+      ## Example: INSTALLATION_KEY
+      ##
+      existingSecretKey: ""
+    ## @param pushNotifications.relayUri Change Bitwarden relay uri.
+    ## Refer to https://github.com/dani-garcia/vaultwarden/wiki/Enabling-Mobile-Client-push-notification for details
+    ##
+    relayUri: "https://push.bitwarden.com"
+    ## @param pushNotifications.identityUri Change Bitwarden identity uri.
+    ## Refer to https://github.com/dani-garcia/vaultwarden/wiki/Enabling-Mobile-Client-push-notification for details
+    ##
+    identityUri: "https://identity.bitwarden.com"
+
+  ## @section Scheduled jobs
+  ##
+
+  ## @param emergencyNotifReminderSched Cron schedule of the job that sends expiration reminders to emergency access grantors.
+  ## Set to blank to disable this job.
+  ##
+  emergencyNotifReminderSched: "0 3 * * * *"
+
+  ## @param emergencyRqstTimeoutSched Cron schedule of the job that grants emergency access requests that have met the required wait time.
+  ## Set to blank to disable this job.
+  ##
+  emergencyRqstTimeoutSched: "0 7 * * * *"
+
+  ## @param eventCleanupSched Cron schedule of the job that cleans old events from the event table.
+  ## Set to blank to disable this job. Also without eventsDayRetain set, this job will not start.
+  ##
+  eventCleanupSched: "0 10 0 * * *"
+
+  ## @param eventsDayRetain Number of days to retain events stored in the database.
+  ## If unset (the default), events are kept indefinitely and the scheduled job is disabled!
+  ##
+  eventsDayRetain: ""
+
+  ## @section General settings
+  ##
+
+  ## @param domain Domain name where the application is accessed
+  ## Example: https://warden.contoso.com:8443
+  ##
+  domain: "https://bitwarden.datrollout.dev"
+
+  ## @param sendsAllowed Controls whether users are allowed to create Bitwarden Sends.
+  ##
+  sendsAllowed: "true"
+
+  ## @param hibpApiKey HaveIBeenPwned API Key
+  ##
+  hibpApiKey: ""
+
+  ## @param signupsAllowed By default, anyone who can access your instance can register for a new account.
+  ## To disable this, set this parameter to false. Even when signupsAllowed=false, an existing user who is
+  ## an organization owner or admin can still invite new users. If you want to disable this as well, set
+  ## invitationsAllowed to false. The vaultwarden admin can invite anyone via the admin page, regardless
+  ## of any of the restrictions above
+  ##
+  ## If signupDomains is set, then the value of signupsAllowed is ignored
+  signupsAllowed: false
+
+  ## @param signupsVerify Whether to require account verification for newly-registered users.
+  ##
+  signupsVerify: false
+
+  ## @param signupDomains List of domain names for users allowed to register. For example:
+  ## example.com,example.net,example.org.
+  ##
+  signupDomains: ""
+
+  ## @param orgEventsEnabled Controls whether event logging is enabled for organizations
+  ##
+  orgEventsEnabled: "false"
+
+  ## @param orgCreationUsers Controls which users can create new orgs.
+  ## Blank or 'all' means all users can create orgs.
+  ## 'none' means no users can create orgs.
+  ## A comma-separated list means only those users can create orgs.
+  ##
+  orgCreationUsers: ""
+
+  ## @param invitationsAllowed Even when registration is disabled, organization administrators or owners can
+  ## invite users to join organization. After they are invited, they can register with the invited email even
+  ## if signupsAllowed is actually set to false. You can disable this functionality completely by setting
+  ## invitationsAllowed env variable to false
+  ##
+  invitationsAllowed: true
+
+  ## @param invitationOrgName String Name shown in the invitation emails that don't come from a specific organization
+  ##
+  invitationOrgName: "Vaultwarden"
+
+  ## @param invitationExpirationHours The number of hours after which an organization invite token, emergency access invite token,
+  ## email verification token and deletion request token will expire (must be at least 1)
+  ##
+  invitationExpirationHours: "120"
+
+  ## @param emergencyAccessAllowed Controls whether users can enable emergency access to their accounts.
+  ##
+  emergencyAccessAllowed: "true"
+
+  ## @param emailChangeAllowed Controls whether users can change their email.
+  ## This setting applies globally to all users
+  ##
+  emailChangeAllowed: "true"
+
+  ## @param showPassHint Controls whether a password hint should be shown directly in the web page if
+  ## SMTP service is not configured. Not recommended for publicly-accessible instances
+  ## as this provides unauthenticated access to potentially sensitive data.
+  ##
+  showPassHint: "false"
+
+  ## @section Advanced settings
+  ##
+
+  ## @param ipHeader Client IP Header, used to identify the IP of the client
+  ##
+  ipHeader: "X-Real-IP"
+
+  ## @param iconService The predefined icon services are: internal, bitwarden, duckduckgo, google.
+  ##
+  iconService: "internal"
+
+  ## @param iconRedirectCode Icon redirect code
+  ##
+  iconRedirectCode: "302"
+
+  ## @param iconBlacklistNonGlobalIps Whether block non-global IPs.
+  ## Useful to secure your internal environment: See https://en.wikipedia.org/wiki/Reserved_IP_addresses for a list of IPs which it will block
+  ##
+  iconBlacklistNonGlobalIps: "true"
+
+  ## @param experimentalClientFeatureFlags Comma separated list of experimental features to enable in clients, make sure to check which features are already enabled by default (.env.template)
+  ## Possible values:
+  ##  - "autofill-overlay": Add an overlay menu to form fields for quick access to credentials.
+  ##  - "autofill-v2": Use the new autofill implementation.
+  ##  - "browser-fileless-import": Directly import credentials from other providers without a file.
+  ##  - "fido2-vault-credentials": Enable the use of FIDO2 security keys as second factor.
+  ##
+  experimentalClientFeatureFlags: null
+
+  ## @param requireDeviceEmail Require new device emails. When a user logs in an email is required to be sent.
+  ##
+  requireDeviceEmail: "false"
+
+  ## @param extendedLogging Enable extended logging, which shows timestamps and targets in the logs
+  ##
+  extendedLogging: "true"
+
+  ## @param logTimestampFormat Timestamp format used in extended logging.
+  ##
+  logTimestampFormat: "%Y-%m-%d %H:%M:%S.%3f"
+
+  logging:
+    ## @param logging.logLevel Specify the log level
+    ##
+    logLevel: ""
+    ## @param logging.logFile Log to a file
+    ##
+    logFile: ""
+  adminRateLimitSeconds: "300"
+  ## @param adminRateLimitMaxBurst Allow a burst of requests of up to this size, while maintaining the average indicated by adminRateLimitSeconds.
+  ##
+  adminRateLimitMaxBurst: "3"
+
+  ## @param timeZone Specify timezone different from the default (UTC).
+  ## For example: "Europe/Berlin"
+  ##
+  timeZone: "Asia/Ho_Chi_Minh"
+
+  ## @section BETA Features
+  ##
+
+  ## @param orgGroupsEnabled Controls whether group support is enabled for organizations
+  orgGroupsEnabled: "false"
+
+  ## @section MFA/2FA settings
+  ##
+
+  ## Yubico (Yubikey) settings
+  ## Reference: https://github.com/dani-garcia/vaultwarden/wiki/Enabling-Yubikey-OTP-authentication
+  ##
+  yubico:
+    ## @param yubico.clientId Yubico client ID
+    ##
+    clientId: ""
+    ## @param yubico.existingSecret Name of an existing secret containing the Yubico secret key. Also set yubico.secretKey.existingSecretKey.
+    ##
+    existingSecret: ""
+    ## Yubico secret key
+    ##
+    secretKey:
+      ## @param yubico.secretKey.value secretKey plain text
+      ## Example: ABCDEABCDEABCDEABCDE=
+      ##
+      value: ""
+      ## @param yubico.secretKey.existingSecretKey When using an existing secret, specify the key which contains the secretKey.
+      ## Example: YUBICO_SECRET_KEY
+      ##
+      existingSecretKey: ""
+    ## @param yubico.server Specify a Yubico server, otherwise the default servers will be used
+    ##
+    server: ""
+
+  ## Duo settings
+  ## Reference: https://help.bitwarden.com/article/setup-two-step-login-duo/#create-a-duo-security-account
+  ##
+  duo:
+    ## @param duo.iKey Duo Integration Key
+    ##
+    iKey: ""
+    ## @param duo.existingSecret Name of an existing secret containing the Duo skey. Also set duo.sKey.existingSecretKey.
+    ##
+    existingSecret: ""
+    ## Duo secret key
+    ##
+    sKey:
+      ## @param duo.sKey.value sKey plain text
+      ## Example: ABCDEABCDEABCDEABCDE=
+      ##
+      value: ""
+      ## @param duo.sKey.existingSecretKey When using an existing secret, specify the key which contains the sKey.
+      ## Example: DUO_SKEY
+      ##
+      existingSecretKey: ""
+    ## @param duo.hostname Duo API hostname
+    ##
+    hostname: ""
+
+  ## @section SMTP Configuration
+  ##
+  smtp:
+    host: "smtp.gmail.com"
+    security: "starttls"
+    port: 587
+    from: "21521935@gm.uit.edu.vn"
+    fromName: ""
+    authMechanism: "Plain"
+    acceptInvalidHostnames: "false"
+    acceptInvalidCerts: "false"
+    debug: false
+    password:
+      existingSecret: vaultwarden
+      existingSecretKey: SMTP_PASSWORD
+    username:
+      existingSecret: vaultwarden
+      existingSecretKey: SMTP_USERNAME
+  ## @section Exposure settings
+  ##
+
+  ## @param rocket.address Address to bind to
+  ## @param rocket.port Rocket port
+  ## @param rocket.workers Rocket number of workers
+  ##
+  rocket:
+    address: "0.0.0.0"
+    port: "8080"
+    workers: "10"
+
+  ## Service configuration
+  service:
+    ## @param service.type Service type
+    ##
+    type: "ClusterIP"
+    ## @param service.annotations Additional annotations for the vaultwarden service
+    ##
+    annotations: {}
+    ## @param service.labels Additional labels for the service
+    ##
+    labels: {}
+    ## @param service.ipFamilyPolicy IP family policy for the service
+    ##
+    ipFamilyPolicy: "SingleStack"
+    ## @param service.sessionAffinity Session affinity
+    ##
+    # sessionAffinity: ClientIP
+    sessionAffinity: ""
+    ## @param service.sessionAffinityConfig Session affinity configuration
+    ##
+    sessionAffinityConfig: {}
+    # sessionAffinityConfig:
+    #   clientIP:
+    #     timeoutSeconds: 10800
+
+    ## Ingress configuration
+    ## Refer to the README for some examples
+    ##
+  ingress:
+    ## @param ingress.enabled Deploy an ingress resource.
+    ##
+    enabled: true
+    ## @param ingress.class Ingress resource class
+    ## The Ingress class to use, e. g. "nginx" for a nginx ingress controller or "alb" for a AWS LB controller.
+    #
+    class: "traefik"
+    ## @param ingress.nginxIngressAnnotations Add nginx specific ingress annotations
+    ## These annotations only make sense for the kubernetes nginx ingress controller (https://kubernetes.github.io/ingress-nginx/)
+    ##
+    nginxIngressAnnotations: false
+    ## @param ingress.additionalAnnotations Additional annotations for the ingress resource.
+    ##
+    additionalAnnotations:
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
+      traefik.ingress.kubernetes.io/router.middlewares: "traefik-crowdsec@kubernetescrd"
+    labels: {}
+    tls: true
+    hostname: "bitwarden.datrollout.dev"
+    additionalHostnames: []
+    path: "/"
+    pathType: "Prefix"
+    tlsSecret: ""
+    nginxAllowList: ""
+    customHeadersConfigMap: {}

@@ -469,37 +469,12 @@ ingress:
     traefik.ingress.kubernetes.io/router.tls: "true"
     traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
     traefik.ingress.kubernetes.io/router.middlewares: "traefik-crowdsec@kubernetescrd"
-  ## @param ingress.labels Additional labels for the ingress resource.
-  ##
   labels: {}
-  ## @param ingress.tls Enable TLS on the ingress resource.
-  ##
   tls: true
-  ## @param ingress.hostname Hostname for the ingress.
-  ##
   hostname: "bitwarden.datrollout.dev"
-  ## @param ingress.additionalHostnames Additional hostnames for the ingress.
-  ##
   additionalHostnames: []
-  ## @param ingress.path Default application path for the ingress
-  ##
   path: "/"
-  ## @param ingress.pathType Path type for the ingress
-  ## Ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
-  ##
   pathType: "Prefix"
-  ## @param ingress.tlsSecret Kubernetes secret containing the SSL certificate when using the "nginx" class.
-  ##
   tlsSecret: ""
-  ## @param ingress.nginxAllowList Comma-separated list of IP addresses and subnets to allow.
-  ##
   nginxAllowList: ""
-  ## @param ingress.customHeadersConfigMap ConfigMap containing custom headers to be added to the ingress.
-  ## Requirement: First define the allowed response headers in global-allowed-response-headers.
-  ## Ref: https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#custom-headers
-  ##
   customHeadersConfigMap: {}
-  ## TODO:
-  ##   - Add support for using cert-manager.
-  ##   - Support for multiple TLS hostnames.
-  ##
