@@ -509,6 +509,7 @@ crowdsecAppsecFailureBlock: true
 |-----------------|----------------------------------------|
 | Ansible Vault   | Infrastructure credentials             |
 | Kubernetes Secrets / Helm values | In-cluster app secrets and runtime configuration |
+| SOPS + Age (Helm values) | Encrypted Helm value files (e.g., `secret.enc.yaml`) decrypted at sync-time via ArgoCD repo-server init containers |
 
 ---
 
