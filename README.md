@@ -267,6 +267,8 @@ Traefik and Vaultwarden now run **2 replicas** for HA, backed by `ReadWriteMany`
 
 ArgoCD and chart versions evolve over time; use `kubernetes/argocd/app-of-app/templates/*.yaml` and app-specific values files as the canonical source for current revisions.
 
+**Secrets strategy:** Encrypted secrets (`secret.enc.yaml`) are decrypted at deploy time by the ArgoCD repo server, which runs `sops` + `age` + `helm-secrets` init containers. The `helm.valuesFileSchemes` config enables the `secrets://` scheme for referencing encrypted values files directly in ArgoCD Application sources. The age private key is mounted from a `sops-age-key` Secret.
+
 CloudNative-PG manages databases for: `nextcloud`, `gitlabhq_production`, `vaultwarden`.
 
 ---
@@ -509,6 +511,7 @@ crowdsecAppsecFailureBlock: true
 |-----------------|----------------------------------------|
 | Ansible Vault   | Infrastructure credentials             |
 | Kubernetes Secrets / Helm values | In-cluster app secrets and runtime configuration |
+| SOPS + age (helm-secrets) | Encrypted Helm value files (`secrets://secret.enc.yaml`) decrypted at deploy time by ArgoCD repo server |
 
 ---
 
@@ -637,11 +640,18 @@ Key findings:
 ├── kubernetes/                        # Kubernetes cluster workloads
 │   ├── argocd/
 │   │   ├── argocd-crd/                # ArgoCD installation (Helm)
+│   │   │   └── .sops.yaml             # SOPS encryption rules for age key
 │   │   ├── app-of-app/                # App-of-apps Helm chart (values.yaml toggles)
 │   │   ├── argocd-app/                # Per-application ArgoCD manifests and values
 │   │   │   ├── daemon/                # Cluster daemons (MetalLB and related)
 │   │   │   ├── stateful/              # Stateful apps (postgresql, qbittorrent, jellyfin, agent-dvr, ...)
 │   │   │   └── stateless/             # Stateless apps (traefik, vaultwarden, metric-server, ...)
+│   │   │       └── vaultwarden/       # Helm chart wrapping guerzon/vaultwarden with SOPS-encrypted secrets
+│   │   │           ├── Chart.yaml
+│   │   │           ├── values.yaml
+│   │   │           ├── secret.enc.yaml   # SOPS/AES256-GCM encrypted secrets
+│   │   │           └── templates/
+│   │   │               └── secret-k8s.yaml  # Decrypts to K8s Secret
 │   │   └── custom-manifest/           # Ad-hoc Kubernetes manifests
 │   └── charts/                        # Custom Helm charts (Kafka operator, Mongo operator)
 │
