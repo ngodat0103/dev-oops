@@ -395,7 +395,7 @@ flowchart TD
     juicefs -->|"config PVC"| nextcloud
     juicefs -->|"config PVC"| redis_ui
 
-    nfs_csi -->|"media PVC\n(read-only subPath)"| jellyfin
+    nfs_csi -->|"media PVC\n(read-only NFS bind)"| jellyfin
     nfs_csi -->|"downloads PVC\n(read-write)"| qbittorrent
 
     openebs -->|"data PVC"| cnpg
@@ -409,8 +409,7 @@ flowchart LR
     subgraph jellyfin_vol ["Jellyfin Volumes"]
         jcfg["/config\nJuiceFS PVC\njellyfin-config-pvc"]
         jcache["/cache\nemptyDir"]
-        jdata1["/data1\nNFS subPath\ndata2/jellyfin\nread-only"]
-        jdata2["/data2\nNFS subPath\ndata1/NFS/jellyfin\nread-only"]
+        jdata["/data\nNFS PVC\njellyfin-media-pvc\nread-only"]
     end
 
     subgraph qbt_vol ["qBittorrent Volumes"]
@@ -431,8 +430,7 @@ flowchart LR
     jcfg --> r2
     qcfg --> r2
 
-    jdata1 -->|"subPath: data2/jellyfin"| disk2
-    jdata2 -->|"subPath: data1/NFS/jellyfin"| disk1
+    jdata -->|"media PVC"| nfs_share["NFS /mnt"]
     qdata1 --> disk1
     qdata2 --> disk2
 ```
