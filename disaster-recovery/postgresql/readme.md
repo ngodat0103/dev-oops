@@ -1,6 +1,6 @@
 # PostgreSQL Disaster Recovery Plan
 > **Stack:** CloudNativePG · Barman Cloud Plugin · Cloudflare R2 · Kubernetes  
-> **Last Updated:** April 27, 2026
+> **Last Updated:** July 21, 2026
 
 ---
 
@@ -92,6 +92,20 @@ kind: ObjectStore
 metadata:
   name: cloudflare-r2
 spec:
+  retentionPolicy: 1d
+  instanceSidecarConfiguration:
+    env:
+    - name: GOMEMLIMIT
+      value: "460MiB"
+    - name: GOMAXPROCS
+      value: "1"
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 512Mi
   configuration:
     destinationPath: s3://cnpg-postgresql/
     endpointURL: https://<account-id>.r2.cloudflarestorage.com
