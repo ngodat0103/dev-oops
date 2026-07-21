@@ -558,7 +558,7 @@ PostgreSQL (CloudNative-PG) is the most critical stateful service. The entire ba
 |------|-----|-------|
 | Base backups | `ScheduledBackup` CRD, daily at 02:00 UTC | `s3://cnpg-postgresql/postgresql/base/` |
 | WAL archiving | Continuous via Barman Cloud plugin | `s3://cnpg-postgresql/postgresql/wals/` |
-| Retention | 7 days | Configurable via `retentionPolicy` |
+| Retention | 1 day | Configurable via `retentionPolicy` |
 | RPO | < 5 minutes | WAL archiving interval |
 | RTO | < 30 minutes | Full cluster restore from R2 |
 

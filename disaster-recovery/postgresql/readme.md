@@ -51,7 +51,7 @@
 |--------|--------|
 | **RPO** (Recovery Point Objective) | < 5 minutes (WAL archiving interval) |
 | **RTO** (Recovery Time Objective) | < 30 minutes for full cluster restore |
-| **Backup Retention** | 7 days (configurable via `retentionPolicy`) |
+| **Backup Retention** | 1 day (configurable via `retentionPolicy`) |
 | **Backup Type** | Continuous physical backup + WAL PITR |
 
 ---
@@ -92,9 +92,23 @@ kind: ObjectStore
 metadata:
   name: cloudflare-r2
 spec:
+  retentionPolicy: 1d
+  instanceSidecarConfiguration:
+    env:
+    - name: GOMEMLIMIT
+      value: "110MiB"
+    - name: GOMAXPROCS
+      value: "1"
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 512Mi
   configuration:
     destinationPath: s3://cnpg-postgresql/
-    endpointURL: https://<account-id>.r2.cloudflarestorage.com
+    endpointURL: https://4c8ad4e9fa8213af3fd284bb97b68b5e.r2.cloudflarestorage.com
     s3Credentials:
       accessKeyId:
         name: cloudflare-r2
