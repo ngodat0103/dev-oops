@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: juicefs-staging-sync-job
 spec:
-  schedule: "0 2 * * *"
+  schedule: "0 1 * * 6,0"
   timeZone: "Asia/Ho_Chi_Minh"
   concurrencyPolicy: Forbid #
   successfulJobsHistoryLimit: 3
