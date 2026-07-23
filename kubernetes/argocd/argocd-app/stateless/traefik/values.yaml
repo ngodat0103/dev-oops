@@ -12,7 +12,7 @@ deployment:
   enabled: true
   kind: Deployment
   replicas: 2
-  revisionHistoryLimit: 3
+  revisionHistoryLimit: 10
   additionalVolumes:
   - name: crowdsec-lapi-key
     secret:
@@ -46,7 +46,11 @@ ingressClass:
   name: "traefik"
 # Traefik experimental features
 experimental:
+  abortOnPluginFailure: true
   plugins:
+    geoblock:
+      moduleName: "github.com/PascalMinder/geoblock"
+      version: "v0.3.3"
     bouncer:
       moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
       version: v1.5.1
@@ -101,7 +105,7 @@ ingressRoute:
 updateStrategy:
   type: RollingUpdate
   rollingUpdate:
-    maxUnavailable: 1
+    maxUnavailable: 0
     maxSurge: 1
 providers:
   # @schema additionalProperties: false
@@ -187,7 +191,7 @@ logs:
       # By default, the level is set to INFO.
 
     # -- Alternative logging levels are TRACE, DEBUG, INFO, WARN, ERROR, FATAL, and PANIC.
-    level: "INFO" # @schema enum:[TRACE,DEBUG,INFO,WARN,ERROR,FATAL,PANIC]; default: "INFO"
+    level: "WARN" # @schema enum:[TRACE,DEBUG,INFO,WARN,ERROR,FATAL,PANIC]; default: "INFO"
     # -- To write the logs into a log file, use the filePath option.
     filePath: ""
     # -- When set to true and format is common, it disables the colorized output.
