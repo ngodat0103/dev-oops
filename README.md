@@ -79,12 +79,20 @@ The infrastructure follows a hybrid model in active transition: services are bei
 +---------------------------------------------------------------+
 ```
 
-Traffic flow for public-facing services:
+Traffic flow for public-facing services (Cloudflare-proxied):
 
 ```
 Client -> Cloudflare (proxy/WAF) -> Traefik (reverse proxy) -> CrowdSec (middleware) -> Service
                                                                      |
                                                               "papers, please"
+```
+
+Direct-to-Traefik services (unproxied DNS) bypass Cloudflare and add an extra geo-filter layer:
+
+```
+Client -> Traefik (reverse proxy) -> vn-geo-filter (middleware) -> CrowdSec (middleware) -> Service
+                                          |
+                                    "VN only + whitelist"
 ```
 
 A maintenance-mode override is available via a Cloudflare Workers-hosted page and a Cloudflare page rule, managed by the scripts in [`maintainPage/`](#maintainpage---cloudflare-maintenance-mode).
@@ -142,7 +150,7 @@ DNS is managed via Cloudflare and Terraform.
 | argocd.datrollout.dev           | A    | No      | 192.168.1.232   |
 | qbittorrent.datrollout.dev      | A    | No      | 192.168.1.232   |
 
-Direct records resolve to the Kubernetes Traefik ingress (via MetalLB). Media-heavy services such as Jellyfin stay DNS-only to avoid Cloudflare media bandwidth limits and are protected at Traefik with CrowdSec.
+Direct records resolve to the Kubernetes Traefik ingress (via MetalLB). Media-heavy services such as Jellyfin stay DNS-only to avoid Cloudflare media bandwidth limits and are protected at Traefik with a geo-filter middleware (Vietnam-only + Cloudflare/UptimeRobot IPs) and CrowdSec.
 
 ---
 
@@ -463,10 +471,23 @@ Traffic goes through multiple layers before it reaches anything useful. I'd rath
 - UptimeRobot health check IPs are explicitly whitelisted
 - Vaultwarden `/admin` endpoint is blocked at the edge, because even I don't trust myself with that URL exposed
 
+### Traefik-Level Geo-Filter (Direct-to-Traefik Services)
+
+Services with unproxied DNS records (direct A records to the K8s Traefik LB) bypass Cloudflare's edge geoblocking. A dedicated Traefik Middleware (`vn-geo-filter`) enforces geo-restrictions at the reverse-proxy layer:
+
+- Only traffic from Vietnam (`VN`) is allowed by default
+- Cloudflare public IP ranges are whitelisted (preserves real client IP from `CF-Connecting-IP`)
+- UptimeRobot monitoring nodes are explicitly whitelisted
+- Disallowed traffic receives a `401 Unauthorized` response
+- Defined in: `kubernetes/argocd/argocd-app/stateless/traefik/middlewares/vn-geo-filter.yaml`
+
+Currently applied to: `jellyfin`, `nextcloud` (via ingress annotation middlewares).
+
 ### Reverse Proxy (Traefik v3)
 
 - TLS termination via Let's Encrypt using Cloudflare DNS-01 challenge
-- All requests pass through CrowdSec bouncer middleware -- every single one
+- All requests pass through the CrowdSec bouncer middleware -- every single one
+- Direct-to-Traefik services (unproxied DNS) also pass through a geo-filter middleware that restricts access to Vietnam-originating traffic, with Cloudflare and UptimeRobot IPs whitelisted
 - Real client IPs extracted from `CF-Connecting-IP` header
 - Prometheus metrics and structured access logging enabled
 
