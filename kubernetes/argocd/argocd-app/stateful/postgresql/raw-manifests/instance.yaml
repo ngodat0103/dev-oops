@@ -75,12 +75,22 @@ spec:
   superuserSecret:
     name: postgres-admin
   monitoring:
-    enablePodMonitor: true
-  plugins:
-  - name: barman-cloud.cloudnative-pg.io
-    isWALArchiver: true
-    parameters:
-      barmanObjectName: cloudflare-r2
+    enablePodMonitor: false
+  bootstrap:
+    recovery:
+      source: origin
+  externalClusters:
+  - name: origin
+    plugin:
+      name: barman-cloud.cloudnative-pg.io
+      parameters:
+        barmanObjectName: cloudflare-r2
+        serverName: postgresql
+  # plugins:
+  # - name: barman-cloud.cloudnative-pg.io
+  #   isWALArchiver: true
+  #   parameters:
+  #     barmanObjectName: cloudflare-r2
   managed:
     services:
       additional:
