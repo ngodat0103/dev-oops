@@ -47,9 +47,12 @@ ingressClass:
 # Traefik experimental features
 experimental:
   plugins:
+    geoblock:
+      moduleName: github.com/david-garcia-garcia/traefik-geoblock
+      version: v1.1.4
     bouncer:
       moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
-      version: v1.5.1
+      version: v1.6.0
 
 api:
   dashboard: true
