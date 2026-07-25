@@ -1,0 +1,34 @@
+eck-operator:
+  podAnnotations:
+    argocd.argoproj.io/sync-wave: "-1"
+eck-elasticsearch:
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+  fullnameOverride: "elastic-search"
+  ingress:
+    enabled: true
+    className: traefik
+    annotations:
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+      traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"
+    hosts:
+    - host: elastic-search.datrollout.dev
+      path: /
+  config:
+    node.store.allow_mmap: false
+  nodeSets:
+  - name: default
+    count: 1
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi
+        storageClassName: openebs-hostpath

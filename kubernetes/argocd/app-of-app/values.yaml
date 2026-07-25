@@ -49,4 +49,6 @@ argus:
 crowdsec:
   enabled: true
 chaosMesh:
+  enabled: false
+eck:
   enabled: true
