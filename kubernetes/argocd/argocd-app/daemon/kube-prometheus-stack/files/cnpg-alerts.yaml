@@ -1,0 +1,651 @@
+groups:
+- name: cnpgAvailability
+  interval: 30s
+  rules:
+  - alert: CNPGInstanceDown
+    expr: cnpg_collector_up == 0
+    for: 2m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: CNPG instance {{ $labels.pod }} is down
+      description: PostgreSQL on {{ $labels.namespace }}/{{ $labels.pod }} has been reporting down for over 2 minutes.
+  - alert: CNPGClusterUnavailable
+    expr: sum by (namespace, cluster) (cnpg_collector_up) == 0
+    for: 1m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: CNPG cluster {{ $labels.cluster }} has no healthy instances
+      description: All instances of cluster {{ $labels.namespace }}/{{ $labels.cluster }} are down. The database is fully unavailable.
+  - alert: CNPGMetricsTargetDown
+    expr: up{job=~".*cnpg.*|.*postgres.*|.*cluster-.*"} == 0
+    for: 5m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Cannot scrape CNPG exporter on {{ $labels.pod }}
+      description: Prometheus has been unable to reach the metrics endpoint on {{ $labels.namespace }}/{{ $labels.pod }} for 5 minutes. Alerts based on cnpg_ metrics are blind for this instance.
+  - alert: CNPGPostgresRestarted
+    expr: time() - cnpg_pg_postmaster_start_time < 300
+    for: 0m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: PostgreSQL on {{ $labels.pod }} restarted recently
+      description: The postmaster on {{ $labels.namespace }}/{{ $labels.pod }} started less than 5 minutes ago. If unplanned, check for OOMKill, node eviction, or a failover.
+  - alert: CNPGManualSwitchoverRequired
+    expr: cnpg_collector_manual_switchover_required == 1
+    for: 5m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: CNPG cluster needs a manual switchover ({{ $labels.pod }})
+      description: The operator cannot promote a new primary automatically for {{ $labels.namespace }}/{{ $labels.pod }}. Run `kubectl cnpg promote` after confirming the intended target.
+  - alert: CNPGClusterFenced
+    expr: cnpg_collector_fencing_on == 1
+    for: 5m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: CNPG instance {{ $labels.pod }} is fenced
+      description: Fencing has been active on {{ $labels.namespace }}/{{ $labels.pod }} for over 5 minutes. PostgreSQL is shut down while the pod stays running. Remove the cnpg.io/fencedInstances annotation when maintenance is done.
+  - alert: CNPGNoHighAvailability
+    expr: cnpg_collector_nodes_used == 1
+    for: 30m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: All CNPG instances for {{ $labels.pod }} share one node
+      description: 'nodes_used == 1: every instance is scheduled on the same node, so a single node failure takes the whole cluster down. Check anti-affinity rules.'
+  - alert: CNPGMetricsCollectionFailing
+    expr: cnpg_collector_last_collection_error == 1
+    for: 10m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Metric collection is erroring on {{ $labels.pod }}
+      description: The exporter on {{ $labels.namespace }}/{{ $labels.pod }} has been failing its collection queries for 10 minutes. Often a missing GRANT on a custom query, or a target_databases entry the cnpg_metrics_exporter role cannot CONNECT to.
+  - alert: CNPGCollectorSlow
+    expr: cnpg_collector_collection_duration_seconds > 2
+    for: 15m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Slow metric collection on {{ $labels.pod }} ({{ $labels.collector }})
+      description: Collector {{ $labels.collector }} is taking over 2s. A custom query is probably scanning too much, or the instance is under heavy load.
+  - alert: CNPGCollectorVerySlow
+    expr: cnpg_collector_collection_duration_seconds > 10
+    for: 10m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: Metric collection on {{ $labels.pod }} exceeds 10s
+      description: Collector {{ $labels.collector }} is over 10s, approaching typical scrape timeouts. Metrics for this instance will start going missing.
+- name: cnpg.replication
+  interval: 30s
+  rules:
+  - alert: CNPGReplicationLagHigh
+    expr: cnpg_pg_replication_lag > 30
+    for: 5m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Replica {{ $labels.pod }} is {{ $value | humanizeDuration }} behind
+      description: Replay lag on {{ $labels.namespace }}/{{ $labels.pod }} has exceeded 30s for 5 minutes.
+  - alert: CNPGReplicationLagCritical
+    expr: cnpg_pg_replication_lag > 300
+    for: 5m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: Replica {{ $labels.pod }} is {{ $value | humanizeDuration }} behind
+      description: Replay lag on {{ $labels.namespace }}/{{ $labels.pod }} exceeds 5 minutes. Failover to this replica would lose a meaningful amount of data.
+  - alert: CNPGWALReceiverDown
+    expr: cnpg_pg_replication_in_recovery > cnpg_pg_replication_is_wal_receiver_up
+    for: 2m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Replica {{ $labels.pod }} is not streaming
+      description: '{{ $labels.namespace }}/{{ $labels.pod }} is in recovery but has no active WAL receiver. It may be replaying from the archive, or replication is broken.'
+  - alert: CNPGWALReceiverDownSustained
+    expr: cnpg_pg_replication_in_recovery > cnpg_pg_replication_is_wal_receiver_up
+    for: 15m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: Replica {{ $labels.pod }} has not streamed for 15 minutes
+      description: Replication into {{ $labels.namespace }}/{{ $labels.pod }} is broken. Check the primary's replication slots, connectivity, and the replica logs.
+  - alert: CNPGPrimaryWithoutReplicas
+    expr: "(cnpg_pg_replication_in_recovery == 0)
+
+      \  and
+
+      (cnpg_pg_replication_streaming_replicas == 0)\n"
+    for: 10m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: Primary {{ $labels.pod }} has zero streaming replicas
+      description: No standby has been connected to {{ $labels.namespace }}/{{ $labels.pod }} for 10 minutes. There is nothing to fail over to.
+  - alert: CNPGSyncReplicasBelowExpected
+    expr: "min by (namespace, pod) (cnpg_collector_sync_replicas{value=\"observed\"})
+
+      \  <
+
+      min by (namespace, pod) (cnpg_collector_sync_replicas{value=\"expected\"})\n"
+    for: 5m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: Synchronous replica count below expected on {{ $labels.pod }}
+      description: Fewer synchronous standbys are connected than synchronous_standby_names requires. Depending on your synchronous_commit setting, writes may be blocking.
+  - alert: CNPGReplicationSlotInactive
+    expr: cnpg_pg_replication_slots_active == 0
+    for: 15m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Replication slot {{ $labels.slot_name }} is inactive
+      description: Slot {{ $labels.slot_name }} on {{ $labels.namespace }}/{{ $labels.pod }} has had no consumer for 15 minutes. It keeps pinning WAL, which will eventually fill the volume. Drop it if it is orphaned.
+  - alert: CNPGReplicationSlotLagHigh
+    expr: cnpg_pg_replication_slots_pg_wal_lsn_diff > 1073741824
+    for: 10m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Slot {{ $labels.slot_name }} is retaining {{ $value | humanize1024 }}B of WAL
+      description: Slot {{ $labels.slot_name }} on {{ $labels.namespace }}/{{ $labels.pod }} is holding back more than 1 GiB of WAL.
+  - alert: CNPGReplicationSlotLagCritical
+    expr: cnpg_pg_replication_slots_pg_wal_lsn_diff > 5368709120
+    for: 10m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: Slot {{ $labels.slot_name }} is retaining {{ $value | humanize1024 }}B of WAL
+      description: Slot {{ $labels.slot_name }} is holding back over 5 GiB of WAL on {{ $labels.namespace }}/{{ $labels.pod }}. Risk of filling the WAL volume and taking PostgreSQL down.
+- name: cnpg.wal
+  interval: 30s
+  rules:
+  - alert: CNPGWALArchiveFailing
+    expr: increase(cnpg_pg_stat_archiver_failed_count[10m]) > 0
+    for: 5m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: WAL archiving is failing on {{ $labels.pod }}
+      description: pg_stat_archiver recorded new failures on {{ $labels.namespace }}/{{ $labels.pod }} in the last 10 minutes. Check object-store credentials and connectivity.
+  - alert: CNPGWALArchiveBroken
+    expr: cnpg_pg_stat_archiver_last_failed_time > cnpg_pg_stat_archiver_last_archived_time
+    for: 15m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: WAL archiving broken on {{ $labels.pod }}
+      description: The most recent archive attempt on {{ $labels.namespace }}/{{ $labels.pod }} failed and has not recovered in 15 minutes. PITR coverage is stalled and pg_wal will keep growing.
+  - alert: CNPGWALArchiveBacklog
+    expr: cnpg_collector_pg_wal_archive_status{value="ready"} > 5
+    for: 10m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: '{{ $value }} WAL segments waiting to be archived on {{ $labels.pod }}'
+      description: The archive_status/ready backlog on {{ $labels.namespace }}/{{ $labels.pod }} is not draining. Archiving is slower than WAL generation.
+  - alert: CNPGWALArchiveBacklogCritical
+    expr: cnpg_collector_pg_wal_archive_status{value="ready"} > 50
+    for: 10m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: '{{ $value }} WAL segments backlogged on {{ $labels.pod }}'
+      description: Large archiving backlog on {{ $labels.namespace }}/{{ $labels.pod }}. pg_wal will fill the volume if this continues.
+  - alert: CNPGWALVolumeFillingUp
+    expr: "(
+
+      \  max by (namespace, pod) (cnpg_collector_pg_wal{value=\"size\"})
+
+      \    /
+
+      \  max by (namespace, pod) (cnpg_collector_pg_wal{value=\"volume_size\"} > 0)
+
+      ) > 0.75\n"
+    for: 10m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: WAL volume on {{ $labels.pod }} is {{ $value | humanizePercentage }} full
+      description: pg_wal is using over 75% of its dedicated volume on {{ $labels.namespace }}/{{ $labels.pod }}.
+  - alert: CNPGWALVolumeAlmostFull
+    expr: "(
+
+      \  max by (namespace, pod) (cnpg_collector_pg_wal{value=\"size\"})
+
+      \    /
+
+      \  max by (namespace, pod) (cnpg_collector_pg_wal{value=\"volume_size\"} > 0)
+
+      ) > 0.90\n"
+    for: 5m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: WAL volume on {{ $labels.pod }} is {{ $value | humanizePercentage }} full
+      description: pg_wal is over 90% of its volume on {{ $labels.namespace }}/{{ $labels.pod }}. PostgreSQL will PANIC and shut down when it runs out of space.
+  - alert: CNPGWALSegmentsAboveMax
+    expr: "max by (namespace, pod) (cnpg_collector_pg_wal{value=\"count\"})
+
+      \  >
+
+      max by (namespace, pod) (cnpg_collector_pg_wal{value=\"max\"}) * 1.5\n"
+    for: 15m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: pg_wal segment count on {{ $labels.pod }} is 50% above max_wal_size
+      description: PostgreSQL cannot recycle WAL fast enough on {{ $labels.namespace }}/{{ $labels.pod }}. Usually a stuck archive_command or a lagging replication slot.
+- name: cnpg.backup
+  interval: 1m
+  rules:
+  - alert: CNPGBackupNotRecent
+    expr: "(cnpg_collector_last_available_backup_timestamp > 0)
+
+      \  and
+
+      (time() - cnpg_collector_last_available_backup_timestamp > 86400)\n"
+    for: 15m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: No successful backup for {{ $labels.pod }} in over 24h
+      description: The last available base backup for {{ $labels.namespace }}/{{ $labels.pod }} is more than a day old.
+  - alert: CNPGBackupStale
+    expr: "(cnpg_collector_last_available_backup_timestamp > 0)
+
+      \  and
+
+      (time() - cnpg_collector_last_available_backup_timestamp > 172800)\n"
+    for: 15m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: No successful backup for {{ $labels.pod }} in over 48h
+      description: Base backups for {{ $labels.namespace }}/{{ $labels.pod }} are over 2 days stale. Recovery time from WAL replay is growing and your restore path is untested.
+  - alert: CNPGLastBackupFailed
+    expr: cnpg_collector_last_failed_backup_timestamp > cnpg_collector_last_available_backup_timestamp
+    for: 15m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Most recent backup for {{ $labels.pod }} failed
+      description: The last backup attempt on {{ $labels.namespace }}/{{ $labels.pod }} failed and no newer one has succeeded.
+- name: cnpg.wraparound
+  interval: 1m
+  rules:
+  - alert: CNPGTransactionIDWraparoundWarning
+    expr: cnpg_pg_database_xid_age > 300000000
+    for: 10m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Database {{ $labels.datname }} xid age is {{ $value | humanize }}
+      description: Frozen XID age on {{ $labels.namespace }}/{{ $labels.pod }} database {{ $labels.datname }} is above 300M. Autovacuum should be freezing; check for long-running transactions, abandoned prepared transactions, or inactive replication slots holding back the xmin horizon.
+  - alert: CNPGTransactionIDWraparoundCritical
+    expr: cnpg_pg_database_xid_age > 1000000000
+    for: 10m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: Database {{ $labels.datname }} xid age is {{ $value | humanize }}
+      description: Frozen XID age on {{ $labels.datname }} is above 1B, roughly halfway to the 2.1B wraparound limit. PostgreSQL will refuse writes to protect data if this reaches the ceiling. Investigate now.
+  - alert: CNPGMultiXactWraparoundWarning
+    expr: cnpg_pg_database_mxid_age > 300000000
+    for: 10m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Database {{ $labels.datname }} multixact age is {{ $value | humanize }}
+      description: MultiXact ID age on {{ $labels.datname }} is above 300M. Same class of problem as xid wraparound, usually driven by heavy row-level locking (SELECT FOR SHARE / foreign keys).
+  - alert: CNPGMultiXactWraparoundCritical
+    expr: cnpg_pg_database_mxid_age > 1000000000
+    for: 10m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: Database {{ $labels.datname }} multixact age is {{ $value | humanize }}
+      description: MultiXact ID age on {{ $labels.datname }} is above 1B and approaching the wraparound limit.
+- name: cnpg.connections
+  interval: 30s
+  rules:
+  - alert: CNPGConnectionsSaturating
+    expr: "sum by (namespace, pod) (cnpg_backends_total)
+
+      \  /
+
+      max by (namespace, pod) (cnpg_pg_settings_setting{name=\"max_connections\"})
+
+      > 0.80\n"
+    for: 5m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: '{{ $labels.pod }} is at {{ $value | humanizePercentage }} of max_connections'
+      description: Connection usage on {{ $labels.namespace }}/{{ $labels.pod }} has been above 80% for 5 minutes. Consider PgBouncer (CNPG Pooler) or lowering app-side pool sizes.
+  - alert: CNPGConnectionsNearlyExhausted
+    expr: "sum by (namespace, pod) (cnpg_backends_total)
+
+      \  /
+
+      max by (namespace, pod) (cnpg_pg_settings_setting{name=\"max_connections\"})
+
+      > 0.90\n"
+    for: 2m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: '{{ $labels.pod }} is at {{ $value | humanizePercentage }} of max_connections'
+      description: Over 90% of connection slots used on {{ $labels.namespace }}/{{ $labels.pod }}. New connections, including the operator's own, are about to be refused.
+  - alert: CNPGLongRunningTransaction
+    expr: cnpg_backends_max_tx_duration_seconds{state="active"} > 300
+    for: 5m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Query running over 5m on {{ $labels.pod }} (db {{ $labels.datname }}, user {{ $labels.usename }})
+      description: Application {{ $labels.application_name }} has an active transaction older than 5 minutes on {{ $labels.namespace }}/{{ $labels.pod }}. Long transactions block vacuum from freezing tuples.
+  - alert: CNPGVeryLongRunningTransaction
+    expr: cnpg_backends_max_tx_duration_seconds{state="active"} > 1800
+    for: 5m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: Query running over 30m on {{ $labels.pod }} (db {{ $labels.datname }})
+      description: An active transaction on {{ $labels.namespace }}/{{ $labels.pod }} has run for over 30 minutes, from user {{ $labels.usename }} / app {{ $labels.application_name }}. This holds back the xmin horizon and bloats tables.
+  - alert: CNPGIdleInTransaction
+    expr: cnpg_backends_max_tx_duration_seconds{state="idle in transaction"} > 600
+    for: 5m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Idle-in-transaction backend over 10m on {{ $labels.pod }}
+      description: User {{ $labels.usename }} / app {{ $labels.application_name }} has held a transaction open without activity for over 10 minutes on database {{ $labels.datname }}. Usually a leaked connection or a missing commit/rollback.
+  - alert: CNPGIdleInTransactionCritical
+    expr: cnpg_backends_max_tx_duration_seconds{state="idle in transaction"} > 3600
+    for: 5m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: Idle-in-transaction backend over 1h on {{ $labels.pod }}
+      description: A transaction has been idle for over an hour on {{ $labels.namespace }}/{{ $labels.pod }} (db {{ $labels.datname }}, app {{ $labels.application_name }}). Set idle_in_transaction_session_timeout to bound this.
+  - alert: CNPGBackendsWaiting
+    expr: cnpg_backends_waiting_total > 5
+    for: 5m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: '{{ $value }} backends blocked on locks on {{ $labels.pod }}'
+      description: More than 5 backends have been waiting on ungranted locks for 5 minutes on {{ $labels.namespace }}/{{ $labels.pod }}.
+  - alert: CNPGBackendsWaitingCritical
+    expr: cnpg_backends_waiting_total > 20
+    for: 2m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: '{{ $value }} backends blocked on locks on {{ $labels.pod }}'
+      description: Severe lock contention on {{ $labels.namespace }}/{{ $labels.pod }}. Look for a blocking DDL or an idle-in-transaction holder.
+- name: cnpg.database
+  interval: 1m
+  rules:
+  - alert: CNPGDeadlocks
+    expr: increase(cnpg_pg_stat_database_deadlocks[10m]) > 0
+    for: 0m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Deadlock detected on {{ $labels.pod }} (db {{ $labels.datname }})
+      description: '{{ $value }} deadlock(s) in the last 10 minutes on database {{ $labels.datname }}. Check the PostgreSQL log for the conflicting statements.'
+  - alert: CNPGDeadlocksFrequent
+    expr: increase(cnpg_pg_stat_database_deadlocks[10m]) > 5
+    for: 0m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: '{{ $value }} deadlocks in 10m on {{ $labels.pod }} (db {{ $labels.datname }})'
+      description: Frequent deadlocks on {{ $labels.datname }}. There is likely an inconsistent lock-ordering bug in the application.
+  - alert: CNPGHighRollbackRatio
+    expr: "(
+
+      \  sum by (namespace, pod) (rate(cnpg_pg_stat_database_xact_rollback[10m]))
+
+      \    /
+
+      \  sum by (namespace, pod) (
+
+      \      rate(cnpg_pg_stat_database_xact_commit[10m])
+
+      \    + rate(cnpg_pg_stat_database_xact_rollback[10m])
+
+      \  )
+
+      ) > 0.10
+
+      and
+
+      sum by (namespace, pod) (rate(cnpg_pg_stat_database_xact_commit[10m])) > 1\n"
+    for: 15m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: '{{ $value | humanizePercentage }} of transactions rolling back on {{ $labels.pod }}'
+      description: Rollback ratio on {{ $labels.namespace }}/{{ $labels.pod }} is above 10%. Could be application errors, constraint violations, or failing migrations.
+  - alert: CNPGLowCacheHitRatio
+    expr: "(
+
+      \  sum by (namespace, pod) (rate(cnpg_pg_stat_database_blks_hit[15m]))
+
+      \    /
+
+      \  sum by (namespace, pod) (
+
+      \      rate(cnpg_pg_stat_database_blks_hit[15m])
+
+      \    + rate(cnpg_pg_stat_database_blks_read[15m])
+
+      \  )
+
+      ) < 0.90
+
+      and
+
+      sum by (namespace, pod) (rate(cnpg_pg_stat_database_blks_read[15m])) > 10\n"
+    for: 30m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Buffer cache hit ratio {{ $value | humanizePercentage }} on {{ $labels.pod }}
+      description: Shared buffer hit ratio below 90% on {{ $labels.namespace }}/{{ $labels.pod }}. Consider raising shared_buffers or checking for a query doing large sequential scans.
+  - alert: CNPGVeryLowCacheHitRatio
+    expr: "(
+
+      \  sum by (namespace, pod) (rate(cnpg_pg_stat_database_blks_hit[15m]))
+
+      \    /
+
+      \  sum by (namespace, pod) (
+
+      \      rate(cnpg_pg_stat_database_blks_hit[15m])
+
+      \    + rate(cnpg_pg_stat_database_blks_read[15m])
+
+      \  )
+
+      ) < 0.80
+
+      and
+
+      sum by (namespace, pod) (rate(cnpg_pg_stat_database_blks_read[15m])) > 10\n"
+    for: 30m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: Buffer cache hit ratio {{ $value | humanizePercentage }} on {{ $labels.pod }}
+      description: Hit ratio below 80% sustained for 30 minutes. The instance is reading most blocks from disk, which on homelab storage will show up as very high query latency.
+  - alert: CNPGTempFileSpill
+    expr: sum by (namespace, pod) (rate(cnpg_pg_stat_database_temp_bytes[15m])) > 1048576
+    for: 15m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: '{{ $labels.pod }} spilling {{ $value | humanize1024 }}B/s to temp files'
+      description: Queries on {{ $labels.namespace }}/{{ $labels.pod }} are sorting/hashing to disk. work_mem is likely too small for the workload, or a query is missing an index.
+  - alert: CNPGRecoveryConflicts
+    expr: increase(cnpg_pg_stat_database_conflicts[10m]) > 0
+    for: 0m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: Query cancelled by recovery conflict on {{ $labels.pod }} (db {{ $labels.datname }})
+      description: '{{ $value }} query cancellation(s) due to recovery conflicts on replica {{ $labels.namespace }}/{{ $labels.pod }}. Tune max_standby_streaming_delay or enable hot_standby_feedback.'
+  - alert: CNPGCheckpointsTooFrequent
+    expr: 'increase(cnpg_pg_stat_checkpointer_checkpoints_req[30m]) > 5
+
+      or
+
+      increase(cnpg_pg_stat_bgwriter_checkpoints_req[30m]) > 5
+
+      '
+    for: 0m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: '{{ $value }} requested checkpoints in 30m on {{ $labels.pod }}'
+      description: Requested (rather than timed) checkpoints mean max_wal_size is being hit repeatedly on {{ $labels.namespace }}/{{ $labels.pod }}. Raise max_wal_size to smooth out I/O.
+- name: cnpg.storage
+  interval: 1m
+  rules:
+  - alert: CNPGVolumeSpaceLow
+    expr: "(
+
+      \  kubelet_volume_stats_available_bytes{namespace=\"prod-postgresql\"}
+
+      \    /
+
+      \  kubelet_volume_stats_capacity_bytes{namespace=\"prod-postgresql\"}
+
+      ) < 0.25\n"
+    for: 10m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: PVC {{ $labels.persistentvolumeclaim }} has {{ $value | humanizePercentage }} free
+      description: Less than 25% free on {{ $labels.persistentvolumeclaim }}. CNPG supports online volume expansion if your StorageClass has allowVolumeExpansion.
+  - alert: CNPGVolumeSpaceCritical
+    expr: "(
+
+      \  kubelet_volume_stats_available_bytes{namespace=\"prod-postgresql\"}
+
+      \    /
+
+      \  kubelet_volume_stats_capacity_bytes{namespace=\"prod-postgresql\"}
+
+      ) < 0.10\n"
+    for: 5m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: PVC {{ $labels.persistentvolumeclaim }} has {{ $value | humanizePercentage }} free
+      description: Under 10% free on {{ $labels.persistentvolumeclaim }}. PostgreSQL will PANIC on a full data or WAL volume. Expand now.
+  - alert: CNPGVolumeWillFillSoon
+    expr: "predict_linear(kubelet_volume_stats_available_bytes{namespace=\"prod-postgresql\"}[6h], 4 * 3600) < 0
+
+      and
+
+      (
+
+      \  kubelet_volume_stats_available_bytes{namespace=\"prod-postgresql\"}
+
+      \    /
+
+      \  kubelet_volume_stats_capacity_bytes{namespace=\"prod-postgresql\"}
+
+      ) < 0.40\n"
+    for: 15m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: PVC {{ $labels.persistentvolumeclaim }} projected full within 4h
+      description: Based on the last 6 hours of growth, {{ $labels.persistentvolumeclaim }} runs out of space within 4 hours.
+  - alert: CNPGPodRestarting
+    expr: increase(kube_pod_container_status_restarts_total{namespace="prod-postgresql", container="postgres"}[1h]) > 2
+    for: 0m
+    labels:
+      severity: warning
+      component: postgresql
+    annotations:
+      summary: '{{ $labels.pod }} restarted {{ $value }} times in the last hour'
+      description: Repeated container restarts on {{ $labels.namespace }}/{{ $labels.pod }}. Check for OOMKill, failing probes, or storage errors.
+  - alert: CNPGPodOOMKilled
+    expr: "kube_pod_container_status_last_terminated_reason{
+
+      \  namespace=\"prod-postgresql\", container=\"postgres\", reason=\"OOMKilled\"
+
+      } == 1\n"
+    for: 0m
+    labels:
+      severity: critical
+      component: postgresql
+    annotations:
+      summary: '{{ $labels.pod }} was OOMKilled'
+      description: 'The postgres container in {{ $labels.namespace }}/{{ $labels.pod }} hit its memory limit. Remember the off-heap budget: shared_buffers + (work_mem x max_connections) + maintenance_work_mem must fit well under the container limit.'
