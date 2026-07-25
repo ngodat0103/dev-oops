@@ -1,0 +1,128 @@
+kube-prometheus-stack:
+  #https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack/87.2.1?modal=values
+  kubeEtcd:
+    enabled: true
+    endpoints:
+    - 192.168.1.180
+    - 192.168.1.181
+    - 192.168.1.182
+  kubeProxy:
+    enabled: false
+  alertmanager:
+    alertmanagerSpec:
+      secrets:
+      - alertmanager-smtp-credentials
+    config:
+      global:
+        resolve_timeout: 5m
+        smtp_smarthost: 'smtp.gmail.com:587'
+        smtp_from: 'alertmanager@datrollout.dev'
+        smtp_auth_username: '21521935@gm.uit.edu.vn'
+        smtp_auth_password_file: '/etc/alertmanager/secrets/alertmanager-smtp-credentials/password'
+        # smtp_require_tls: true
+      inhibit_rules:
+      - source_matchers:
+        - 'severity = critical'
+        target_matchers:
+        - 'severity =~ warning|info'
+        equal: [ 'namespace', 'alertname' ]
+      - source_matchers:
+        - 'severity = warning'
+        target_matchers:
+        - 'severity = info'
+        equal: [ 'namespace', 'alertname' ]
+
+      - source_matchers:
+        - 'alertname = InfoInhibitor'
+        target_matchers:
+        - 'severity = info'
+        equal: [ 'namespace' ]
+      route:
+        group_by: [ 'namespace', 'alertname' ]
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 12h
+        receiver: 'null'
+        routes:
+        - matchers:
+          - 'alertname = Watchdog'
+          receiver: 'null'
+        - matchers:
+          - 'alertname = InfoInhibitor'
+          receiver: 'null'
+        - matchers:
+          - 'severity = critical'
+          receiver: 'to-me'
+      receivers:
+      - name: 'null'
+      - name: 'to-me'
+        email_configs:
+        - to: 'ngovuminhdat@gmail.com'
+          send_resolved: true
+    ingress:
+      enabled: true
+      hosts: [ "alert-manager.datrollout.dev" ]
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
+        traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"
+  grafana:
+    defaultDashboardsTimezone: Asia/Ho_Chi_Minh
+    defaultDashboardsEditable: false
+    sidecar:
+      dashboards:
+        enabled: true
+        label: grafana_dashboard
+        searchNamespace: ALL
+    admin:
+      existingSecret: grafana-admin
+      userKey: admin-user
+      passwordKey: admin-password
+    ingress:
+      enabled: true
+      hosts: [ "grafana.datrollout.dev" ]
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
+        traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
+    additionalDataSources:
+    - name: loki-in-cluster
+      type: loki
+      basicAuth: false
+      editable: false
+      jsonData:
+        tlsSkipVerify: true
+      orgId: 1
+      url: http://loki.loki.svc.cluster.local:3100
+      version: 1
+  prometheus:
+    prometheusSpec:
+      scrapeInterval: 10s
+      resources:
+        requests:
+          cpu: 1
+          memory: 1.5Gi
+        limits:
+          cpu: 2
+          memory: 1.5Gi
+      podMonitorSelectorNilUsesHelmValues: false
+      podMonitorNamespaceSelector:
+        matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: Exists # matches ALL namespaces
+      serviceMonitorSelectorNilUsesHelmValues: false
+      serviceMonitorNamespaceSelector:
+        matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: Exists
+      retention: 14d
+      retentionSize: 15GiB
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            accessModes: [ "ReadWriteOnce" ]
+            resources:
+              requests:
+                storage: 20Gi
