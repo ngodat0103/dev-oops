@@ -1,12 +1,14 @@
 eck-operator:
   podAnnotations:
     argocd.argoproj.io/sync-wave: "-1"
-eck-elasticsearch:
+eck-kibana:
+  fullnameOverride: "kibana"
+  elasticsearchRef:
+    name: elastic-search
   http:
     tls:
       selfSignedCertificate:
         disabled: true
-  fullnameOverride: "elastic-search"
   ingress:
     enabled: true
     className: traefik
@@ -15,8 +17,16 @@ eck-elasticsearch:
       traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
       traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"
     hosts:
-    - host: elastic-search.datrollout.dev
+    - host: kibana.datrollout.dev
       path: /
+eck-elasticsearch:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+  fullnameOverride: "elastic-search"
   config:
     node.store.allow_mmap: false
   nodeSets:

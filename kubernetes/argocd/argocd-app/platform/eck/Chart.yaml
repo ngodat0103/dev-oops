@@ -13,3 +13,6 @@ dependencies:
 - name: eck-elasticsearch
   repository: https://helm.elastic.co
   version: 0.19.1
+- name: eck-kibana
+  repository: https://helm.elastic.co
+  version: 0.19.1
