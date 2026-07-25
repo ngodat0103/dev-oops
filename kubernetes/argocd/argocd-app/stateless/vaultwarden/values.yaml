@@ -1,5 +1,7 @@
 vaultwarden:
-  ## Instruction: when adding a new value, follow https://github.com/dani-garcia/vaultwarden/blob/main/.env.template as much as possible.
+  # https://artifacthub.io/packages/helm/vaultwarden/vaultwarden/0.43.1?modal=values
+  image:
+    tag: 1.37.0-alpine
   replicas: 2
   fullnameOverride: "vaultwarden"
   resourceType: "Deployment"
@@ -12,10 +14,10 @@ vaultwarden:
     fsGroup: 1012
   resources:
     limits:
-      cpu: 500m
+      cpu: 1000m
       memory: 256Mi
     requests:
-      cpu: 500m
+      cpu: 200m
       memory: 256Mi
   ## @param strategy Resource configurations
   ##
