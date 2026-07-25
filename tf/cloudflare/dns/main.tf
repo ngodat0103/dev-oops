@@ -72,7 +72,7 @@ module "ddns_records" {
       content = local.traefik_k8s_lan_ip
       ttl     = 1
     }
-    elastic-search = {
+    kibana = {
       type    = "A"
       proxied = false
       content = local.traefik_k8s_lan_ip

@@ -51,4 +51,4 @@ crowdsec:
 chaosMesh:
   enabled: false
 eck:
-  enabled: true
+  enabled: false
