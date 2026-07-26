@@ -1,0 +1,8 @@
+cloudnative-pg:
+  monitoring:
+    grafanaDashboard:
+      create: true
+      labels:
+        grafana_dashboard: "1"
+  commonAnnotations:
+    argocd.argoproj.io/sync-wave: "-1"

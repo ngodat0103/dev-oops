@@ -13,7 +13,7 @@ spec:
   project: default
   syncPolicy:
     automated:
-      enabled: false
+      enabled: true
       selfHeal: true
       prune: true
     retry:
