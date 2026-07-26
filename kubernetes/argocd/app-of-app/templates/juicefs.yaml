@@ -113,5 +113,5 @@ spec:
     # Raw manifests (ServiceMonitor, etc.) tracked in Git
     - repoURL: https://github.com/ngodat0103/dev-oops.git
       targetRevision: master
-      path: kubernetes/argocd/argocd-app/daemon/juicefs
+      path: kubernetes/argocd/argocd-app/platform/juicefs
 {{- end -}}

@@ -21,5 +21,5 @@ spec:
   source:
     repoURL: https://github.com/ngodat0103/dev-oops.git
     targetRevision: master
-    path: kubernetes/argocd/argocd-app/daemon/kube-prometheus-stack
+    path: kubernetes/argocd/argocd-app/platform/kube-prometheus-stack
 {{- end }}
