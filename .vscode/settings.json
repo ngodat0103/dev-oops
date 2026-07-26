@@ -1,66 +1,69 @@
 {
-        "yaml.schemas": {
-                "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/playbook": [
-                        "file:///home/akira/code/home-lab/ansible/services/main.yaml",
-                        "file:///home/akira/code/home-lab/ansible/nfs/1-nfs-linux.yaml",
-                        "file:///home/akira/code/home-lab/ansible/nfs/0-samba.yaml",
-                        "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/samba.yaml",
-                        "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/observation%20and%20monitoring/grafana/0-manage.yaml",
-                        "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/observation-and-monitoring/grafana/0-manage.yaml",
-                        "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/apps/0-network.yaml",
-                        "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/apps/2-qbittorrent.yaml",
-                        "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/iptables.yaml",
-                        "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/apps/3-vaultwarden.yaml",
-                        "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/apps/4-traefik.yaml",
-                        "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/apps/5-gitlab.yaml",
-                        "file:///home/akira/code/home-lab/ansible/proxmox/repositories.yaml",
-                        "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/observation-and-monitoring/loki/main.yaml",
-                        "file:///home/akira/code/home-lab/ansible/proxmox/alloy.yaml",
-                        "file:///home/akira/code/home-lab/ansible/core/lxc/postgresql/apt.yaml",
-                        "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/apps/traefik.yaml",
-                        "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/apps/qbittorrent.yaml",
-                        "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/observation-and-monitoring/prometheus/0-manage.yaml",
-                        "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/basic/nfs.yaml"
-                ],
-                "https://json.schemastore.org/traefik-v2.json": [
-                        "file:///home/akira/code/home-lab/ansible/docker/services/files/traefik.yaml",
-                        "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/apps/files/traefik/dynamic.yaml"
-                ],
-                "https://json.schemastore.org/github-action.json": "file:///home/akira/code/home-lab/.github/ci.yaml",
-                "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/vars.json": "file:///home/akira/code/home-lab/ansible/service/postgresql/vars.yml",
-                "https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/postgresql.cnpg.io/database_v1.json": [
-                        "databases/*.yaml"
-                ],
-                "https://www.schemastore.org/kustomization.json": "file:///home/akira/code/home-lab/k3s/traefik/secret.yaml",
-                "file:///home/akira/code/home-lab/k3s/redis/json-schema/redis_redis_redis_opstreelabs_in_schema_v0.json": [
-                        "/home/akira/code/home-lab/k3s/redis/redis-standalone.yaml"
-                ],
-                "https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/argoproj.io/application_v1alpha1.json": [
-                        "*/argo-app.yaml"
-                ],
-                "kubernetes://schema/apps/v1%40statefulset": "file:///home/akira/code/home-lab/k3s/qbittorrent/stateful.yaml",
-                "kubernetes://schema/v1@service": "file:///home/akira/code/home-lab/k3s/qbittorrent/service.yaml",
-                "kubernetes://schema/v1@persistentvolumeclaim": "file:///home/akira/code/home-lab/k3s/qbittorrent/pvc.yaml",
-                "kubernetes://schema/v1@persistentvolume": "file:///home/akira/code/home-lab/k3s/qbittorrent/movie-pv.yaml",
-                "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.31.6/ingress-networking-v1.json": [
-                        "*/ingress.yaml"
-                ],
-                "https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/argoproj.io/appproject_v1alpha1.json": [
-                        "**/argocd/projects/*.yaml"
-                ],
-                "https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/argoproj.io/applicationset_v1alpha1.json": [
-                        "**/application-set.yaml"
-                ],
-                "https://raw.githubusercontent.com/canonical/cloud-init/refs/tags/25.1.2/cloudinit/config/schemas/schema-cloud-config-v1.json": [
-                        "**/cloud-init/*.yaml"
-                ],
-                "https://www.schemastore.org/yamllint.json": "file:///home/akira/code/home-lab/ansible/kubernetes/config/ip-pool.yaml",
-                "https://raw.githubusercontent.com/traefik/traefik-helm-chart/refs/tags/v37.0.0/traefik/values.yaml": "file:///home/akira/code/home-lab/k3s/traefik/values.yaml",
-                "https://raw.githubusercontent.com/rancher/rancher/refs/tags/v2.12.1/chart/values.schema.json": "file:///home/akira/code/home-lab/k3s/argocd/argocd-app/stateful/rancher/values.yaml",
-                "https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/postgresql.cnpg.io/cluster_v1.json": "file:///home/akira/code/home-lab/kubernetes/argocd/argocd-app/stateful/postgresql/raw-manifests/instance.yaml",
-                "https://raw.githubusercontent.com/compose-spec/compose-go/master/schema/compose-spec.json": "file:///home/akira/code/home-lab/ansible/core/vpn-server/files/openvpn.yaml",
-                "https://www.schemastore.org/loki.json": "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/observation-and-monitoring/loki/loki-config.yaml",
-                "https://json.schemastore.org/traefik-v3-file.json": "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/apps/files/traefik/traefik.yaml"
-        },
-        "ansible.python.interpreterPath": "/bin/python3",
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/playbook": [
+      "file:///home/akira/code/home-lab/ansible/services/main.yaml",
+      "file:///home/akira/code/home-lab/ansible/nfs/1-nfs-linux.yaml",
+      "file:///home/akira/code/home-lab/ansible/nfs/0-samba.yaml",
+      "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/samba.yaml",
+      "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/observation%20and%20monitoring/grafana/0-manage.yaml",
+      "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/observation-and-monitoring/grafana/0-manage.yaml",
+      "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/apps/0-network.yaml",
+      "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/apps/2-qbittorrent.yaml",
+      "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/iptables.yaml",
+      "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/apps/3-vaultwarden.yaml",
+      "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/apps/4-traefik.yaml",
+      "file:///home/akira/code/home-lab/ansible/vm/ubuntu-server/apps/5-gitlab.yaml",
+      "file:///home/akira/code/home-lab/ansible/proxmox/repositories.yaml",
+      "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/observation-and-monitoring/loki/main.yaml",
+      "file:///home/akira/code/home-lab/ansible/proxmox/alloy.yaml",
+      "file:///home/akira/code/home-lab/ansible/core/lxc/postgresql/apt.yaml",
+      "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/apps/traefik.yaml",
+      "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/apps/qbittorrent.yaml",
+      "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/observation-and-monitoring/prometheus/0-manage.yaml",
+      "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/basic/nfs.yaml"
+    ],
+    "https://json.schemastore.org/traefik-v2.json": [
+      "file:///home/akira/code/home-lab/ansible/docker/services/files/traefik.yaml",
+      "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/apps/files/traefik/dynamic.yaml"
+    ],
+    "https://json.schemastore.org/github-action.json": "file:///home/akira/code/home-lab/.github/ci.yaml",
+    "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/vars.json": "file:///home/akira/code/home-lab/ansible/service/postgresql/vars.yml",
+    "https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/postgresql.cnpg.io/database_v1.json": [
+      "databases/*.yaml"
+    ],
+    "https://www.schemastore.org/kustomization.json": "file:///home/akira/code/home-lab/k3s/traefik/secret.yaml",
+    "file:///home/akira/code/home-lab/k3s/redis/json-schema/redis_redis_redis_opstreelabs_in_schema_v0.json": [
+      "/home/akira/code/home-lab/k3s/redis/redis-standalone.yaml"
+    ],
+    "https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/argoproj.io/application_v1alpha1.json": [
+      "*/argo-app.yaml"
+    ],
+    "kubernetes://schema/apps/v1%40statefulset": "file:///home/akira/code/home-lab/k3s/qbittorrent/stateful.yaml",
+    "kubernetes://schema/v1@service": "file:///home/akira/code/home-lab/k3s/qbittorrent/service.yaml",
+    "kubernetes://schema/v1@persistentvolumeclaim": "file:///home/akira/code/home-lab/k3s/qbittorrent/pvc.yaml",
+    "kubernetes://schema/v1@persistentvolume": "file:///home/akira/code/home-lab/k3s/qbittorrent/movie-pv.yaml",
+    "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/refs/heads/master/v1.31.6/ingress-networking-v1.json": [
+      "*/ingress.yaml"
+    ],
+    "https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/argoproj.io/appproject_v1alpha1.json": [
+      "**/argocd/projects/*.yaml"
+    ],
+    "https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/argoproj.io/applicationset_v1alpha1.json": [
+      "**/application-set.yaml"
+    ],
+    "https://raw.githubusercontent.com/canonical/cloud-init/refs/tags/25.1.2/cloudinit/config/schemas/schema-cloud-config-v1.json": [
+      "**/cloud-init/*.yaml"
+    ],
+    "https://www.schemastore.org/yamllint.json": "file:///home/akira/code/home-lab/ansible/kubernetes/config/ip-pool.yaml",
+    "https://raw.githubusercontent.com/traefik/traefik-helm-chart/refs/tags/v37.0.0/traefik/values.yaml": "file:///home/akira/code/home-lab/k3s/traefik/values.yaml",
+    "https://raw.githubusercontent.com/rancher/rancher/refs/tags/v2.12.1/chart/values.schema.json": "file:///home/akira/code/home-lab/k3s/argocd/argocd-app/stateful/rancher/values.yaml",
+    "https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/postgresql.cnpg.io/cluster_v1.json": "file:///home/akira/code/home-lab/kubernetes/argocd/argocd-app/stateful/postgresql/raw-manifests/instance.yaml",
+    "https://raw.githubusercontent.com/compose-spec/compose-go/master/schema/compose-spec.json": "file:///home/akira/code/home-lab/ansible/core/vpn-server/files/openvpn.yaml",
+    "https://www.schemastore.org/loki.json": "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/observation-and-monitoring/loki/loki-config.yaml",
+    "https://json.schemastore.org/traefik-v3-file.json": "file:///home/akira/code/home-lab/ansible/core/ubuntu-server/apps/files/traefik/traefik.yaml"
+  },
+  "ansible.python.interpreterPath": "/bin/python3",
+  "files.associations": {
+    "cluster.yaml": "yaml"
+  }
 }

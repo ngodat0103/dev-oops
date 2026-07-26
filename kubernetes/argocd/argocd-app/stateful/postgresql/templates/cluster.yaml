@@ -1,4 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/postgresql.cnpg.io/cluster_v1.json
+
+# https://cloudnative-pg.io/docs/1.30/cloudnative-pg.v1#cluster
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -6,13 +8,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
-  imageName: ghcr.io/cloudnative-pg/postgresql:16.13
-  affinity:
-    tolerations:
-    - effect: NoSchedule
-      key: heavy-node
-      operator: Equal
-      value: 'true'
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.14
   postgresql:
     parameters:
       # ---------- Memory (sized for 2GB container) ----------
