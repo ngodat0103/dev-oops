@@ -1,0 +1,82 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/ngodat0103/argus
+  # Leave empty to track the chart's appVersion (single source of truth).
+  # Override only to pin a different tag than the chart's appVersion.
+  tag: ""
+  pullPolicy: Always
+
+serviceAccount:
+  # Create the ServiceAccount, ClusterRole and ClusterRoleBinding.
+  create: true
+  name: argus
+
+rbac:
+  create: true
+
+service:
+  type: ClusterIP
+  port: 3103
+
+# Container port the app listens on (Spring server.port).
+containerPort: 3103
+
+resources:
+  requests:
+    cpu: "0.3"
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+# Non-secret environment, rendered into the argus-config ConfigMap.
+config:
+  SPRING_PROFILES_ACTIVE: "prod"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgresql-rw.prod-postgresql:5432/argus"
+  DEEPSEEK_BASE_URL: "https://api.deepseek.com"
+  DISCOVERY_NAMESPACES: "kube-prometheus-stack,loki"
+
+# Secret is created out-of-band (see deploy/create-secret.sh); the chart only
+# references it by name via envFrom.
+secret:
+  name: argus-secrets
+
+prometheus:
+  scrape: true
+  path: /actuator/prometheus
+  port: 3103
+
+# GitHub App configuration. The App id and key path are non-secret and rendered
+# into the ConfigMap (bound via Spring relaxed binding: GITHUB_APP_ID ->
+# github.app.id, GITHUB_APP_PRIVATE_KEY_PATH -> github.app.private-key-path).
+# The webhook secret (github.app.secret) comes from GITHUB_APP_SECRET in the
+# argus-secrets Secret. The private key .pem is mounted as a file from a Secret
+# created out-of-band (see create-secret.sh) at privateKeyPath.
+github:
+  app:
+    id: "Iv23lirGQCm3fWiXsGzk"
+    privateKeyPath: /etc/argus/github/private-key.pem
+    tokenRefreshMargin: "10m"
+    privateKeySecret:
+      name: argus-secrets
+      key: private-key.pem
+
+# Writable, disk-backed scratch space mounted at /tmp. Argus clones repos into
+# temp dirs there (DocsAgent), so it must be writable; an emptyDir keeps that
+# churn off the container's root layer and on node disk.
+tmp:
+  sizeLimit: 2Gi
+
+# Public GitHub webhook endpoint. Traefik terminates TLS via its Let's Encrypt
+# certResolver (no cert-manager issuer / spec.tls block needed).
+ingress:
+  enabled: true
+  className: traefik
+  host: argus.datrollout.dev
+  path: /webhook
+  pathType: Prefix
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt

@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "argus.name" . }}
+  labels:
+    {{- include "argus.labels" . | nindent 4 }}
+spec:
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "argus.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "argus.labels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: {{ .Values.prometheus.scrape | quote }}
+        prometheus.io/path: {{ .Values.prometheus.path | quote }}
+        prometheus.io/port: {{ .Values.prometheus.port | quote }}
+    spec:
+      serviceAccountName: {{ include "argus.serviceAccountName" . }}
+      containers:
+        - name: {{ include "argus.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.containerPort }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "argus.name" . }}-config
+            - secretRef:
+                name: {{ .Values.secret.name }}
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: github-app-key
+              mountPath: {{ .Values.github.app.privateKeyPath | quote }}
+              subPath: {{base .Values.github.app.privateKeyPath}}
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: github-app-key
+          secret:
+            secretName: {{ .Values.github.app.privateKeySecret.name }}
+            defaultMode: 0400
+            items:
+              - key: {{ .Values.github.app.privateKeySecret.key }}
+                path: {{ base .Values.github.app.privateKeyPath }}
+        - name: tmp
+          emptyDir:
+            {{- with .Values.tmp.sizeLimit }}
+            sizeLimit: {{ . }}
+            {{- end }}

@@ -19,7 +19,7 @@ spec:
     namespace: argus
     name: in-cluster
   source:
-    repoURL: https://github.com/ngodat0103/argus
-    targetRevision: "master"
-    path: deploy
+    repoURL: https://github.com/ngodat0103/home-lab.git
+    targetRevision: master
+    path: kubernetes/argocd/argocd-app/platform/argus
 {{- end }}

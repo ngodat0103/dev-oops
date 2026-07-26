@@ -1,0 +1,6 @@
+# Patterns to ignore when packaging the chart.
+.git/
+.gitignore
+*.md
+# Secret is created out-of-band, not part of the chart.
+create-secret.sh

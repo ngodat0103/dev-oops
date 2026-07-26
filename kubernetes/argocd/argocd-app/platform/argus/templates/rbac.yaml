@@ -1,0 +1,90 @@
+{{- if .Values.rbac.create -}}
+# ClusterRole grants read access to cluster-wide resources that Argus
+# inspects via its Fabric8 Kubernetes client (workloads, config, secrets,
+# events, logs, networking, scheduling diagnostics, and the metrics API).
+# Secret values are never returned to the LLM in plaintext: the SecretTool
+# masks values and only exposes key names, byte length, sha256 fingerprint,
+# and an edges-safe preview for sufficiently long printable values.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "argus.name" . }}
+  labels:
+    {{- include "argus.labels" . | nindent 4 }}
+rules:
+  # Core workload & scheduling
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - nodes
+      - services
+      - endpoints
+      - configmaps
+      - secrets
+      - events
+      - namespaces
+      - replicationcontrollers
+      - persistentvolumes
+      - persistentvolumeclaims
+    verbs: ["get", "list", "watch"]
+
+  # Batch workloads
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["get", "list", "watch"]
+
+  # Apps workloads
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+      - replicasets
+    verbs: ["get", "list", "watch"]
+
+  # Networking
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - ingresses
+      - networkpolicies
+    verbs: ["get", "list", "watch"]
+
+  # Metrics API (kubectl top / HPA / MetricsResourceTool)
+  - apiGroups: ["metrics.k8s.io"]
+    resources:
+      - nodes
+      - pods
+    verbs: ["get", "list"]
+
+  # Live connectivity probe (probeConnectivityFromPod in NetworkingDebuggingTools).
+  # Argus spins up an ephemeral nicolaka/netshoot pod that mirrors a reference
+  # workload, execs nslookup/ping/nc against a target, then deletes the pod.
+  # Every probe is self-contained — the pod is always removed in a finally
+  # block. The verbs below are the minimum required for that lifecycle.
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs: ["create", "delete", "deletecollection"]
+  - apiGroups: [""]
+    resources:
+      - pods/exec
+    verbs: ["create", "get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "argus.name" . }}
+  labels:
+    {{- include "argus.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "argus.name" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "argus.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
