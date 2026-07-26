@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-grafana-dashboard
+  labels:
+    grafana_dashboard: "1"
+## Download from https://grafana.com/grafana/dashboards/17347-traefik-official-kubernetes-dashboard/
+data:
+  dashboard.json: |-
+{{- .Files.Get "files/dashboard.json" | nindent 4 }}

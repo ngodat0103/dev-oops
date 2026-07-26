@@ -1,14 +1,4 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: traefik-grafana-dashboard
-  namespace: kube-prometheus-stack
-  labels:
-    grafana_dashboard: "1"
-## Download from https://grafana.com/grafana/dashboards/17347-traefik-official-kubernetes-dashboard/
-data:
-  dashboard.json: |-
-    {
+ {
       "__inputs": [
         {
           "name": "DS_PROMETHEUS",

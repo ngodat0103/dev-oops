@@ -18,20 +18,10 @@ spec:
     syncOptions: [ "ServerSideApply=true", "CreateNamespace=true" ]
     automated:
       enabled: false
+      selfHeal: true
       prune: true
-  sources:
-  - repoURL: https://traefik.github.io/charts
-    targetRevision: 37.4.0
-    chart: traefik
-    helm:
-      valueFiles:
-        - "$config/kubernetes/argocd/argocd-app/stateless/traefik/values.yaml"
-  - repoURL: https://github.com/ngodat0103/home-lab.git
+  source:
+    repoURL: https://github.com/ngodat0103/home-lab.git
     targetRevision: master
-    directory:
-      recurse: true
-    path: kubernetes/argocd/argocd-app/stateless/traefik
-  - repoURL: https://github.com/ngodat0103/home-lab.git
-    targetRevision: master
-    ref: config
+    path: kubernetes/argocd/argocd-app/platform/traefik
 {{- end }}
