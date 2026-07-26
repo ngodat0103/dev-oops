@@ -1,0 +1,10 @@
+## Todo If else with create here
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{.Values.alloy.alloy.configMap.name}}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+data:
+  config.alloy: |
+{{- .Files.Get "files/config.alloy" | nindent 4 }}

@@ -65,5 +65,7 @@
   "ansible.python.interpreterPath": "/bin/python3",
   "files.associations": {
     "cluster.yaml": "yaml"
-  }
+  },
+  "editor.tabSize": 2,
+  "editor.detectIndentation": false
 }

@@ -1,0 +1,84 @@
+discovery.kubernetes "pod" {
+        role = "pod"
+        // Restrict to pods on the same node to reduce resource usage
+        selectors {
+        role = "pod"
+        field = "spec.nodeName=" + coalesce(sys.env("HOSTNAME"), constants.hostname)
+        }
+}
+
+// Relabel and filter discovered pods
+discovery.relabel "pod_logs" {
+        targets = discovery.kubernetes.pod.targets
+
+        rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        action = "replace"
+        target_label = "namespace"
+        }
+
+        rule {
+        source_labels = ["__meta_kubernetes_pod_name"]
+        action = "replace"
+        target_label = "pod"
+        }
+
+        rule {
+        source_labels = ["__meta_kubernetes_pod_container_name"]
+        action = "replace"
+        target_label = "container"
+        }
+
+        rule {
+        source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+        action = "replace"
+        target_label = "__path__"
+        separator = "/"
+        replacement = "/var/log/pods/*$1/*.log"
+        }
+}
+
+// Tail logs from Kubernetes pods
+loki.source.kubernetes "pod_logs" {
+  targets = discovery.relabel.pod_logs.output
+  forward_to = [loki.write.default.receiver]
+}
+
+// --- etcd systemd journal logs (control-plane / master nodes only) ---
+// Requires `mounts.varlog: true` in the Alloy Helm values so the host's
+// /var/log (and therefore /var/log/journal, if journald persistent storage
+// is enabled) is visible inside the container.
+// On worker nodes this simply matches nothing — etcd.service doesn't exist
+// in their journal — so it's safe to leave in the shared DaemonSet config.
+loki.source.journal "etcd" {
+  path          = "/var/log/journal"
+  matches       = "_SYSTEMD_UNIT=etcd.service"
+  max_age       = "12h"
+  relabel_rules = loki.relabel.etcd.rules
+  forward_to    = [loki.write.default.receiver]
+
+  labels = {
+    job = "etcd",
+  }
+}
+
+loki.relabel "etcd" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+
+  rule {
+    source_labels = ["__journal__hostname"]
+    target_label  = "hostname"
+  }
+}
+
+// Configure Loki endpoint
+loki.write "default" {
+        endpoint {
+        url = "http://loki.loki:3100/loki/api/v1/push"
+  }
+}
