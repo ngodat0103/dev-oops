@@ -1,4 +1,5 @@
 traefik:
+  # https://artifacthub.io/packages/helm/traefik/traefik/41.0.2?modal=values
   deployment:
     enabled: true
     kind: Deployment
@@ -53,6 +54,9 @@ traefik:
     rollingUpdate:
       maxUnavailable: 0
       maxSurge: 1
+  ingressRoute:
+    dashboard:
+      enabled: true
   providers:
     # @schema additionalProperties: false
     kubernetesCRD:
@@ -123,59 +127,9 @@ traefik:
       enabled: false
       # -- Allows Traefik to automatically watch for file changes
       watch: true
-      # -- File content (YAML format, go template supported) (see https://doc.traefik.io/traefik/providers/file/)
-      content: ""
-
-  logs:
-    general:
-      # -- Set [logs format](https://doc.traefik.io/traefik/observability/logs/#format)
-      format:
-        # @schema enum:["common", "json", null]; type:[string, null]; default: "common"
-        # By default, the level is set to INFO.
-
-      # -- Alternative logging levels are TRACE, DEBUG, INFO, WARN, ERROR, FATAL, and PANIC.
-      level: "WARN" # @schema enum:[TRACE,DEBUG,INFO,WARN,ERROR,FATAL,PANIC]; default: "INFO"
-      # -- To write the logs into a log file, use the filePath option.
-      filePath: ""
-      # -- When set to true and format is common, it disables the colorized output.
-      noColor: false
-    access:
-      # -- To enable access logs
-      enabled: true
-      # -- Set [access log format](https://doc.traefik.io/traefik/observability/access-logs/#format)
-      format:
-        # @schema enum:["common", "json", null]; type:[string, null]; default: "common"
-        # filePath: "/var/log/traefik/access.log
-
-      # -- Set [bufferingSize](https://doc.traefik.io/traefik/observability/access-logs/#bufferingsize)
-      bufferingSize:
-        # @schema type:[integer, null]
-        # -- Set [timezone](https://doc.traefik.io/traefik/observability/access-logs/#time-zones)
-
-      timezone: "Asia/Ho_Chi_Minh"
-      # -- Set [filtering](https://docs.traefik.io/observability/access-logs/#filtering)
-      filters:
-        # @schema additionalProperties: false
-        # -- Set statusCodes, to limit the access logs to requests with a status codes in the specified range
-        statuscodes: ""
-        # -- Set retryAttempts, to keep the access logs when at least one retry has happened
-        retryattempts: false
-        # -- Set minDuration, to keep access logs when requests take longer than the specified duration
-        minduration: ""
-      # -- Enables accessLogs for internal resources. Default: false.
-      addInternals: false
-      fields:
-        general:
-          # -- Set default mode for fields.names
-          defaultmode: keep # @schema enum:[keep, drop, redact]; default: keep
-          # -- Names of the fields to limit.
-          names: {}
-        # -- [Limit logged fields or headers](https://doc.traefik.io/traefik/observability/access-logs/#limiting-the-fieldsincluding-headers)
-        headers:
-          # -- Set default mode for fields.headers
-          defaultmode: drop # @schema enum:[keep, drop, redact]; default: drop
-          names: {}
-
+  accessLog:
+    enabled: true
+    timezone: Asia/Ho_Chi_Minh
   metrics:
     # -- Enable metrics for internal resources. Default: false
     addInternals: true
@@ -558,11 +512,6 @@ traefik:
     # Enable user-facing roles
     # https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles
     aggregateTo: []
-
-  # -- Enable to create a PodSecurityPolicy and assign it to the Service Account via RoleBinding or ClusterRoleBinding
-  podSecurityPolicy:
-    enabled: false
-
   # -- The service account the pods will use to interact with the Kubernetes API
   serviceAccount:
     # @schema additionalProperties: false
