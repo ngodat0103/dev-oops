@@ -71,7 +71,7 @@ tmp:
 # Public GitHub webhook endpoint. Traefik terminates TLS via its Let's Encrypt
 # certResolver (no cert-manager issuer / spec.tls block needed).
 ingress:
-  enabled: true
+  enabled: false
   className: traefik
   host: argus.datrollout.dev
   path: /webhook
