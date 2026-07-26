@@ -1,12 +1,4 @@
 traefik:
-  topologySpreadConstraints:
-  - labelSelector:
-      matchLabels:
-        app.kubernetes.io/name: '{{ template "traefik.name" . }}'
-        app.kubernetes.io/instance: '{{ .Release.Name }}-{{ include "traefik.namespace" . }}'
-    maxSkew: 1
-    topologyKey: kubernetes.io/hostname
-    whenUnsatisfiable: DoNotSchedule
   deployment:
     enabled: true
     kind: Deployment
@@ -56,51 +48,6 @@ traefik:
 
   api:
     dashboard: true
-  # -- Only dashboard & healthcheck IngressRoute are supported. It's recommended to create workloads CR outside of this Chart.
-  ingressRoute:
-    dashboard:
-      # -- Create an IngressRoute for the dashboard
-      enabled: true
-      # -- Additional ingressRoute annotations (e.g. for kubernetes.io/ingress.class)
-      annotations:
-        kubernetes.io/ingress.class: traefik
-      # -- Additional ingressRoute labels (e.g. for filtering IngressRoute by custom labels)
-      labels: {}
-      # -- The router match rule used for the dashboard ingressRoute
-      matchRule: PathPrefix(`/dashboard`) || PathPrefix(`/api`)
-      # -- The internal service used for the dashboard ingressRoute
-      services:
-      - name: api@internal
-        kind: TraefikService
-      # -- Specify the allowed entrypoints to use for the dashboard ingress route, (e.g. traefik, web, websecure).
-      # By default, it's using traefik entrypoint, which is not exposed.
-      # /!\ Do not expose your dashboard without any protection over the internet /!\
-      entryPoints: [ "traefik" ]
-      # -- Additional ingressRoute middlewares (e.g. for authentication)
-      middlewares: []
-      # -- TLS options (e.g. secret containing certificate)
-      tls: {}
-    healthcheck:
-      # -- Create an IngressRoute for the healthcheck probe
-      enabled: false
-      # -- Additional ingressRoute annotations (e.g. for kubernetes.io/ingress.class)
-      annotations: {}
-      # -- Additional ingressRoute labels (e.g. for filtering IngressRoute by custom labels)
-      labels: {}
-      # -- The router match rule used for the healthcheck ingressRoute
-      matchRule: PathPrefix(`/ping`)
-      # -- The internal service used for the healthcheck ingressRoute
-      services:
-      - name: ping@internal
-        kind: TraefikService
-      # -- Specify the allowed entrypoints to use for the healthcheck ingress route, (e.g. traefik, web, websecure).
-      # By default, it's using traefik entrypoint, which is not exposed.
-      entryPoints: [ "traefik" ]
-      # -- Additional ingressRoute middlewares (e.g. for authentication)
-      middlewares: []
-      # -- TLS options (e.g. secret containing certificate)
-      tls: {}
-
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:
@@ -159,9 +106,6 @@ traefik:
       experimentalChannel: false
       # -- Array of namespaces to watch. If left empty, Traefik watches all namespaces. . When using `rbac.namespaced`, it will watch helm release namespace and namespaces listed in this array.
       namespaces: []
-      # -- A label selector can be defined to filter on specific GatewayClass objects only.
-      labelselector: ""
-      # -- Defines whether to use Native Kubernetes load-balancing mode by default.
       nativeLBByDefault: false
       statusAddress:
         # -- This IP will get copied to the Gateway status.addresses, and currently only supports one IP value (IPv4 or IPv6).
@@ -441,16 +385,8 @@ traefik:
       targetPort:
         # @schema type:[string, integer, null]; minimum:0
         # The port protocol (TCP/UDP)
-
       protocol: TCP
       # -- See [upstream documentation](https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport)
-      nodePort: # @schema type:[integer, null]; minimum:0
-      redirections:
-        # -- Port Redirections
-        # Added in 2.2, one can make permanent redirects via entrypoints.
-        # Same sets of parameters: to, scheme, permanent and priority.
-        # https://docs.traefik.io/routing/entrypoints/#redirection
-        entryPoint: {}
       forwardedHeaders:
         # -- Trust forwarded headers information (X-Forwarded-*).
         trustedIPs:
@@ -500,17 +436,7 @@ traefik:
       targetPort:
         # @schema type:[string, integer, null]; minimum:0
         ## -- The port protocol (TCP/UDP)
-
       allowACMEByPass: false
-      http3:
-        ## -- Enable HTTP/3 on the entrypoint
-        ## Enabling it will also enable http3 experimental feature
-        ## https://doc.traefik.io/traefik/routing/entrypoints/#http3
-        ## There are known limitations when trying to listen on same ports for
-        ## TCP & UDP (Http3). There is a workaround in this chart using dual Service.
-        ## https://github.com/kubernetes/kubernetes/issues/47249#issuecomment-587960741
-        enabled: false
-        advertisedPort: # @schema type:[integer, null]; minimum:0
       forwardedHeaders:
         # -- Trust forwarded headers information (X-Forwarded-*).
         trustedIPs: []
@@ -520,31 +446,6 @@ traefik:
         trustedIPs: []
         insecure: false
       # -- See [upstream documentation](https://doc.traefik.io/traefik/routing/entrypoints/#transport)
-      transport:
-        respondingTimeouts:
-          readTimeout: # @schema type:[string, integer, null]
-          writeTimeout: # @schema type:[string, integer, null]
-          idleTimeout: # @schema type:[string, integer, null]
-        lifeCycle:
-          requestAcceptGraceTimeout: # @schema type:[string, integer, null]
-          graceTimeOut: # @schema type:[string, integer, null]
-        keepAliveMaxRequests: # @schema type:[integer, null]; minimum:0
-        keepAliveMaxTime:
-          # @schema type:[string, integer, null]
-          # --  See [upstream documentation](https://doc.traefik.io/traefik/routing/entrypoints/#tls)
-      tls:
-        enabled: true
-        options: ""
-        certResolver: ""
-        domains: []
-      # -- One can apply Middlewares on an entrypoint
-      # https://doc.traefik.io/traefik/middlewares/overview/
-      # https://doc.traefik.io/traefik/routing/entrypoints/#middlewares
-      # -- /!\ It introduces here a link between your static configuration and your dynamic configuration /!\
-      # It follows the provider naming convention: https://doc.traefik.io/traefik/providers/overview/#provider-namespace
-      #   - namespace-name1@kubernetescrd
-      #   - namespace-name2@kubernetescrd
-      middlewares: []
     metrics:
       # -- When using hostNetwork, use another port to avoid conflict with node exporter:
       # https://github.com/prometheus/prometheus/wiki/Default-port-allocations
@@ -559,9 +460,6 @@ traefik:
       # -- The port protocol (TCP/UDP)
       protocol: TCP
 
-  # -- TLS Options are created as [TLSOption CRDs](https://doc.traefik.io/traefik/https/tls/#tls-options)
-  # When using `labelSelector`, you'll need to set labels on tlsOption accordingly.
-  # See EXAMPLE.md for details.
   tlsOptions: {}
 
   # -- TLS Store are created as [TLSStore CRDs](https://doc.traefik.io/traefik/https/tls/#default-certificate). This is useful if you want to set a default certificate. See EXAMPLE.md for details.
@@ -660,8 +558,6 @@ traefik:
     # Enable user-facing roles
     # https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles
     aggregateTo: []
-    # List of Kubernetes secrets that are accessible for Traefik. If empty, then access is granted to every secret.
-    secretResourceNames: []
 
   # -- Enable to create a PodSecurityPolicy and assign it to the Service Account via RoleBinding or ClusterRoleBinding
   podSecurityPolicy:
