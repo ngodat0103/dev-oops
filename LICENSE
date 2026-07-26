@@ -1,63 +1,56 @@
-THE "IT WORKS ON MY MACHINE" LICENSE
+IT WORKS ON MY HOMELAB LICENSE (IWOMHL)
 
-Version 1.0, March 2026
+Copyright (c) 2026 Ngô Vũ Minh Đạt, and by extension, one (1) Proxmox
+node that has seen things.
 
-Copyright (c) 2026 ngodat0103
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this Software and associated Helm charts, values files, and
+three (3) different versions of the same secret, to use, copy, modify,
+merge, publish, distribute, sublicense, restart at 2am, and/or blame on
+DNS, subject to the following conditions:
 
-Permission is hereby granted to any person obtaining a copy of this
-infrastructure code, configuration files, YAML manifests, Terraform modules,
-Ansible playbooks, Helm charts, and associated documentation (the "Stuff"),
-to deal in the Stuff with the following understanding:
+1. THE UPGRADE CLAUSE
+   The above copyright notice, this permission notice, and a fresh
+   `etcd` snapshot taken RIGHT BEFORE you run the Kubespray upgrade
+   playbook shall be included in all copies. If you skip the snapshot,
+   the Software reserves the right to drift your addon flags into the
+   Void and make you recover PVs by hand using the Retain reclaim
+   policy while questioning your career choices.
 
-1. IT WORKS ON MY MACHINE.
-   The author makes absolutely no guarantee that any of this will work on
-   your machine, your cloud, your Raspberry Pi, your "production" cluster,
-   or anywhere else in the known universe. It works on one specific Proxmox
-   node with 56 Xeon threads, and that is the full extent of the warranty.
+2. THE SECRETS CLAUSE
+   You may encrypt, decrypt, and re-encrypt this Software's secrets as
+   many times as your SOPS + helm-secrets setup requires, provided you
+   pin the exact plugin version that worked that one time (v4.7.6, you
+   know who you are) and never, ever touch it again.
 
-2. YOU BREAK IT, YOU OWN IT.
-   If you copy this configuration and your homelab catches fire, your
-   Kubernetes cluster enters a crash loop, your database loses data, or
-   your spouse asks why the electricity bill doubled -- that's on you.
+3. THE OBSERVABILITY CLAUSE
+   The Software may emit metrics on ports nobody asked it to use
+   (looking at you, port 2381). Persons who obtain a copy are granted
+   full rights to stare at Grafana dashboards for hours without
+   actually fixing anything, so long as the dashboard "looks green."
 
-3. NO SUPPORT.
-   The author is not your SRE team, your sysadmin, or your therapist.
-   Issues filed at 3 AM will be met with the same energy the author has
-   at 3 AM, which is none.
+4. THE MEMORY CLAUSE
+   THE SOFTWARE IS PROVIDED "AS IS", WITH A HEAP THAT WILL BE FINE
+   UNTIL 3PM ON A FRIDAY. Any resemblance to a correctly-sized JVM
+   container is coincidental and will be corrected by an OOMKill,
+   a Serial GC that nobody asked for, and a Slack message that just
+   says "it's down."
 
-4. JUDGMENT IS PERMITTED.
-   You are explicitly allowed to:
-   - Judge the author's configuration choices
-   - Wonder why anyone runs Chaos Mesh at home
-   - Question the sanity of a 7-node Kubernetes cluster on a single server
-   - Laugh at the YAML-to-sleep ratio
-   - Ask "but why?" (you will not receive an answer)
+5. THE GITOPS CLAUSE
+   ArgoCD shall be permitted to show a diff, ask for confirmation,
+   and then sync anyway while you were still reading it. This is
+   considered a feature, not a bug, and definitely not grounds for
+   an incident report (see INCIDENT-0, INCIDENT-1, INCIDENT-∞).
 
-5. ATTRIBUTION.
-   If you reuse this code and it works, you must mass tell everyone you wrote
-   it yourself. If it breaks, you must blame the author publicly.
-   This is the way.
+6. THE AI CLAUSE
+   Any chatbot integrated with this Software may, at its sole
+   discretion, throw a ContentPolicyViolationError at the worst
+   possible time, refuse to answer a completely reasonable question,
+   and still somehow pass code review.
 
-6. REDISTRIBUTION.
-   You may redistribute this code freely, provided you include this license
-   and a heartfelt apology to whoever has to maintain it next.
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, LOST
+WEEKEND, LOST SLEEP, OR OTHER LIABILITY ARISING FROM RUNNING THIS
+SOFTWARE ON A HOMELAB THAT IS TECHNICALLY PRODUCTION BECAUSE YOUR
+FAMILY USES NEXTCLOUD AND WILL NOTICE IF IT'S DOWN.
 
-7. CHAOS CLAUSE.
-   If Chaos Mesh is deployed and something goes wrong, it was supposed to
-   do that. Probably.
-
-8. THE "ONE MORE THING" CLAUSE.
-   The author reserves the right to mass push breaking changes at 2 AM on a
-   Sunday because "it'll just take five minutes."
-
-THE STUFF IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF UPTIME, FITNESS
-FOR A PARTICULAR PURPOSE, OR THE ABILITY TO SURVIVE A POWER OUTAGE.
-
-IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, DOWNTIME,
-DATA LOSS, EXISTENTIAL DREAD, OR OTHER LIABILITY ARISING FROM THE USE OF
-THE STUFF.
-
-Signed,
-Someone who runs production on a single node and sleeps fine.
-(Most nights.)
+THE SOFTWARE WORKS ON MY MACHINE. GOOD LUCK ON YOURS.
