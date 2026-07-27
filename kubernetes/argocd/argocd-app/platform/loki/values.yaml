@@ -1,5 +1,12 @@
 loki:
+  monitoring:
+    serviceMonitor:
+      enabled: true
+    alerts:
+      enabled: true
   loki:
+    rulerConfig:
+      alertmanager_url: http://kube-prometheus-stack-alertmanager.kube-prometheus-stack:9093
     auth_enabled: false
     commonConfig:
       replication_factor: 1
