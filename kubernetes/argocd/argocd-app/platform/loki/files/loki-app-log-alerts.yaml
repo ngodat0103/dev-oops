@@ -1,0 +1,211 @@
+groups:
+# ---------------------------------------------------------------------
+# PostgreSQL (CNPG)
+# ---------------------------------------------------------------------
+- name: postgresql-log-alerts
+  rules:
+  # CNPG wraps raw postgres log lines in JSON with a nested `record` object.
+  # `| json` flattens nested keys with underscores: record_error_severity, etc.
+  - alert: PostgresErrorLogs
+    expr: |
+      sum(count_over_time(
+        {namespace="prod-postgresql", container="postgres"}
+          | json
+          | record_error_severity=~"ERROR|FATAL|PANIC"
+        [5m]
+      )) by (namespace, pod)
+      > 5
+    for: 5m
+    labels:
+      severity: warning
+      service: postgresql
+    annotations:
+      summary: "Postgres logging errors on {{ $labels.pod }}"
+      description: "{{ $labels.pod }} logged more than 5 ERROR/FATAL/PANIC lines in the last 5m."
+
+  - alert: PostgresDeadlockDetected
+    expr: |
+      sum(count_over_time(
+        {namespace="prod-postgresql", container="postgres"} |~ "deadlock detected"
+        [5m]
+      )) by (namespace, pod)
+      > 0
+    for: 0m
+    labels:
+      severity: warning
+      service: postgresql
+    annotations:
+      summary: "Deadlock detected on {{ $labels.pod }}"
+      description: "Postgres reported a deadlock in the last 5m — check {{ $labels.pod }} logs."
+
+  - alert: PostgresReplicationIssue
+    expr: |
+      sum(count_over_time(
+        {namespace="prod-postgresql", container="postgres"}
+          |~ "terminating walsender process|could not receive data from WAL stream|replication slot .* does not exist"
+        [5m]
+      )) by (namespace, pod)
+      > 0
+    for: 2m
+    labels:
+      severity: critical
+      service: postgresql
+    annotations:
+      summary: "Replication problem on {{ $labels.pod }}"
+      description: "Postgres logs indicate a replication stream issue on {{ $labels.pod }}."
+
+# ---------------------------------------------------------------------
+# Vaultwarden
+# ---------------------------------------------------------------------
+- name: vaultwarden-log-alerts
+  rules:
+  - alert: VaultwardenErrors
+    expr: |
+      sum(count_over_time(
+        {namespace="vaultwarden"} |~ "\\[ERROR\\]"
+        [5m]
+      )) by (namespace, pod)
+      > 3
+    for: 5m
+    labels:
+      severity: warning
+      service: vaultwarden
+    annotations:
+      summary: "Vaultwarden errors on {{ $labels.pod }}"
+      description: "More than 3 [ERROR] log lines from Vaultwarden in 5m."
+
+  - alert: VaultwardenLoginBruteForce
+    expr: |
+      sum(count_over_time(
+        {namespace="vaultwarden"} |~ "Username or password is incorrect"
+        [5m]
+      )) by (namespace, pod)
+      > 10
+    for: 1m
+    labels:
+      severity: warning
+      service: vaultwarden
+    annotations:
+      summary: "Possible brute-force attempt against Vaultwarden"
+      description: "More than 10 failed logins in 5m on {{ $labels.pod }}."
+
+  - alert: VaultwardenPanic
+    expr: |
+      sum(count_over_time(
+        {namespace="vaultwarden"} |~ "panicked at"
+        [1m]
+      )) by (namespace, pod)
+      > 0
+    for: 0m
+    labels:
+      severity: critical
+      service: vaultwarden
+    annotations:
+      summary: "Vaultwarden process panicked on {{ $labels.pod }}"
+      description: "Rust panic detected — the container likely restarted or is in a bad state."
+
+# ---------------------------------------------------------------------
+# Nextcloud
+# ---------------------------------------------------------------------
+- name: nextcloud-log-alerts
+  rules:
+  # Default nextcloud.log is JSON with numeric `level`: 0=debug 1=info 2=warning 3=error 4=fatal
+  - alert: NextcloudErrors
+    expr: |
+      sum(count_over_time(
+        {namespace="nextcloud"}
+          | json
+          | level=~"3|4"
+        [5m]
+      )) by (namespace, pod)
+      > 5
+    for: 5m
+    labels:
+      severity: warning
+      service: nextcloud
+    annotations:
+      summary: "Nextcloud logging errors on {{ $labels.pod }}"
+      description: "More than 5 error/fatal level log entries in 5m."
+
+  - alert: NextcloudCronFailure
+    expr: |
+      sum(count_over_time(
+        {namespace="nextcloud"}
+          | json
+          | app="cron"
+          | level=~"3|4"
+        [15m]
+      )) by (namespace, pod)
+      > 0
+    for: 0m
+    labels:
+      severity: warning
+      service: nextcloud
+    annotations:
+      summary: "Nextcloud cron job failing"
+      description: "The background cron job logged an error/fatal entry in the last 15m."
+
+  - alert: NextcloudLoginFailures
+    expr: |
+      sum(count_over_time(
+        {namespace="nextcloud"} |~ "Login failed"
+        [5m]
+      )) by (namespace, pod)
+      > 10
+    for: 1m
+    labels:
+      severity: warning
+      service: nextcloud
+    annotations:
+      summary: "Repeated failed logins on Nextcloud"
+      description: "More than 10 failed login attempts in 5m on {{ $labels.pod }}."
+
+# ---------------------------------------------------------------------
+# Jellyfin
+# ---------------------------------------------------------------------
+- name: jellyfin-log-alerts
+  rules:
+  - alert: JellyfinErrors
+    expr: |
+      sum(count_over_time(
+        {namespace="jellyfin"} |~ "\\[ERR\\]"
+        [5m]
+      )) by (namespace, pod)
+      > 5
+    for: 5m
+    labels:
+      severity: warning
+      service: jellyfin
+    annotations:
+      summary: "Jellyfin errors on {{ $labels.pod }}"
+      description: "More than 5 [ERR] log lines in 5m."
+
+  - alert: JellyfinFatal
+    expr: |
+      sum(count_over_time(
+        {namespace="jellyfin"} |~ "\\[FTL\\]"
+        [1m]
+      )) by (namespace, pod)
+      > 0
+    for: 0m
+    labels:
+      severity: critical
+      service: jellyfin
+    annotations:
+      summary: "Jellyfin fatal error on {{ $labels.pod }}"
+      description: "A [FTL] log entry was recorded — Jellyfin may have crashed or is unstable."
+
+  - alert: JellyfinTranscodeFailure
+    expr: |
+      sum(count_over_time(
+        {namespace="jellyfin"} |~ "(?i)ffmpeg.*(exited with code [1-9]|error)"
+        [10m]
+      )) by (namespace, pod)
+      > 2
+    for: 5m
+    labels:
+      severity: warning
+      service: jellyfin
+    annotations:
+      summary: "Repeated transcode failures on {{ $labels.pod }}"
+      description: "More than 2 ffmpeg transcode failures in 10m — check codec/hardware-accel config."
