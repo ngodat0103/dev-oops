@@ -1,4 +1,4 @@
-{{- if and (.Values.mongoOperator) (.Values.mongoOperator.enabled) -}}
+{{- if and (.Values.mongo) (.Values.mongo.enabled) -}}
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -12,7 +12,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/ngodat0103/dev-oops.git
-    path: kubernetes/charts/mongo-operator
+    path: kubernetes/argocd/argocd-app/stateful/mongo
     targetRevision: master
   destination:
     name: in-cluster
@@ -22,8 +22,6 @@ spec:
       enabled: false
       selfHeal: false
       prune: false
-    syncOptions:
-      - CreateNamespace=true
     retry:
       limit: 1
       backoff:

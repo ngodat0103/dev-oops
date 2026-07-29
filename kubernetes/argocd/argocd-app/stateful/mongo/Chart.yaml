@@ -1,0 +1,11 @@
+apiVersion: v2
+name: mongodb
+description: A Helm chart for Kubernetes
+version: 0.1.0
+appVersion: 1.9.1
+# https://www.mongodb.com/docs/kubernetes/current/release-notes/
+dependencies:
+- name: mongodb-kubernetes
+  # https://github.com/mongodb/helm-charts/blob/mongodb-kubernetes-1.9.1/charts/mongodb-kubernetes/values.yaml
+  version: 1.9.1
+  repository: https://mongodb.github.io/helm-charts

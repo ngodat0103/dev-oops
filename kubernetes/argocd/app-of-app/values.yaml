@@ -10,8 +10,8 @@ velero:
   enabled: true
 kubePrometheusStack:
   enabled: true
-mongoOperator:
-  enabled: false
+mongo:
+  enabled: true
 kafkaOperator:
   enabled: false
 customManifest:

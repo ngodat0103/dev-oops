@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-0-external
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 192.168.1.237
+spec:
+  type: LoadBalancer
+  publishNotReadyAddresses: true
+  selector:
+    statefulset.kubernetes.io/pod-name: mongodb-0
+  ports:
+  - name: mongodb
+    port: 27017
+    targetPort: 27017
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-1-external
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 192.168.1.238
+spec:
+  type: LoadBalancer
+  publishNotReadyAddresses: true
+  selector:
+    statefulset.kubernetes.io/pod-name: mongodb-1
+  ports:
+  - name: mongodb
+    port: 27017
+    targetPort: 27017
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-2-external
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 192.168.1.239
+spec:
+  type: LoadBalancer
+  publishNotReadyAddresses: true
+  selector:
+    statefulset.kubernetes.io/pod-name: mongodb-2
+  ports:
+  - name: mongodb
+    port: 27017
+    targetPort: 27017
