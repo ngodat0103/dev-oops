@@ -16,7 +16,7 @@ spec:
     name: in-cluster
   source:
     repoURL: https://github.com/kubernetes-csi/csi-driver-nfs.git
-    targetRevision: "v4.13.3"
+    targetRevision: "v4.13.4"
     path: deploy
     directory:
       exclude: "{csi-nfs-node-windows.yaml,storageclass.yaml,csi-snapshot-controller.yaml}" # Don't need StorageClass, I rather to configure manually to control
