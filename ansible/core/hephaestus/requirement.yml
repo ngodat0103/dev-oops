@@ -1,4 +1,0 @@
-# requirements.yml
-- name: githubixx.kubectl
-  src: https://github.com/githubixx/ansible-role-kubectl.git
-  version: 23.1.0+1.29.3
