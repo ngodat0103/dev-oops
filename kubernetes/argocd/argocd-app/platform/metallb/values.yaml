@@ -1,0 +1,7 @@
+metallb:
+  prometheus:
+    prometheusRule:
+      enabled: true
+    prometheus:
+      serviceMonitor:
+        enabled: true

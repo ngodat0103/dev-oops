@@ -5,7 +5,7 @@ metadata:
   name: metallb
   namespace: argocd
   labels:
-    applicationType: daemon
+    applicationType: platform
   finalizers:
   - resources-finalizer.argocd.argoproj.io
 spec:
@@ -20,13 +20,8 @@ spec:
       enabled: false
       selfHeal: false
       prune: false
-  sources:
-  - repoURL: https://metallb.github.io/metallb
-    targetRevision: 0.16.1
-    chart: metallb
-  - repoURL: https://github.com/ngodat0103/home-lab.git
+  source:
+    repoURL: https://github.com/ngodat0103/home-lab.git
     targetRevision: master
-    path: kubernetes/argocd/argocd-app/daemon/metallb/manifests
-    directory:
-      recurse: false
+    path: kubernetes/argocd/argocd-app/platform/metallb
 {{- end }}
