@@ -1,5 +1,5 @@
 kube-prometheus-stack:
-  #https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack/87.2.1?modal=values
+  #https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack/88.0.1?modal=values
   kubeEtcd:
     enabled: true
     endpoints:
@@ -98,6 +98,10 @@ kube-prometheus-stack:
       url: http://loki.loki.svc.cluster.local:3100
       version: 1
   prometheus:
+    service:
+      type: LoadBalancer
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: "192.168.1.233"
     prometheusSpec:
       scrapeInterval: 10s
       resources:
