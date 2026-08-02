@@ -1,6 +1,9 @@
 creation_rules:
 - path_regex: .*secrets.*\.yaml$
-  # homelab-local
-  unencrypted_regex: ^(apiVersion|kind|metadata|type|name|namespace|labels|annotations)$
+  encrypted_regex: '(?i)^(data|stringData)$|secret|password|passwd|pwd|token|api[-_]?key|access[-_]?key|private[-_]?key|secret[-_]?key|client[-_]?secret|credential|passphrase|connection[-_]?string|dsn|webhook|signing[-_]?key|encryption[-_]?key|cert(ificate)?'
+  age: >-
+    age1fuj3pug8qvqe3mlls0qjgysepn68gmqpcdk8dpsmpl7tq3fqydhqpu9p7p
+- path_regex: .*secret.*\.yaml$
+  encrypted_regex: '(?i)^(data|stringData)$|secret|password|passwd|pwd|token|api[-_]?key|access[-_]?key|private[-_]?key|secret[-_]?key|client[-_]?secret|credential|passphrase|connection[-_]?string|dsn|webhook|signing[-_]?key|encryption[-_]?key|cert(ificate)?'
   age: >-
     age1fuj3pug8qvqe3mlls0qjgysepn68gmqpcdk8dpsmpl7tq3fqydhqpu9p7p

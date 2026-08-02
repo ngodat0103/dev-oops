@@ -29,4 +29,8 @@ spec:
     repoURL: https://github.com/ngodat0103/dev-oops.git
     targetRevision: master
     path: kubernetes/argocd/argocd-app/platform/juicefs
+    helm:
+      valueFiles:
+      - values.yaml
+      - secrets://cloudflare-r2-prod-secret.enc.yaml
 {{- end -}}
