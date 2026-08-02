@@ -1,0 +1,77 @@
+#     # https://artifacthub.io/packages/helm/wener/juicefs-csi-driver/0.32.0?modal=values
+juicefs-csi-driver:
+  defaultMountImage:
+    ce: docker.io/juicedata/mount:ce-v1.4.0
+  controller:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 200m
+        memory: 128Mi
+      limits:
+        cpu: 1
+        memory: 256Mi
+  node:
+    tolerations:
+    - key: CriticalAddonsOnly
+      operator: Exists
+    resources:
+      requests:
+        cpu: 200m
+        memory: 128Mi
+      limits:
+        cpu: 1
+        memory: 256Mi
+  mountMode: mountpod
+  metrics:
+    enabled: true
+    port: 9567
+    service:
+      servicePort: 9567
+  globalConfig:
+    mountPodPatch:
+    - resources:
+        requests:
+          cpu: 300m
+          memory: 512Mi
+        limits:
+          memory: 1Gi
+      ceMountImage: "juicedata/mount:ce-v1.4.0"
+  webhook:
+    certManager:
+      enabled: false
+  storageClasses:
+  - name: "juicefs-sc-cloudflare-r2"
+    enabled: true
+    existingSecret: "cloudflare-r2"
+    reclaimPolicy: Retain
+    allowVolumeExpansion: true
+    mountOptions:
+    - cache-size=10240
+    - free-space-ratio=0.1
+    - prefetch=3
+    - max-readahead=67108864
+    - open-cache=3
+    - attr-cache=3
+    - entry-cache=3
+  dashboard:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 128Mi
+      limits:
+        cpu: 1
+        memory: 128Mi
+    ingress:
+      enabled: true
+      className: "traefik"
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
+        traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+      hosts:
+      - host: "juicefs.datrollout.dev"
+        paths:
+        - path: /
+          pathType: ImplementationSpecific

@@ -1,0 +1,10 @@
+apiVersion: v2
+name: juicefs
+description: A Helm chart for Kubernetes
+type: application
+version: 0.32.0
+appVersion: "1.4.0"
+dependencies:
+- name: juicefs-csi-driver
+  repository: https://charts.wener.tech
+  version: 0.32.0
