@@ -169,7 +169,7 @@ None. The lone `postgresql-16` LXC (`192.168.99.2`) was **removed** — producti
 
 ### Kubernetes Cluster (Production)
 
-Deployed via Kubespray (currently **v1.34.3**) and managed by ArgoCD app-of-apps. The repository currently includes a local Kubespray inventory under `ansible/kubernetes/kubespray/inventory/local/hosts.ini`; actual production node sizing/count may differ from this local inventory snapshot. See [The Kubernetes Situation](#the-kubernetes-situation) for migration status.
+Deployed via Kubespray (currently **v1.35.6**) and managed by ArgoCD app-of-apps. The repository currently includes a local Kubespray inventory under `ansible/kubernetes/kubespray/inventory/local/hosts.ini`; actual production node sizing/count may differ from this local inventory snapshot. See [The Kubernetes Situation](#the-kubernetes-situation) for migration status.
 
 | Role    | Count | IP Range            | vCPU | RAM   | Disk   |
 |---------|-------|---------------------|------|-------|--------|
