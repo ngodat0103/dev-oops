@@ -9,3 +9,61 @@ dependencies:
 - name: loki
   repository: https://grafana-community.github.io/helm-charts
   version: 18.5.4
+
+# For anyone else landing here confused (future me included): the Loki ruler + Grafana alerting UI setup has two separate, easy-to-conflate pieces, and the actual failure mode is subtle.
+
+# **Symptom:** `GET /loki/api/v1/rules` returns:
+# ```
+# 400 Bad Request
+# unable to read rule dir /var/loki/rules/fake: open /var/loki/rules/fake: no such file or directory
+# ```
+
+# **Root cause:** two separate things have to agree, and neither error message tells you the other one exists:
+
+# 1. Loki is multi-tenant by design. Even with `auth_enabled: false`, every internal storage path (chunks, index, and yes, ruler rules) is namespaced by tenant ID. With no `X-Scope-OrgID` header, Loki hardcodes the tenant to the literal string `fake`. So the ruler's local storage path always resolves to `<ruler.storage.local.directory>/fake/`, not the directory you configured, verbatim.
+# 2. If you're using the `k8s-sidecar` pattern to sync rules from ConfigMaps (since there's no `PrometheusRule`-equivalent CRD for Loki), the sidecar's `FOLDER` env and the ruler's `storage.local.directory` have to resolve to the *same path including the tenant subfolder* — otherwise the sidecar writes rules nobody reads, or the ruler looks for a directory that was never created.
+
+# **Working Helm values (grafana/loki chart, SingleBinary mode, `auth_enabled: false`):**
+# ```yaml
+# loki:
+#   sidecar:
+#     rules:
+#       folder: /rules/fake   # must match storage.local.directory + "/fake" tenant suffix
+#   loki:
+#     rulerConfig:
+#       enable_api: true
+#       alertmanager_url: http://<your-alertmanager-svc>:9093
+#       storage:
+#         type: local
+#         local:
+#           directory: /rules
+#       rule_path: /tmp/loki-rules-scratch
+#     auth_enabled: false
+# ```
+
+# Rule ConfigMaps need the label the sidecar watches for (default `loki_rule`), e.g.:
+# ```yaml
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: my-loki-rule
+#   labels:
+#     loki_rule: "true"
+# data:
+#   my-rule.yaml: |
+#     groups:
+#       - name: example
+#         rules:
+#           - alert: HighErrorLogRate
+#             expr: sum(rate({app="my-app"} |= "ERROR" [5m])) > 5
+#             for: 5m
+#             labels:
+#               severity: warning
+#             annotations:
+#               summary: High error log rate
+# ```
+
+
+# On the Grafana side, once the ruler is actually serving rules, the datasource just needs `jsonData.manageAlerts: true` for it to show up properly in the Alerting UI as a distinct rule-source group.
+
+# Verified working by curling `/loki/api/v1/rules` directly and confirming the rule group comes back as JSON instead of a 400.
