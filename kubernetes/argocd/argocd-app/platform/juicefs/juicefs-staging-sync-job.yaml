@@ -31,11 +31,11 @@ spec:
               readOnly: true
             resources:
               requests:
-                cpu: 500m
-                memory: 256Mi
-              limits:
                 cpu: 1000m
                 memory: 512Mi
+              limits:
+                cpu: 2000m
+                memory: 2Gi
           volumes:
           - name: rclone-config
             secret:
