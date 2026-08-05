@@ -1,5 +1,7 @@
 vaultwarden:
   # https://artifacthub.io/packages/helm/vaultwarden/vaultwarden/0.44.0?modal=values
+  image:
+    tag: "1.37.1-alpine"
   replicas: 2
   fullnameOverride: "vaultwarden"
   resourceType: "Deployment"

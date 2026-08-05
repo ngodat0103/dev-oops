@@ -3,7 +3,7 @@ name: vaultwarden
 description: A Helm chart for Kubernetes
 type: application
 version: "0.44.0"
-appVersion: "1.37.0"
+appVersion: "1.37.1"
 dependencies:
 - name: vaultwarden
   version: "0.44.0"
