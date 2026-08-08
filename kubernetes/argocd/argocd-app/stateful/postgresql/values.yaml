@@ -20,7 +20,12 @@ cnpgDatabases:
   juicefs: {}
   argus: {}
   crowsec: {}
-  teleport: {}
+  teleport-backend:
+    dbName: teleport_backend
+    owner: teleport
+  teleport-audit-event:
+    dbName: teleport_audit_event
+    owner: teleport
 cnpgRoleDefaults:
   clusterName: postgresql
   reclaimPolicy: retain
@@ -48,8 +53,8 @@ cnpgRoles:
     comment: "Role for crowsec"
     connectionLimit: 40
   teleport:
-    comment: "Roel for teleport"
-    connectionLimit: 60
+    comment: "Role for teleport"
+    connectionLimit: 30
   pgadmin_monitor:
     roleName: pgadmin_monitor
     passwordSecretName: pgadmin-monitor-credentials

@@ -29,12 +29,13 @@ spec:
       max_parallel_maintenance_workers: "2"
 
       # ---------- WAL & checkpoints ----------
+      wal_level: logical
       wal_buffers: "16MB"
       min_wal_size: "512MB"
       max_wal_size: "2GB"
       checkpoint_completion_target: "0.9"
       checkpoint_timeout: "15min" # fewer, longer checkpoints — less I/O spike
-
+      max_replication_slots: "10"
       # ---------- Autovacuum (critical for GitLab/SonarQube churn) ----------
       autovacuum: "on"
       autovacuum_max_workers: "3"
