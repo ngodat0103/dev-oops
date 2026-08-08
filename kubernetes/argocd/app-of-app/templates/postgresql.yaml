@@ -23,4 +23,8 @@ spec:
     repoURL: https://github.com/ngodat0103/home-lab.git
     targetRevision: master
     path: kubernetes/argocd/argocd-app/stateful/postgresql
+    helm:
+      valueFiles:
+        - values.yaml
+        - secrets://secrets.enc.yaml
 {{- end }}

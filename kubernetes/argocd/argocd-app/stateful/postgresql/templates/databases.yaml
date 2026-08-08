@@ -1,16 +1,16 @@
-# https://cloudnative-pg.io/docs/1.30/cloudnative-pg.v1#database
 {{- range $key, $val := .Values.cnpgDatabases }}
+{{- /* Ensure $val is at least an empty dict to avoid nil pointer issues */ -}}
 {{- $db := $val | default dict }}
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
   name: {{ $key }}
   annotations:
-    argocd.argoproj.io/sync-wave: {{ $db.syncWave | default $.Values.cnpgDefaults.syncWave | quote }}
+    argocd.argoproj.io/sync-wave: {{ ($db.syncWave | default $.Values.cnpgDefaults.syncWave) | quote }}
 spec:
   cluster:
-    name: {{ $db.clusterName | default $.Values.cnpgDefaults.clusterName }}
-  name: {{ $db.dbName | default $key }}
-  owner: {{ $db.owner | default $key }}
+    name: {{ $db.clusterName | default $.Values.cnpgDefaults.clusterName | quote }}
+  name: {{ $db.dbName | default $key | quote }}
+  owner: {{ $db.owner | default $key | quote }}
 ---
 {{- end }}

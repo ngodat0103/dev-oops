@@ -14,13 +14,13 @@ cnpgDatabases:
   gitlab:
     dbName: gitlabhq_production
     owner: gitlab
-  nextcloud:
-  sonarqube:
-  vaultwarden:
-  juicefs:
-  argus:
-  crowsec:
-  teleport:
+  nextcloud: {}
+  sonarqube: {}
+  vaultwarden: {}
+  juicefs: {}
+  argus: {}
+  crowsec: {}
+  teleport: {}
 cnpgRoleDefaults:
   clusterName: postgresql
   reclaimPolicy: retain
