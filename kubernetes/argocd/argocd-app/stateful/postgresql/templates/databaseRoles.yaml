@@ -1,3 +1,4 @@
+# https://cloudnative-pg.io/docs/1.30/cloudnative-pg.v1/#databaserole
 {{- range $key, $val := .Values.cnpgRoles }}
 {{- $role := $val | default dict }}
 ---
@@ -28,4 +29,9 @@ spec:
   {{- end }}
   passwordSecret:
     name: {{ $role.passwordSecretName | default $key }}
+  {{- if hasKey $role "replication" }}
+  replication: {{ $role.replication }}
+  {{- else }}
+  replication: false
+{{- end }}
 {{- end }}

@@ -52,3 +52,5 @@ chaosMesh:
   enabled: false
 eck:
   enabled: false
+teleport:
+  enabled: true

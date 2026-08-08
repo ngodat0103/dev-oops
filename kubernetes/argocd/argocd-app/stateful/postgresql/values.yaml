@@ -55,6 +55,7 @@ cnpgRoles:
   teleport:
     comment: "Role for teleport"
     connectionLimit: 30
+    replication: true
   pgadmin_monitor:
     roleName: pgadmin_monitor
     passwordSecretName: pgadmin-monitor-credentials

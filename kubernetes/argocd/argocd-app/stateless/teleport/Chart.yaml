@@ -1,0 +1,12 @@
+apiVersion: v2
+name: teleport
+description: A Helm chart for Kubernetes
+
+type: application
+version: "18.10.3"
+appVersion: "18.10.3"
+
+dependencies:
+- name: teleport-cluster
+  repository: https://charts.releases.teleport.dev
+  version: 18.10.3

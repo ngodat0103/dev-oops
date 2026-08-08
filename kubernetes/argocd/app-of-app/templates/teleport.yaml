@@ -1,0 +1,29 @@
+{{- if .Values.teleport.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: teleport
+  namespace: argocd
+  labels:
+    applicationType: stateless
+spec:
+  project: default
+  revisionHistoryLimit: 5
+  destination:
+    namespace: teleport
+    name: in-cluster
+  syncPolicy:
+    syncOptions: [ "CreateNamespace=true" ]
+    automated:
+      enabled: false
+      selfHeal: true
+      prune: true
+  source:
+    repoURL: https://github.com/ngodat0103/home-lab.git
+    targetRevision: master
+    path: kubernetes/argocd/argocd-app/stateless/teleport
+    helm:
+      valueFiles:
+        - "values.yaml"
+        - "secrets://secrets.enc.yaml"
+{{- end }}

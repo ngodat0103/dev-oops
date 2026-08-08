@@ -1,0 +1,45 @@
+# https://artifacthub.io/packages/helm/teleport-agent-kube/teleport-cluster?modal=values
+
+secrets:
+  pg-pass: "" # hostname:port:database:username:password # https://www.postgresql.org/docs/current/libpq-pgpass.html
+teleport-cluster:
+  proxyListenerMode: "multiplex"
+  clusterName: teleport.datrollout.dev
+  kubeClusterName: homelab
+  authentication:
+    localAuth: true
+    type: local
+    second_factor: otp
+  persistence:
+    enabled: false
+  auth:
+    extraVolumes:
+    - name: pg-pass
+      secret:
+        secretName: teleport
+    extraVolumeMounts:
+    - name: pg-pass
+      mountPath: /etc/pgpass
+      subPath: pg-pass
+    extraEnv:
+    - name: PGPASSFILE
+      value: /etc/pgpass
+    teleportConfig:
+      teleport:
+        cache:
+          enabled: false
+        storage:
+          type: postgresql
+          conn_string: postgresql://teleport@postgresql-rw.prod-postgresql:5432/teleport_backend?pool_max_conns=5&pool_min_conns=1&pool_max_conn_lifetime=1h&pool_max_conn_idle_time=15m
+          audit_events_uri: [ "postgresql://teleport@postgresql-rw.prod-postgresql:5432/teleport_audit_event?pool_max_conns=5&pool_min_conns=1&pool_max_conn_lifetime=1h&pool_max_conn_idle_time=15m" ]
+    auth_service:
+      enabled: "yes"
+      client_idle_timeout: 6h
+      client_idle_timeout_message: "Connection closed after 2 hours without activity"
+  # Service backing the proxy — since Traefik does passthrough, not a k8s Ingress,
+  # this MUST be ClusterIP (or NodePort). Default is LoadBalancer, which would
+  # try to provision another external IP via MetalLB — you don't want that here.
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
