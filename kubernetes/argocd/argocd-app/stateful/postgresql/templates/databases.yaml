@@ -1,83 +1,16 @@
+# https://cloudnative-pg.io/docs/1.30/cloudnative-pg.v1#database
+{{- range $key, $val := .Values.cnpgDatabases }}
+{{- $db := $val | default dict }}
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
-  name: gitlab
+  name: {{ $key }}
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: {{ $db.syncWave | default $.Values.cnpgDefaults.syncWave | quote }}
 spec:
   cluster:
-    name: "postgresql"
-  name: gitlabhq_production
-  owner: gitlab
+    name: {{ $db.clusterName | default $.Values.cnpgDefaults.clusterName }}
+  name: {{ $db.dbName | default $key }}
+  owner: {{ $db.owner | default $key }}
 ---
-apiVersion: postgresql.cnpg.io/v1
-kind: Database
-metadata:
-  name: nextcloud
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-spec:
-  cluster:
-    name: postgresql
-  name: nextcloud
-  owner: nextcloud
----
-apiVersion: postgresql.cnpg.io/v1
-kind: Database
-metadata:
-  name: sonarqube
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-spec:
-  cluster:
-    name: "postgresql"
-  name: sonarqube
-  owner: sonarqube
----
-apiVersion: postgresql.cnpg.io/v1
-kind: Database
-metadata:
-  name: vaultwarden
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-spec:
-  cluster:
-    name: "postgresql"
-  name: vaultwarden
-  owner: "vaultwarden"
----
-apiVersion: postgresql.cnpg.io/v1
-kind: Database
-metadata:
-  name: juicefs
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-spec:
-  cluster:
-    name: postgresql
-  name: juicefs
-  owner: juicefs
----
-apiVersion: postgresql.cnpg.io/v1
-kind: Database
-metadata:
-  name: argus
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-spec:
-  cluster:
-    name: postgresql
-  name: argus
-  owner: argus
----
-apiVersion: postgresql.cnpg.io/v1
-kind: Database
-metadata:
-  name: crowsec
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-spec:
-  cluster:
-    name: postgresql
-  name: crowsec
-  owner: crowsec
+{{- end }}

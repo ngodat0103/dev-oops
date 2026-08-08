@@ -6,3 +6,52 @@ cloudnative-pg:
         grafana_dashboard: "1"
   commonAnnotations:
     argocd.argoproj.io/sync-wave: "-1"
+
+cnpgDefaults:
+  clusterName: postgresql
+  syncWave: "2"
+cnpgDatabases:
+  gitlab:
+    dbName: gitlabhq_production
+    owner: gitlab
+  nextcloud:
+  sonarqube:
+  vaultwarden:
+  juicefs:
+  argus:
+  crowsec:
+  teleport:
+cnpgRoleDefaults:
+  clusterName: postgresql
+  reclaimPolicy: retain
+  syncWave: "1"
+cnpgRoles:
+  sonarqube:
+    comment: "Role for Sonarqube"
+    connectionLimit: 40
+  vaultwarden:
+    comment: "Role for Vaultwarden"
+    connectionLimit: 20
+  gitlab:
+    comment: "Role for Gitlab"
+    connectionLimit: 150
+  nextcloud:
+    comment: "Role for nextcloud"
+    connectionLimit: 30
+  juicefs:
+    comment: "Role for juicefs"
+    connectionLimit: 70
+  argus:
+    comment: "Role for Argus"
+    connectionLimit: 20
+  crowsec:
+    comment: "Role for crowsec"
+    connectionLimit: 40
+  teleport:
+    comment: "Roel for teleport"
+    connectionLimit: 60
+  pgadmin_monitor:
+    roleName: pgadmin_monitor
+    passwordSecretName: pgadmin-monitor-credentials
+    inRoles:
+    - pg_monitor

@@ -1,135 +1,31 @@
-# sonarqube
-apiVersion: postgresql.cnpg.io/v1
-kind: DatabaseRole
-metadata:
-  name: postgresql-sonarqube
-spec:
-  cluster:
-    name: postgresql
-  name: sonarqube
-  comment: "Role for Sonarqube"
-  login: true
-  superuser: false
-  connectionLimit: 40
-  databaseRoleReclaimPolicy: retain
-  passwordSecret:
-    name: sonarqube
+{{- range $key, $val := .Values.cnpgRoles }}
+{{- $role := $val | default dict }}
 ---
-# vaultwarden
 apiVersion: postgresql.cnpg.io/v1
 kind: DatabaseRole
 metadata:
-  name: postgresql-vaultwarden
+  name: {{ $role.metaName | default (printf "postgresql-%s" ($key | replace "_" "-")) }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ $role.syncWave | default $.Values.cnpgRoleDefaults.syncWave | quote }}
 spec:
   cluster:
-    name: postgresql
-  name: vaultwarden
-  comment: "Role for Vaultwarden"
+    name: {{ $role.clusterName | default $.Values.cnpgRoleDefaults.clusterName }}
+  name: {{ $role.roleName | default $key }}
+  {{- if $role.comment }}
+  comment: {{ $role.comment | quote }}
+  {{- end }}
   login: true
   superuser: false
-  connectionLimit: 20
-  databaseRoleReclaimPolicy: retain
-  passwordSecret:
-    name: vaultwarden
----
-# gitlab
-apiVersion: postgresql.cnpg.io/v1
-kind: DatabaseRole
-metadata:
-  name: postgresql-gitlab
-spec:
-  cluster:
-    name: postgresql
-  name: gitlab
-  comment: "Role for Gitlab"
-  login: true
-  superuser: false
-  connectionLimit: 150
-  databaseRoleReclaimPolicy: retain
-  passwordSecret:
-    name: gitlab
----
-# nextcloud
-apiVersion: postgresql.cnpg.io/v1
-kind: DatabaseRole
-metadata:
-  name: postgresql-nextcloud
-spec:
-  cluster:
-    name: postgresql
-  name: nextcloud
-  comment: "Role for nextcloud"
-  login: true
-  superuser: false
-  connectionLimit: 30
-  databaseRoleReclaimPolicy: retain
-  passwordSecret:
-    name: nextcloud
----
-# juicefs
-apiVersion: postgresql.cnpg.io/v1
-kind: DatabaseRole
-metadata:
-  name: postgresql-juicefs
-spec:
-  cluster:
-    name: postgresql
-  name: juicefs
-  comment: "Role for juicefs"
-  login: true
-  superuser: false
-  connectionLimit: 70
-  databaseRoleReclaimPolicy: retain
-  passwordSecret:
-    name: juicefs
----
-# argus
-apiVersion: postgresql.cnpg.io/v1
-kind: DatabaseRole
-metadata:
-  name: postgresql-argus
-spec:
-  cluster:
-    name: postgresql
-  name: argus
-  comment: "Role for Argus"
-  login: true
-  superuser: false
-  connectionLimit: 20
-  databaseRoleReclaimPolicy: retain
-  passwordSecret:
-    name: argus
----
-# crowsec
-apiVersion: postgresql.cnpg.io/v1
-kind: DatabaseRole
-metadata:
-  name: postgresql-crowsec
-spec:
-  cluster:
-    name: postgresql
-  name: crowsec
-  comment: "Role for crowsec"
-  login: true
-  superuser: false
-  connectionLimit: 40
-  databaseRoleReclaimPolicy: retain
-  passwordSecret:
-    name: crowsec
----
-# pgadmin_monitor
-apiVersion: postgresql.cnpg.io/v1
-kind: DatabaseRole
-metadata:
-  name: postgresql-pgadmin-monitor
-spec:
-  cluster:
-    name: postgresql
-  name: pgadmin_monitor
-  login: true
-  superuser: false
-  databaseRoleReclaimPolicy: retain
+  {{- if $role.connectionLimit }}
+  connectionLimit: {{ $role.connectionLimit }}
+  {{- end }}
+  databaseRoleReclaimPolicy: {{ $role.reclaimPolicy | default $.Values.cnpgRoleDefaults.reclaimPolicy }}
+  {{- if $role.inRoles }}
   inRoles:
-  - pg_monitor
+    {{- range $role.inRoles }}
+    - {{ . }}
+    {{- end }}
+  {{- end }}
   passwordSecret:
-    name: pgadmin-monitor-credentials
+    name: {{ $role.passwordSecretName | default $key }}
+{{- end }}
