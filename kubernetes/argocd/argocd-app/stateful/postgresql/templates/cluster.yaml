@@ -8,7 +8,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
-  imageName: ghcr.io/cloudnative-pg/postgresql:16.14
+  imageName: ghcr.io/ngodat0103/dev-oops/cnpg-postgresql-wal2json:16.14
   postgresql:
     parameters:
       # ---------- Memory (sized for 2GB container) ----------

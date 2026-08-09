@@ -1,0 +1,15 @@
+# Pin by digest, not just tag, for reproducibility — check
+# https://github.com/cloudnative-pg/postgresql/pkgs/container/postgresql
+# for the current digest matching your major.minor
+ARG CNPG_BASE_IMAGE=ghcr.io/cloudnative-pg/postgresql:16.14
+FROM ${CNPG_BASE_IMAGE}
+LABEL org.opencontainers.image.source="https://github.com/ngodat0103/dev-oops"
+LABEL org.opencontainers.image.description="CNPG PostgreSQL 16 image with wal2json for Teleport logical replication"
+LABEL org.opencontainers.image.licenses="PostgreSQL"
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        postgresql-16-wal2json=2.6-3.pgdg11+2 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+USER 26
