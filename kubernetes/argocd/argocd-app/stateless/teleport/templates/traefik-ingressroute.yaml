@@ -5,8 +5,10 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
+  ingressClassName: traefik
   entryPoints:
     - websecure
+    - web
   routes:
     - match: HostSNI(`teleport.datrollout.dev`)
       services:
