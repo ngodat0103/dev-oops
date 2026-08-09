@@ -9,6 +9,12 @@ metadata:
 spec:
   project: default
   syncPolicy:
+    retry:
+      limit: 1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
     syncOptions:
     - ServerSideApply=true
     - CreateNamespace=true
@@ -19,13 +25,12 @@ spec:
   destination:
     namespace: cert-manager
     name: in-cluster
-  sources:
-  - repoURL: https://charts.jetstack.io
-    chart: cert-manager
-    targetRevision: v1.20.3
+  source:
+    repoURL: https://github.com/ngodat0103/home-lab.git
+    targetRevision: master
+    path: kubernetes/argocd/argocd-app/platform/cert-manager
     helm:
-      values: |
-        crds:
-          enabled: true
-          keep: false
+      valueFiles:
+        - values.yaml
+        - secrets://secrets.enc.yaml
 {{- end }}

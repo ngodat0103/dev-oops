@@ -1,0 +1,6 @@
+secrets:
+  cloudflareAPIToken: ""
+cert-manager:
+  crds:
+    enabled: true
+    keep: false

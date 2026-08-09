@@ -12,6 +12,8 @@ teleport-cluster:
     second_factor: otp
   persistence:
     enabled: false
+  tls:
+    existingSecretName: "teleport-tls"
   auth:
     extraVolumes:
     - name: pg-pass

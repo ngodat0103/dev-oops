@@ -1,0 +1,23 @@
+kind: role
+version: v7
+metadata:
+  name: superadmin
+spec:
+  allow:
+    node_labels:
+      '*': '*'
+    kubernetes_labels:
+      '*': '*'
+    db_labels:
+      '*': '*'
+    app_labels:
+      '*': '*'
+    logins:
+    - akira
+    kubernetes_groups:
+    - system:masters
+    rules:
+    - resources: [ '*' ]
+      verbs: [ '*' ]
+  options:
+    max_session_ttl: 6h
