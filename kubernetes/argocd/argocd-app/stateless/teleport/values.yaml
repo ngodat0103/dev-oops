@@ -14,6 +14,13 @@ teleport-cluster:
     enabled: false
   tls:
     existingSecretName: "teleport-tls"
+  proxy:
+    resources:
+      requests:
+        cpu: "1"
+        memory: "128Mi"
+      limits:
+        memory: "512Mi"
   auth:
     extraVolumes:
     - name: pg-pass
