@@ -33,6 +33,10 @@ module "ddns_records" {
       type    = "CNAME"
       proxied = false
     }
+    teleport = {
+      type    = "CNAME"
+      proxied = false
+    }
     // Internal services
     pgadmin4 = {
       type    = "A"
