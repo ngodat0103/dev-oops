@@ -35,4 +35,4 @@ spec:
         - key: kubernetes.io/hostname
           operator: In
           values:
-          - worker-nodes-2 # Forces pods using this PV to be scheduled on this specific node
+          - worker-nodes-1 # Forces pods using this PV to be scheduled on this specific node

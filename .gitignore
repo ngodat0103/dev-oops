@@ -52,7 +52,7 @@ credentials.json
 
 # Any test logs
 **/**.log
-change.diff
+*.diff
 *secret.yaml
 *secret
 .secrets
