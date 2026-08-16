@@ -1,0 +1,71 @@
+- name: Configure 5GB swap with swappiness 10
+  hosts: vpn-server
+  vars:
+    swap_file_path: /swapfile
+    swap_size_mb: 5120        # 5GB
+    swappiness_value: 10
+  tasks:
+    - name: Check current swap status
+      command: swapon --show
+      register: swap_status
+      changed_when: false
+    - name: Check if swapfile already exists
+      stat:
+        path: "{{ swap_file_path }}"
+      register: swap_file_stat
+
+    - name: Create swapfile using fallocate
+      command: fallocate -l {{ swap_size_mb }}M {{ swap_file_path }}
+      when: not swap_file_stat.stat.exists
+
+    - name: Set swapfile permissions to 600
+      file:
+        path: "{{ swap_file_path }}"
+        owner: root
+        group: root
+        mode: '0600'
+      when: not swap_file_stat.stat.exists
+
+    - name: Format file as swap
+      command: mkswap {{ swap_file_path }}
+      when: not swap_file_stat.stat.exists
+
+    - name: Enable the swapfile
+      command: swapon {{ swap_file_path }}
+      when: "swap_file_path not in swap_status.stdout"
+
+    - name: Ensure swapfile entry exists in /etc/fstab
+      mount:
+        path: none
+        src: "{{ swap_file_path }}"
+        fstype: swap
+        opts: sw
+        passno: 0
+        dump: 0
+        state: present
+
+    - name: Set vm.swappiness persistently
+      sysctl:
+        name: vm.swappiness
+        value: "{{ swappiness_value }}"
+        sysctl_set: true
+        state: present
+        reload: true
+
+    - name: Verify swap is active
+      command: swapon --show
+      register: final_swap_status
+      changed_when: false
+
+    - name: Display final swap status
+      debug:
+        var: final_swap_status.stdout_lines
+
+    - name: Display current swappiness value
+      command: cat /proc/sys/vm/swappiness
+      register: current_swappiness
+      changed_when: false
+
+    - name: Show swappiness confirmation
+      debug:
+        msg: "Current vm.swappiness = {{ current_swappiness.stdout }}"
