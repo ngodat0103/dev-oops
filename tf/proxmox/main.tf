@@ -2,7 +2,7 @@ terraform {
   required_providers {
     proxmox = {
       source  = "bpg/proxmox"
-      version = "0.92.0"
+      version = "0.111.1"
     }
   }
 }
@@ -58,7 +58,7 @@ resource "proxmox_virtual_environment_download_file" "lxc" {
   url          = each.value
 }
 module "ubuntu_server" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=7bfd8fd06ced6ae216c4314d58f51b7c752d5223"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=2ef97c82ad07bc294a0c6275e831a11e9b70959e"
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["ubuntu_2204"].id
   name              = "UbuntuServer"
   tags              = ["production", "file-storage", "gitlab", "gitlab-runner"]
@@ -67,6 +67,7 @@ module "ubuntu_server" {
   hostname          = "ubuntu-server.local"
   bridge_name       = "vmbr0"
   memory            = 1024 * 8
+  memory_floating = 1024*4
   gateway           = local.lan_gateway
   protection        = true
   vm_id             = 101
@@ -113,7 +114,7 @@ resource "proxmox_virtual_environment_metrics_server" "influxdb_server" {
   influx_token        = var.influxdb_token
 }
 module "vpn_server" {
-  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
+  source            = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/vm?ref=2ef97c82ad07bc294a0c6275e831a11e9b70959e"
   template_image_id = resource.proxmox_virtual_environment_download_file.vm["debian_13"].id
   name              = "vpn-server"
   hostname          = "vpn-server.local"
@@ -122,9 +123,10 @@ module "vpn_server" {
   ip_address        = "192.168.1.123/24"
   bridge_name       = "vmbr0"
   memory            = 1024 * 2
+  memory_floating = 1024*1
   gateway           = local.lan_gateway
   on_boot           = true
-  boot_disk_size    = 10
+  boot_disk_size    = 20
   cpu_cores         = 1
   public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDsrn8bEdQQsmIOD192lsGXl0gdMZO9zESt4I8+QvIKjGvqYCWsR7Pi0LhvxD6jdm+dfIJymmQ6Qth9W0HgfHnUVZ9SEzW+vi3g2kSClutOA25IdelChrCw3jOrsYamITDH/J5mwb26ezGqx+32INM43seONN3pKuUL/C9WXVf4KMqvl2biAUJjaofRC3KuJUe2FJoA0j+pJZJ+ciCZBTg3CmAqjuUnQgWZOyhfaEDJ5m9q+u/anWKsBNxtJux7QGNyErKFNi3rg+c+yqkAAUfVO3a3N/mmezdaNlGjace3gFncjHfSDEye1RwJv+Oyd1d8mxzTjl9R4tNSOuHd8Xxd4FNwBFn1o1KRIyvur43Z3Aqj/3qWjTrhY5DoV920Wq7xZEr+u+BdQUF3nTzrqt/B48BJpxAm6CTHpq/OFXTD+ZFRaPIgJAG04sjp4oWOGS2ni40v4Y9vooweCqmr1kGog9nqcTU6lxV+umDjBc0ekdDAKnWnUOJzhP8rO5ogQ4c= akira@legion5"
   network_model     = "e1000e"

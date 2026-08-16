@@ -21,6 +21,10 @@ module "ddns_records" {
   share_comment        = local.share_comment
   ddns_content         = var.ddns_content
   dns_records = {
+    it-2003 = {
+      type    = "CNAME"
+      proxied = false
+    }
     nextcloud = {
       type    = "CNAME"
       proxied = false
