@@ -67,5 +67,14 @@
     "cluster.yaml": "yaml"
   },
   "editor.tabSize": 2,
-  "editor.detectIndentation": false
+  "editor.detectIndentation": false,
+  "yaml.disableSchemaDetection": [
+    "**/.github/workflows/*.yml",
+    "**/.github/workflows/*.yaml",
+    "**/.gitea/workflows/*.yml",
+    "**/.gitea/workflows/*.yaml",
+    "**/.forgejo/workflows/*.yml",
+    "**/.forgejo/workflows/*.yaml",
+    "file:///home/akira/code/home-lab/ansible/core/vpn-server/configure-swap.yaml"
+  ]
 }

@@ -127,9 +127,9 @@ module "vpn_server" {
   gateway           = local.lan_gateway
   on_boot           = true
   boot_disk_size    = 20
-  cpu_cores         = 1
+  cpu_cores         = 2
   public_key        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDsrn8bEdQQsmIOD192lsGXl0gdMZO9zESt4I8+QvIKjGvqYCWsR7Pi0LhvxD6jdm+dfIJymmQ6Qth9W0HgfHnUVZ9SEzW+vi3g2kSClutOA25IdelChrCw3jOrsYamITDH/J5mwb26ezGqx+32INM43seONN3pKuUL/C9WXVf4KMqvl2biAUJjaofRC3KuJUe2FJoA0j+pJZJ+ciCZBTg3CmAqjuUnQgWZOyhfaEDJ5m9q+u/anWKsBNxtJux7QGNyErKFNi3rg+c+yqkAAUfVO3a3N/mmezdaNlGjace3gFncjHfSDEye1RwJv+Oyd1d8mxzTjl9R4tNSOuHd8Xxd4FNwBFn1o1KRIyvur43Z3Aqj/3qWjTrhY5DoV920Wq7xZEr+u+BdQUF3nTzrqt/B48BJpxAm6CTHpq/OFXTD+ZFRaPIgJAG04sjp4oWOGS2ni40v4Y9vooweCqmr1kGog9nqcTU6lxV+umDjBc0ekdDAKnWnUOJzhP8rO5ogQ4c= akira@legion5"
-  network_model     = "e1000e"
+  network_model     = "virtio"
   startup_config = {
     order      = 1
     up_delay   = 10

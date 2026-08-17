@@ -8,14 +8,14 @@
       source: "192.168.99.0/24"
       out_interface: vmbr0
       jump: MASQUERADE
-      state: present
+      state: absent
    - name: "Ensure ip from ubuntuserver connect to the database"
      ansible.builtin.iptables:
       table: raw
       chain: PREROUTING
       action: insert
       rule_num: 1
-      state: present
+      state: absent
       source: "192.168.1.121/32"
       destination: "192.168.99.2"
       jump: ACCEPT
@@ -25,7 +25,7 @@
       chain: PREROUTING
       action: insert
       rule_num: 1
-      state: present
+      state: absent
       source: "192.168.1.125/32"
       destination: "192.168.99.2"
       jump: ACCEPT
@@ -35,7 +35,7 @@
       chain: PREROUTING
       action: insert
       rule_num: 1
-      state: present
+      state: absent
       source: "192.168.1.201/32"
       destination: "192.168.99.2"
       jump: ACCEPT

@@ -3,7 +3,7 @@ traefik:
   deployment:
     enabled: true
     kind: Deployment
-    replicas: 1
+    replicas: 2
     revisionHistoryLimit: 10
     additionalVolumes:
     - name: crowdsec-lapi-key
