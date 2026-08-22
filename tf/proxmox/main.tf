@@ -122,8 +122,8 @@ module "vpn_server" {
   node_name         = local.node_name
   ip_address        = "192.168.1.123/24"
   bridge_name       = "vmbr0"
-  memory            = 1024 * 2
-  memory_floating = 1024*1
+  memory            = 1024 * 1
+  memory_floating = 1024*0.5
   gateway           = local.lan_gateway
   on_boot           = true
   boot_disk_size    = 20
