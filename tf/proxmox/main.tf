@@ -2,20 +2,11 @@ terraform {
   required_providers {
     proxmox = {
       source  = "bpg/proxmox"
-      version = "0.111.1"
+      version = "~>0.111.1"
     }
   }
 }
 locals {
-  #Source: https://images.linuxcontainers.org/
-  # http://download.proxmox.com/images/system/
-  lxc_templates = {
-    ubuntu_2204 = "http://download.proxmox.com/images/system/ubuntu-22.04-standard_22.04-1_amd64.tar.zst",
-    alpine_3    = "http://download.proxmox.com/images/system/alpine-3.23-default_20260116_amd64.tar.xz"
-    ubuntu_2404 = "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64-root.tar.xz",
-    debian_12   = "http://download.proxmox.com/images/system/debian-12-standard_12.12-1_amd64.tar.zst"
-
-  }
   vm_template = {
     ubuntu_2404 = "https://cloud-images.ubuntu.com/noble/20260108/noble-server-cloudimg-amd64.img",
     #Reference: https://cloud-images.ubuntu.com/jammy/current/
@@ -23,37 +14,14 @@ locals {
     debian_13   = "https://cdimage.debian.org/images/cloud/trixie/latest/debian-13-generic-amd64.qcow2"
   }
   node_name = "pve-master"
-  network = {
-    private = {
-      bridge_address = "192.168.99.1/24"
-      bridge_name    = "private"
-      node_name      = local.node_name
-      bridge_comment = "This network can't be reached from outside and is used for stateful applications."
-    },
-  }
   lan_gateway    = "192.168.1.1"
   k8s_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCxraGdlzJDPInNQ4zbyr1usD3nSbeofvjx+kRTN/7lFmEoCujn8UyEfaQfe6k/shGQyH8ghb61XzISkDv3Dcir+apQ1x4ajALZX6m+miF4G0R7tOTObj+2MCdOCZ1iklFolhjSJ/wPunoQD5x9jz8mnmr03zZcCr+xVQzMPDHPCeMZlXN0mDg2AJj4+RxolZeW7T9/v0h2l300ZFYbpbUWG+WkJWAy2iqpf2z3TRt74sCyby0sPPeLbg3G9XqWVpx+lVrI/XfG3mirGx+NgEcGBQNNM7HcobHuJ3IejFsVCCenQHiPrMjMk8XhflJ4Vk8ydTTaMNHY5kn9qSyJIA9JxlWypqmIhJYilUADjPCMYt97ahQR8C8BTFxcFGTH8Nf27db6C9rFaZ/WPlbkWOdmW+IFKTVmqyw6l+KBAIKu1pl3wLbY9eot0kQCODlk6ZSbn5yy6e2HU7zpPCbMVGVqwbiOUlVfcTjTEDrlFUZgVhAp5Z/vu9FjdMeDrTQppKE= akira@legion5"
-}
-module "network_default" {
-  source         = "git::https://github.com/ngodat0103/terraform-module.git//proxmox/network/private?ref=623d6edb16c1b609627de5c878c794cb8dd41c64"
-  for_each       = local.network
-  bridge_address = each.value.bridge_address
-  node_name      = local.node_name
-  bridge_name    = each.key
-  bridge_comment = each.value.bridge_comment
 }
 resource "proxmox_virtual_environment_download_file" "vm" {
   for_each     = local.vm_template
   file_name    = "${each.key}.qcow2"
   datastore_id = "local"
   content_type = "import"
-  node_name    = local.node_name
-  url          = each.value
-}
-resource "proxmox_virtual_environment_download_file" "lxc" {
-  for_each     = local.lxc_templates
-  datastore_id = "local"
-  content_type = "vztmpl"
   node_name    = local.node_name
   url          = each.value
 }
