@@ -1,13 +1,11 @@
 #     # https://artifacthub.io/packages/helm/wener/juicefs-csi-driver/0.32.0?modal=values
 juicefs-csi-driver:
-  defaultMountImage:
-    ce: docker.io/juicedata/mount:ce-v1.4.0
   controller:
     replicas: 1
     resources:
       requests:
-        cpu: 200m
-        memory: 128Mi
+        cpu: 100m
+        memory: 64Mi
       limits:
         cpu: 1
         memory: 256Mi
@@ -17,8 +15,8 @@ juicefs-csi-driver:
       operator: Exists
     resources:
       requests:
-        cpu: 200m
-        memory: 128Mi
+        cpu: 100m
+        memory: 64Mi
       limits:
         cpu: 1
         memory: 256Mi
@@ -31,12 +29,8 @@ juicefs-csi-driver:
   globalConfig:
     mountPodPatch:
     - resources:
-        requests:
-          cpu: 300m
-          memory: 512Mi
         limits:
           memory: 1Gi
-      ceMountImage: "juicedata/mount:ce-v1.4.0"
   webhook:
     certManager:
       enabled: false
@@ -56,9 +50,6 @@ juicefs-csi-driver:
     - entry-cache=3
   dashboard:
     resources:
-      requests:
-        cpu: 200m
-        memory: 128Mi
       limits:
         cpu: 1
         memory: 128Mi

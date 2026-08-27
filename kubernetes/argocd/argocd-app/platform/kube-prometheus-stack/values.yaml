@@ -105,6 +105,9 @@ kube-prometheus-stack:
     prometheusSpec:
       scrapeInterval: 10s
       resources:
+        requests:
+          cpu: 1
+          memory: 512Mi
         limits:
           cpu: 4
           memory: 1.5Gi
