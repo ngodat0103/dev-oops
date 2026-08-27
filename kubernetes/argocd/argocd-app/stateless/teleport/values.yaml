@@ -17,9 +17,9 @@ teleport-cluster:
   proxy:
     resources:
       requests:
-        cpu: "1"
         memory: "128Mi"
       limits:
+        cpu: "2000m"
         memory: "512Mi"
   auth:
     extraVolumes:

@@ -6,9 +6,6 @@ notifications:
   enabled: false
 redis:
   resources:
-    requests:
-      cpu: 500m
-      memory: 64Mi
     limits:
       cpu: 2
       memory: 128Mi
@@ -22,9 +19,6 @@ controller:
       memory: 2Gi
 repoServer:
   resources:
-    requests:
-      cpu: 500m
-      memory: 512Mi
     limits:
       cpu: 2
       memory: 1Gi
@@ -95,9 +89,6 @@ repoServer:
   # --- end SOPS ---
 server:
   resources:
-    requests:
-      cpu: 500m
-      memory: 128Mi
     limits:
       cpu: 2
       memory: 256Mi
