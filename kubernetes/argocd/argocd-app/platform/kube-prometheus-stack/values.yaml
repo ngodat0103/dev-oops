@@ -106,10 +106,10 @@ kube-prometheus-stack:
       scrapeInterval: 10s
       resources:
         requests:
-          cpu: 1
+          cpu: 2
           memory: 1.5Gi
         limits:
-          cpu: 2
+          cpu: 4
           memory: 1.5Gi
       podMonitorSelectorNilUsesHelmValues: false
       podMonitorNamespaceSelector:
@@ -122,7 +122,7 @@ kube-prometheus-stack:
         - key: kubernetes.io/metadata.name
           operator: Exists
       retention: 14d
-      retentionSize: 15GiB
+      retentionSize: 45GiB
       storageSpec:
         volumeClaimTemplate:
           spec:

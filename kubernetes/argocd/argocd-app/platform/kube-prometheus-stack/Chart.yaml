@@ -2,10 +2,10 @@ apiVersion: v2
 name: kube-prometheus-stack
 description: A kube-prometheus-stack wrapper with my custom resources
 type: application
-version: 88.0.1
-appVersion: 88.0.1
+version: 88.5.4
+appVersion: 88.5.4
 
 dependencies:
 - repository: https://prometheus-community.github.io/helm-charts
   name: kube-prometheus-stack
-  version: 88.0.1
+  version: 88.5.4
