@@ -44,9 +44,7 @@ loki:
   singleBinary:
     replicas: 1
     resources:
-      requests:
-        cpu: 1000m
-        memory: 1Gi
+      requests: {}
       limits:
         cpu: 2000m
         memory: 1Gi
