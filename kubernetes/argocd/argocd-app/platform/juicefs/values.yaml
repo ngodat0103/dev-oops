@@ -29,6 +29,9 @@ juicefs-csi-driver:
   globalConfig:
     mountPodPatch:
     - resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
         limits:
           memory: 1Gi
   webhook:
@@ -50,6 +53,9 @@ juicefs-csi-driver:
     - entry-cache=3
   dashboard:
     resources:
+      requests:
+        cpu: 100m
+        memory: 64Mi
       limits:
         cpu: 1
         memory: 128Mi
