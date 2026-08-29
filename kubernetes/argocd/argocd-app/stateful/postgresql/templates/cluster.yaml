@@ -11,63 +11,59 @@ spec:
   imageName: ghcr.io/ngodat0103/dev-oops/cnpg-postgresql-wal2json:16.14
   postgresql:
     parameters:
-      # ---------- Memory (sized for 2GB container) ----------
-      shared_buffers: "512MB" # 25% of RAM
-      effective_cache_size: "1536MB" # ~75% of RAM (planner hint, not allocation)
-      work_mem: "8MB" # safe because pooler caps real concurrency
-      maintenance_work_mem: "128MB" # for VACUUM, CREATE INDEX, restore
-      hash_mem_multiplier: "2.0" # PG13+: lets hash ops grow without bloating work_mem globally
+      shared_buffers: "256MB" # 25% of 1Gi limit
+      effective_cache_size: "640MB" # ~60% — conservative given tight limit
+      work_mem: "4MB" # lowered — 200 conns × work_mem was the real risk
+      maintenance_work_mem: "64MB"
+      hash_mem_multiplier: "2.0" # kept, but base work_mem now smaller so peak is bounded
 
       # ---------- Connections ----------
-      max_connections: "200" # pooler fans in; keeps per-backend RAM bounded
-      superuser_reserved_connections: "5"
-      # ---------- Planner (assume SSD/NVMe) ----------
-      # ---------- Parallelism (2–4 vCPU) ----------
-      max_worker_processes: "8"
-      max_parallel_workers: "4"
-      max_parallel_workers_per_gather: "2"
-      max_parallel_maintenance_workers: "2"
+      max_connections: "100" # 200 was oversized for homelab; pooler still fans in fine
+      superuser_reserved_connections: "3"
 
-      # ---------- WAL & checkpoints ----------
+      # ---------- Parallelism
+      max_worker_processes: "4"
+      max_parallel_workers: "2"
+      max_parallel_workers_per_gather: "1"
+      max_parallel_maintenance_workers: "1"
+
+      # ---------- WAL & checkpoints
       wal_level: logical
       wal_buffers: "16MB"
       min_wal_size: "512MB"
       max_wal_size: "2GB"
       checkpoint_completion_target: "0.9"
-      checkpoint_timeout: "15min" # fewer, longer checkpoints — less I/O spike
+      checkpoint_timeout: "15min"
       max_replication_slots: "10"
-      # ---------- Autovacuum (critical for GitLab/SonarQube churn) ----------
+      # ---------- Autovacuum ----------
       autovacuum: "on"
-      autovacuum_max_workers: "3"
+      autovacuum_max_workers: "2"
       autovacuum_naptime: "20s"
-      autovacuum_vacuum_scale_factor: "0.05" # more aggressive than default 0.2
+      autovacuum_vacuum_scale_factor: "0.05"
       autovacuum_analyze_scale_factor: "0.02"
-      autovacuum_vacuum_cost_limit: "1000" # SSDs can handle faster vacuum
-
-      # ---------- Logging / observability ----------
+      autovacuum_vacuum_cost_limit: "1000"
+      # ---------- Logging / observability (unchanged) ----------
       log_min_duration_statement: "1000"
       log_checkpoints: "on"
       log_lock_waits: "on"
-      log_temp_files: "0" # logs any spill to disk → tells you if work_mem is too small
+      log_temp_files: "0"
       log_autovacuum_min_duration: "1000"
-
       # ---------- Misc safety ----------
       statement_timeout: "0"
-      idle_in_transaction_session_timeout: "300000" # 5min — protects against stuck txns
+      idle_in_transaction_session_timeout: "300000"
       lock_timeout: "30s"
-      jit: "off" # JIT overhead rarely pays off on small instances
-
+      jit: "off"
       # ---------- Stats ----------
       track_io_timing: "on"
       track_functions: "pl"
       pg_stat_statements.track: "all"
   resources:
     requests:
-      memory: 2Gi
-      cpu: 2
+      memory: 1Gi
+      cpu: 200m
     limits:
-      memory: 2Gi
-      cpu: 4
+      memory: 1Gi
+      cpu: 4000m
   enableSuperuserAccess: true
   superuserSecret:
     name: postgres-admin
