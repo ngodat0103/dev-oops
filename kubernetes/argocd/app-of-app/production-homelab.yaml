@@ -1,0 +1,42 @@
+metallb:
+  enabled: true
+traefik:
+  enabled: true
+openebs:
+  enabled: true
+postgresql:
+  enabled: true
+velero:
+  enabled: true
+kubePrometheusStack:
+  enabled: true
+customManifest:
+  enabled: true
+loki:
+  enabled: true
+alloy:
+  enabled: true
+pgadmin4:
+  enabled: true
+sonarqube:
+  enabled: true
+juicefs:
+  enabled: true
+vaultwarden:
+  enabled: true
+certManager:
+  enabled: true
+nfsCsiDriver:
+  enabled: true
+qbittorrent:
+  enabled: true
+jellyfin:
+  enabled: true
+nextcloud:
+  enabled: true
+argus:
+  enabled: true
+crowdsec:
+  enabled: true
+teleport:
+  enabled: true

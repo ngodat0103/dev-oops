@@ -1,0 +1,11 @@
+# Important services
+vaultwarden:
+  enabled: true
+certManager:
+  enabled: true
+juicefs:
+  enabled: true
+traefik:
+  enabled: true
+postgresql:
+  enabled: true

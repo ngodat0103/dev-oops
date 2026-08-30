@@ -1,56 +1,56 @@
 metallb:
-  enabled: true
+  enabled: false
 traefik:
-  enabled: true
+  enabled: false
 openebs:
-  enabled: true
+  enabled: false
 postgresql:
-  enabled: true
+  enabled: false
 velero:
-  enabled: true
+  enabled: false
 kubePrometheusStack:
-  enabled: true
+  enabled: false
 mongo:
   enabled: false
 kafkaOperator:
   enabled: false
 customManifest:
-  enabled: true
+  enabled: false
 loki:
-  enabled: true
+  enabled: false
 alloy:
-  enabled: true
+  enabled: false
 pgadmin4:
-  enabled: true
+  enabled: false
 harbor:
   enabled: false ## unstable
 sonarqube:
-  enabled: true
+  enabled: false
 juicefs:
-  enabled: true
+  enabled: false
 vaultwarden:
-  enabled: true
+  enabled: false
 certManager:
-  enabled: true
+  enabled: false
 redis:
   enabled: false
 nfsCsiDriver:
-  enabled: true
+  enabled: false
 qbittorrent:
-  enabled: true
+  enabled: false
 jellyfin:
-  enabled: true
+  enabled: false
 agentDvr:
   enabled: false
 nextcloud:
-  enabled: true
+  enabled: false
 argus:
-  enabled: true
+  enabled: false
 crowdsec:
-  enabled: true
+  enabled: false
 chaosMesh:
   enabled: false
 eck:
   enabled: false
 teleport:
-  enabled: true
+  enabled: false
