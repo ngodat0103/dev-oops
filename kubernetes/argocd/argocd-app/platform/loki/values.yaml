@@ -1,4 +1,4 @@
-# https://artifacthub.io/packages/helm/grafana-community/loki/18.7.1?modal=values
+# https://artifacthub.io/packages/helm/grafana-community/loki/18.11.7?modal=values
 
 ## The Rules in Loki and Grafana are too confusing to reasoning: check https://github.com/grafana/grafana/issues/42735
 loki:
@@ -25,7 +25,7 @@ loki:
     commonConfig:
       replication_factor: 1
     limits_config:
-      retention_period: 14d
+      retention_period: 30d
     compactor:
       retention_enabled: true
       delete_request_store: filesystem
@@ -44,13 +44,19 @@ loki:
   singleBinary:
     replicas: 1
     resources:
-      requests: {}
+      requests:
+        cpu: 100m
+        memory: 1Gi
       limits:
-        cpu: 2000m
+        cpu: 4000m
         memory: 1Gi
     persistence:
       enabled: true
       size: 30Gi
+    service:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: "192.168.1.234"
+      type: "LoadBalancer"
   chunksCache:
     enabled: false
   memcached:

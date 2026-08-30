@@ -1,3 +1,40 @@
+// --- Discover system log files ---
+local.file_match "system_logs" {
+  path_targets = [
+    {
+      __path__ = "/var/log/**/*.log",
+      job      = "varlogs",
+      instance = constants.hostname,
+    },
+  ]
+}
+
+// --- Optional: light processing for syslog-style lines ---
+loki.process "parse_system_logs" {
+  stage.regex {
+    expression = "^(?P<log_level>(?i:trace|debug|info|warn|warning|error|fatal|critical))\\b[:\\-\\s]"
+  }
+
+  stage.labels {
+    values = {
+      log_level = "",
+      job       = "",
+      instance  = "",
+    }
+  }
+
+  forward_to = [loki.write.local.receiver]
+}
+
+// --- Read system logs ---
+loki.source.file "system_logs" {
+  targets    = local.file_match.system_logs.targets
+  forward_to = [loki.process.parse_system_logs.receiver]
+}
+
+
+
+
 // --- Discover Docker containers ---
 discovery.docker "linux" {
   host = "unix:///var/run/docker.sock"
@@ -73,37 +110,6 @@ loki.process "parse_docker_level" {
   forward_to = [loki.write.local.receiver]
 }
 
-// --- OTEL Kafka Exporter ---
-otelcol.exporter.kafka "to_kafka" {
-  protocol_version = "2.0.0"
-  brokers          = ["192.168.1.171:9092"] 
-  timeout          = "10s"
-  logs {
-    topic            = "docker_logs_otlp"
-    encoding         = "otlp_json" 
-  }
-  // Add retry configuration
-  retry_on_failure {
-    enabled         = true
-    initial_interval = "5s"
-    max_interval    = "30s"
-    max_elapsed_time = "300s"
-  }
-  sending_queue {
-    enabled      = true
-    num_consumers = 20
-    queue_size   = 10000
-  }
-  
-}
-
-// --- OTEL Receiver Bridge ---
-otelcol.receiver.loki "bridge" {
-  output {
-    logs = [otelcol.exporter.kafka.to_kafka.input]
-  }
-}
-
 // --- Read Docker logs ---
 loki.source.docker "default" {
   host          = "unix:///var/run/docker.sock"
@@ -111,12 +117,11 @@ loki.source.docker "default" {
   relabel_rules = discovery.relabel.logs_integrations_docker.rules
   forward_to    = [
     loki.process.parse_docker_level.receiver,
-    otelcol.receiver.loki.bridge.receiver,
   ]
 }
 // --- Loki Local Writer ---
 loki.write "local" {
   endpoint {
-    url = "http://loki:3100/loki/api/v1/push"
+    url = "http://192.168.1.234:3100/loki/api/v1/push"
   }
 }

@@ -1,44 +1,62 @@
-- name: Manage Alloy instance
+- name: Manage Alloy instance (native service)
   hosts: ubuntu-server
   become: yes
   vars:
     uid: 473
     config_path: /etc/alloy/
-    docker_group_id: 999
+
   tasks:
-  - name: Create user Alloy
+  - name: Create alloy user
     ansible.builtin.user:
       name: alloy
-      uid: "{{uid}}"
-      groups: ["docker"]
-  - name: Make sure Data's Loki and config directory exixted
-    loop:
-    - "{{config_path}}"
+      uid: "{{ uid }}"
+      groups: ["adm", "systemd-journal"]
+      system: yes
+      shell: /usr/sbin/nologin
+
+  - name: Add Grafana GPG key
+    ansible.builtin.get_url:
+      url: https://apt.grafana.com/gpg.key
+      dest: /usr/share/keyrings/grafana.key
+      mode: "0644"
+
+  - name: Add Grafana APT repository
+    ansible.builtin.apt_repository:
+      repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/grafana.key] https://apt.grafana.com/ stable main"
+      filename: apt_grafana_com
+      state: present
+
+  - name: Install Alloy package
+    ansible.builtin.apt:
+      name: alloy
+      state: present
+      update_cache: yes
+
+  - name: Make sure config directory exists
     ansible.builtin.file:
-      dest: "{{item}}"
-      owner: "{{uid}}"
-      mode: "740"
+      dest: "{{ config_path }}"
+      owner: "{{ uid }}"
+      group: alloy
+      mode: "0750"
       state: directory
+
   - name: Copy Alloy config to remote machine
     ansible.builtin.copy:
       src: config.alloy
-      dest: "{{config_path}}"
-      mode: "600"
-      owner: "{{uid}}"
-  - name: Make sure Alloy container is running
-    ansible.builtin.docker_container:
+      dest: "{{ config_path }}"
+      mode: "0600"
+      owner: "{{ uid }}"
+      group: alloy
+    notify: restart alloy
+
+  - name: Ensure Alloy service is enabled and running
+    ansible.builtin.systemd:
       name: alloy
-      image: "grafana/alloy:v1.11.2"
-      log_driver: "json-file"
-      log_options:
-       max-size: 512m
-       max-file: 1  
-      restart_policy: always
-      volumes:
-      - "{{config_path}}:/etc/alloy/:ro"
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/log/:/var/log/:ro
-      user: "{{uid}}:{{docker_group_id}}"
-      networks:
-      - name: runtime-network
-        ipv4_address: "192.168.30.22"
+      enabled: yes
+      state: started
+
+  handlers:
+  - name: restart alloy
+    ansible.builtin.systemd:
+      name: alloy
+      state: restarted
