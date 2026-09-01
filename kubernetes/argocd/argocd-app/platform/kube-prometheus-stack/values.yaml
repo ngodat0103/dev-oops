@@ -103,6 +103,12 @@ kube-prometheus-stack:
       annotations:
         metallb.universe.tf/loadBalancerIPs: "192.168.1.233"
     prometheusSpec:
+      additionalScrapeConfigs:
+      - job_name: proxmox-node-exporter
+        static_configs:
+        - targets: [ "192.168.1.120:9100" ]
+          labels:
+            instance: proxmox-server
       scrapeInterval: 10s
       resources:
         requests:
