@@ -75,6 +75,7 @@
     "**/.gitea/workflows/*.yaml",
     "**/.forgejo/workflows/*.yml",
     "**/.forgejo/workflows/*.yaml",
-    "file:///home/akira/code/home-lab/ansible/core/vpn-server/configure-swap.yaml"
+    "file:///home/akira/code/home-lab/ansible/core/vpn-server/configure-swap.yaml",
+    "file:///home/akira/code/home-lab/ansible/proxmox/diskMetrics.yaml"
   ]
 }

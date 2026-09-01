@@ -1,0 +1,85 @@
+- name: SMART disk monitoring for the node_exporter textfile collector
+  hosts: proxmox-server
+  vars:
+    disk_monitoring_home_dir: /opt/disk-monitoring
+    node_exporter_textfile_dir: /var/lib/node_exporter/textfile_collector
+    smartmon_bin_path: /usr/local/bin/smartmon.sh
+    smartmon_seagate_special: false   # only set true if you actually run Seagate drives
+
+  tasks:
+    - name: Ensure dependencies (jq, smartmontools, nvme-cli, git)
+      ansible.builtin.apt:
+        name: [jq, smartmontools, nvme-cli, git]
+        state: present
+
+    - name: Checkout S.M.A.R.T-disk-monitoring-for-Prometheus (pinned commit)
+      ansible.builtin.git:
+        repo: https://github.com/micha37-martins/S.M.A.R.T-disk-monitoring-for-Prometheus.git
+        dest: "{{ disk_monitoring_home_dir }}"
+        version: "0.3.16"
+        depth: 1
+
+    - name: Install smartmon.sh from the pinned checkout
+      ansible.builtin.copy:
+        src: "{{ disk_monitoring_home_dir }}/src/smartmon.sh"
+        dest: "{{ smartmon_bin_path }}"
+        mode: "0755"
+        remote_src: true
+
+    - name: Render smartmon.service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/smartmon.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=SMART Disk Exporter for Prometheus
+          After=network-online.target
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/bin/env bash {{ smartmon_bin_path }}{{ ' --seagate_special' if smartmon_seagate_special else '' }}
+          StandardOutput=truncate:{{ node_exporter_textfile_dir }}/smart_metrics.prom
+          WorkingDirectory={{ node_exporter_textfile_dir }}/
+          User=root
+          Group=root
+          SyslogIdentifier=smartmon
+          StandardError=journal
+          RemainAfterExit=no
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: reload systemd
+
+    - name: Render smartmon.timer
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/smartmon.timer
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Run SMART Disk Exporter for Prometheus every 10 minutes
+
+          [Timer]
+          OnBootSec=1min
+          OnUnitActiveSec=10min
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: reload systemd
+
+    - name: Flush handlers before enabling units
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start smartmon.timer
+      ansible.builtin.systemd:
+        name: smartmon.timer
+        enabled: true
+        state: started
+    - name: Enable smartmon.service (upstream also runs it immediately on install/apply)
+      ansible.builtin.systemd:
+        name: smartmon.service
+        enabled: true
+        state: started
+  handlers:
+    - name: reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true

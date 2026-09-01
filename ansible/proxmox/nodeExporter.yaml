@@ -1,0 +1,39 @@
+---
+# Deploy node_exporter with a metrics profile tuned for a Proxmox VE host.
+# Requires: ansible-galaxy collection install prometheus.prometheus:0.27.1
+- name: Deploy node_exporter (Proxmox metrics profile)
+  hosts: proxmox-server
+  become: true
+
+  vars:
+    node_exporter_textfile_dir: /var/lib/node_exporter/textfile_collector
+    node_exporter_web_listen_address: "0.0.0.0:9100"
+
+    # hwmon, thermal_zone, zfs, nvme, rapl, edac are ON by default in
+    # node_exporter itself - don't re-list them. These are the ones that
+    # matter on a hypervisor and are OFF by default upstream:
+    node_exporter_enabled_collectors:
+      - systemd                      # role default - lets you alert on smartmon.timer/service state
+      - textfile:
+          directory: "{{ node_exporter_textfile_dir }}"
+      - processes                    # per-process stats - qemu/kvm & lxc processes show up here
+      - meminfo_numa                 # NUMA node balance - matters once you pin vCPUs/memory
+    node_exporter_disabled_collectors: []
+
+  roles:
+    - role: prometheus.prometheus.node_exporter
+      # https://galaxy.ansible.com/ui/repo/published/prometheus/prometheus/content/role/node_exporter/?version=0.30.0
+
+  post_tasks:
+    # Runs AFTER the role, so node_exporter_system_group (default "node-exp")
+    # already exists on the box. 0750 (not 0700 root:root) is required:
+    # node_exporter needs +x on this dir just to list/stat the .prom files
+    # inside it - 0700 root:root silently starves the textfile collector
+    # even though the files it's reading are individually world-readable.
+    - name: Ensure textfile collector directory is exporter-readable
+      ansible.builtin.file:
+        path: "{{ node_exporter_textfile_dir }}"
+        state: directory
+        owner: root
+        group: "{{ node_exporter_system_group }}"
+        mode: "0750"
