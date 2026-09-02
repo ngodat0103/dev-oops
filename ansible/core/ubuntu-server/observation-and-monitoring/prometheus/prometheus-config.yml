@@ -24,10 +24,6 @@ scrape_configs:
     # metrics_path defaults to '/metrics'
     # scheme defaults to 'http'.
     static_configs:
-      - targets: ["192.168.1.120:9100"]
-       # The label name is added as a label `label_name=<label_value>` to any timeseries scraped from this config.
-        labels:
-          server: pve-master
       - targets: ["192.168.1.121:9100"]
        # The label name is added as a label `label_name=<label_value>` to any timeseries scraped from this config.
         labels:
@@ -42,9 +38,3 @@ scrape_configs:
       - targets: ['cadvisor:8080']
         labels:
           app: cadvisor
-  - job_name: coredns
-    static_configs:
-      - targets: ['192.168.1.126:9153']
-  - job_name: crowsec
-    static_configs:
-      - targets: ['192.168.1.127:6060']

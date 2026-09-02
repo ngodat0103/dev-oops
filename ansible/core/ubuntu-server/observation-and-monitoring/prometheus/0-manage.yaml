@@ -31,12 +31,12 @@
    - name: Deploy Prometheus container
      ansible.builtin.docker_container:
       name: prometheus
-      image: prom/prometheus:v3.5.0@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996
+      image: prom/prometheus:v3.14.0@sha256:5ce7540c3c00ef4ab0c9d2c995c6a5b9c421f44b4a115d97a2c7af3b1c21cbb0
       command: ['--storage.tsdb.retention.time=14d','--config.file=/etc/prometheus/prometheus.yml']
-      memory_reservation: 1G
-      memory: 2G
-      memory_swap: 10G
-      cpus: 3
+      memory_reservation: 512M
+      memory: 512M
+      memory_swap: 5G
+      cpus: 2
       state: started
       restart_policy: always
       healthcheck:
