@@ -112,11 +112,11 @@ kube-prometheus-stack:
       scrapeInterval: 10s
       resources:
         requests:
-          cpu: 1
-          memory: 512Mi
+          cpu: 2
+          memory: 2Gi
         limits:
           cpu: 4
-          memory: 1.5Gi
+          memory: 2Gi
       podMonitorSelectorNilUsesHelmValues: false
       podMonitorNamespaceSelector:
         matchExpressions:

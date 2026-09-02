@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: disk-dashboard-proxmox
+  labels:
+    grafana_dashboard: "1"
+data:
+  disk-dashboard-proxmox.json: |-
+{{ .Files.Get "files/disk_monitor_dashboard_10530_rev7.json" | nindent 3}}
+    
