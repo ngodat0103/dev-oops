@@ -7,4 +7,12 @@ metadata:
 data:
   disk-dashboard-proxmox.json: |-
 {{ .Files.Get "files/disk_monitor_dashboard_10530_rev7.json" | nindent 3}}
-    
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: disk-proxmox-alerts
+  labels:
+    release: kube-prometheus-stack
+spec:
+{{ .Files.Get "files/disk-proxmox-alert.yaml" | indent 2 }}

@@ -1,0 +1,248 @@
+groups:
+# ============================================================
+# CRITICAL — data-loss or imminent failure
+# ============================================================
+- name: smart_disk_critical
+  interval: 10m
+  rules:
+
+  # Any pre-fail SMART attribute has crossed the manufacturer threshold.
+  # This is the disk itself telling you it's failing.
+  - alert: SmartAttributeBelowThreshold
+    expr: |
+      (
+        (smartmon_reallocated_sector_ct_value <= smartmon_reallocated_sector_ct_threshold)
+        and smartmon_reallocated_sector_ct_threshold > 0
+      )
+      or
+      (
+        (smartmon_spin_retry_count_value <= smartmon_spin_retry_count_threshold)
+        and smartmon_spin_retry_count_threshold > 0
+      )
+      or
+      (
+        (smartmon_end_to_end_error_value <= smartmon_end_to_end_error_threshold)
+        and smartmon_end_to_end_error_threshold > 0
+      )
+      or
+      (
+        (smartmon_raw_read_error_rate_value <= smartmon_raw_read_error_rate_threshold)
+        and smartmon_raw_read_error_rate_threshold > 0
+      )
+      or
+      (
+        (smartmon_seek_error_rate_value <= smartmon_seek_error_rate_threshold)
+        and smartmon_seek_error_rate_threshold > 0
+      )
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "SMART pre-fail attribute below manufacturer threshold on {{ $labels.disk }}"
+      description: "A normalized SMART value has dropped to/below its fail threshold on {{ $labels.disk }}. Replace the disk."
+
+  - alert: SmartReallocatedSectors
+    expr: smartmon_reallocated_sector_ct_raw_value > 0
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Reallocated sectors on {{ $labels.disk }} ({{ $value }})"
+      description: "The disk has silently swapped in spare sectors. Any non-zero value on a consumer drive means end-of-life is approaching."
+
+  - alert: SmartPendingSectors
+    expr: smartmon_current_pending_sector_raw_value > 0
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Pending unstable sectors on {{ $labels.disk }} ({{ $value }})"
+      description: "Sectors are waiting to be reallocated. Data on them is at risk right now."
+
+  - alert: SmartOfflineUncorrectable
+    expr: smartmon_offline_uncorrectable_raw_value > 0
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Offline-uncorrectable sectors on {{ $labels.disk }} ({{ $value }})"
+
+  - alert: SmartReportedUncorrectable
+    expr: smartmon_reported_uncorrect_raw_value > 0
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Reported uncorrectable errors on {{ $labels.disk }} ({{ $value }})"
+      description: "The drive gave up on {{ $value }} read/write attempts. Data corruption risk."
+
+  # --- NVMe-specific ---
+  - alert: NvmeCriticalWarning
+    expr: smartmon_critical_warning > 0
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "NVMe critical warning flag set on {{ $labels.disk }}"
+      description: "Bitmask {{ $value }} — spare low / temp / read-only / volatile-memory / persistent-memory."
+
+  - alert: NvmeMediaErrors
+    expr: smartmon_media_errors > 0
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "NVMe media errors on {{ $labels.disk }} ({{ $value }})"
+
+  - alert: NvmeSpareBelowThreshold
+    expr: smartmon_available_spare < smartmon_available_spare_threshold
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "NVMe available spare below threshold on {{ $labels.disk }}"
+      description: "spare={{ $value }}% — plan replacement immediately."
+
+  - alert: NvmeLifeExhausted
+    expr: smartmon_percentage_used >= 95
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "NVMe wear at {{ $value }}% on {{ $labels.disk }}"
+
+  # --- Temperature: critical thresholds ---
+  # HDD: >=65°C is well into damage territory
+  - alert: HddTemperatureCritical
+    expr: smartmon_temperature_current{type="sat"} >= 65
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "HDD {{ $labels.disk }} at {{ $value }}°C"
+
+  # NVMe: >=80°C is where most consumer drives start throttling and firmware may set critical_warning
+  - alert: NvmeTemperatureCritical
+    expr: smartmon_temperature{type="nvme"} >= 80
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "NVMe {{ $labels.disk }} at {{ $value }}°C"
+
+  # --- Filesystem: out of space ---
+  - alert: FilesystemCriticallyFull
+    expr: |
+      100 - (
+        node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs|devtmpfs|ramfs"}
+        /
+        node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|devtmpfs|ramfs"}
+      ) * 100 >= 95
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }} at {{ $value | printf \"%.1f\" }}%"
+      description: "Free up space or expand the volume — writes will start failing."
+
+# ============================================================
+# WARNING — degrading, environmental, capacity, or exporter issues
+# ============================================================
+- name: smart_disk_warning
+  interval: 10m
+  rules:
+
+  - alert: NvmeWearHigh
+    expr: smartmon_percentage_used >= 80
+    for: 30m
+    labels:
+      severity: warning
+    annotations:
+      summary: "NVMe wear at {{ $value }}% on {{ $labels.disk }}"
+      description: "Start planning replacement."
+
+  - alert: SmartUdmaCrcErrors
+    expr: increase(smartmon_udma_crc_error_count_raw_value[1h]) > 0
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "New UDMA CRC errors on {{ $labels.disk }}"
+      description: "Usually a SATA cable/connector/power issue, not the disk. Reseat cables."
+
+  - alert: SmartRuntimeBadBlock
+    expr: smartmon_runtime_bad_block_raw_value > 0
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Runtime bad blocks on {{ $labels.disk }} ({{ $value }})"
+
+  - alert: SmartReallocatedEventRising
+    expr: increase(smartmon_reallocated_event_count_raw_value[24h]) > 0
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "New reallocation events on {{ $labels.disk }}"
+
+  - alert: NvmeUnsafeShutdownsRising
+    expr: increase(smartmon_unsafe_shutdowns[24h]) >= 3
+    for: 30m
+    labels:
+      severity: warning
+    annotations:
+      summary: "{{ $value }} new unsafe shutdowns on {{ $labels.disk }} in 24h"
+      description: "Check power / UPS / clean shutdown path."
+
+  # --- Temperature: warning at 60°C (unified for HDD + NVMe) ---
+  - alert: HddTemperatureHigh
+    expr: smartmon_temperature_current{type="sat"} >= 60
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "HDD {{ $labels.disk }} at {{ $value }}°C"
+      description: "Sustained ≥60°C shortens HDD lifespan. Check airflow."
+
+  - alert: NvmeTemperatureHigh
+    expr: smartmon_temperature{type="nvme"} >= 60
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "NVMe {{ $labels.disk }} at {{ $value }}°C"
+      description: "Warm but not throttling yet. Check heatsink / airflow."
+
+  # --- Filesystem: capacity warning at 90% ---
+  - alert: FilesystemHighUsage
+    expr: |
+      100 - (
+        node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs|devtmpfs|ramfs"}
+        /
+        node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|devtmpfs|ramfs"}
+      ) * 100 >= 90
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }} at {{ $value | printf \"%.1f\" }}%"
+      description: "Plan cleanup or expansion before it hits 95%."
+
+  # --- Exporter health ---
+  # smartmon.timer is on a schedule; if it stops updating, metrics go stale silently.
+  - alert: SmartCollectorStale
+    expr: time() - smartmon_smartctl_run > 3600
+    for: 30m
+    labels:
+      severity: warning
+    annotations:
+      summary: "smartctl hasn't run for {{ $labels.disk }} in >1h"
+
+  - alert: SmartTimerFailed
+    expr: node_systemd_unit_state{name="smartmon.timer",state="failed"} == 1
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "smartmon.timer is in failed state on the host"
