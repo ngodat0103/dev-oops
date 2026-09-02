@@ -67,14 +67,15 @@ groups:
     annotations:
       summary: "Offline-uncorrectable sectors on {{ $labels.disk }} ({{ $value }})"
 
-  - alert: SmartReportedUncorrectable
-    expr: smartmon_reported_uncorrect_raw_value > 0
-    for: 10m
-    labels:
-      severity: critical
-    annotations:
-      summary: "Reported uncorrectable errors on {{ $labels.disk }} ({{ $value }})"
-      description: "The drive gave up on {{ $value }} read/write attempts. Data corruption risk."
+  # Todo False Positive: Unstable, will check later
+  # - alert: SmartReportedUncorrectable
+  #   expr: smartmon_reported_uncorrect_raw_value > 0
+  #   for: 10m
+  #   labels:
+  #     severity: critical
+  #   annotations:
+  #     summary: "Reported uncorrectable errors on {{ $labels.disk }} ({{ $value }})"
+  #     description: "The drive gave up on {{ $value }} read/write attempts. Data corruption risk."
 
   # --- NVMe-specific ---
   - alert: NvmeCriticalWarning
