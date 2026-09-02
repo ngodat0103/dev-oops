@@ -35,7 +35,7 @@ module "ubuntu_server" {
   hostname          = "ubuntu-server.local"
   bridge_name       = "vmbr0"
   memory            = 1024 * 8
-  memory_floating = 1024*4
+  memory_floating = 1024*2
   gateway           = local.lan_gateway
   protection        = true
   vm_id             = 101
