@@ -1,7 +1,5 @@
 vaultwarden:
-  # https://artifacthub.io/packages/helm/vaultwarden/vaultwarden/0.44.0?modal=values
-  image:
-    tag: "1.37.1-alpine"
+  # https://artifacthub.io/packages/helm/vaultwarden/vaultwarden/0.46.1?modal=values
   replicas: 2
   fullnameOverride: "vaultwarden"
   resourceType: "Deployment"
@@ -17,14 +15,14 @@ vaultwarden:
       cpu: 1000m
       memory: 512Mi
     requests:
-      cpu: 200m
+      cpu: 100m
       memory: 256Mi
   ## @param strategy Resource configurations
   ##
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 2
+      maxSurge: 1
       maxUnavailable: 0
   podDisruptionBudget:
     ## @param podDisruptionBudget.enabled Enable PodDisruptionBudget settings
