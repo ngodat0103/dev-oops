@@ -3,10 +3,10 @@ name: traefik
 description: A Helm chart for Kubernetes
 
 type: application
-version: 41.1.0
+version: 41.4.0
 
-appVersion: "3.7.9"
+appVersion: "3.7.12"
 dependencies:
 - name: traefik
   repository: https://traefik.github.io/charts
-  version: 41.1.0
+  version: 41.4.0

@@ -1,5 +1,5 @@
 traefik:
-  # https://artifacthub.io/packages/helm/traefik/traefik/41.0.2?modal=values
+  # https://artifacthub.io/packages/helm/traefik/traefik/41.4.0?modal=values
   deployment:
     enabled: true
     kind: Deployment
