@@ -76,6 +76,36 @@ loki.relabel "etcd" {
   }
 }
 
+
+local.file_match "system_logs" {
+  path_targets = [
+    { __path__ = "/var/log/auth.log", job = "syslog", log_type = "auth",   host = coalesce(sys.env("HOSTNAME"), constants.hostname) },
+    { __path__ = "/var/log/syslog",   job = "syslog", log_type = "syslog", host = coalesce(sys.env("HOSTNAME"), constants.hostname) },
+    { __path__ = "/var/log/kern.log", job = "syslog", log_type = "kernel", host = coalesce(sys.env("HOSTNAME"), constants.hostname) },
+  ]
+}
+loki.source.file "system_logs" {
+  targets    = local.file_match.system_logs.targets
+  forward_to = [loki.write.default.receiver]
+}
+loki.relabel "journal" {
+  forward_to = []
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+  rule {
+    source_labels = ["__journal__hostname"]
+    target_label  = "host"
+  }
+}
+
+loki.source.journal "node_journal" {
+  path       = "/var/log/journal"
+  forward_to = [loki.write.default.receiver]
+  relabel_rules = loki.relabel.journal.rules
+}
+
 // Configure Loki endpoint
 loki.write "default" {
         endpoint {

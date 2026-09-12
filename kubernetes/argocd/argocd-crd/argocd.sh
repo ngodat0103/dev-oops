@@ -4,7 +4,7 @@
 set -euo pipefail
 
 MODE=${1:-"--diff"}
-HELM_VERSION=10.1.3
+HELM_VERSION=10.2.2
 
 helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update argo
@@ -15,6 +15,7 @@ case "$MODE" in
     helm diff upgrade argocd argo/argo-cd \
       -n argocd \
       --version "$HELM_VERSION" \
+      --output diff \
       -f values.yaml
     ;;
   --apply)
