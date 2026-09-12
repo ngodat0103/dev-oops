@@ -1,0 +1,8 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: disk-k8s-alert
+  labels:
+    release: kube-prometheus-stack
+spec:
+{{ .Files.Get "files/disk-k8s-node-alert.yaml" | indent 2 }}

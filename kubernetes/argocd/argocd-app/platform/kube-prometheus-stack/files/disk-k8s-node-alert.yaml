@@ -1,0 +1,18 @@
+groups:
+- name: node-filesystem-alerts
+  rules:
+  - alert: RootFilesystemAlmostFull
+    expr: |
+      (
+        1 - (
+          node_filesystem_avail_bytes{job="node-exporter", fstype!="", mountpoint="/"}
+          /
+          node_filesystem_size_bytes{job="node-exporter", fstype!="", mountpoint="/"}
+        )
+      ) * 100 >= 90
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Root filesystem almost full on {{ $labels.instance }}"
+      description: "{{ $labels.instance }} mountpoint / is at {{ printf \"%.2f\" $value }}% usage (threshold 90%)."
