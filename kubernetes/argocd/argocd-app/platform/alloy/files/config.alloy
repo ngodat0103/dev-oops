@@ -44,38 +44,6 @@ loki.source.kubernetes "pod_logs" {
   forward_to = [loki.write.default.receiver]
 }
 
-// --- etcd systemd journal logs (control-plane / master nodes only) ---
-// Requires `mounts.varlog: true` in the Alloy Helm values so the host's
-// /var/log (and therefore /var/log/journal, if journald persistent storage
-// is enabled) is visible inside the container.
-// On worker nodes this simply matches nothing — etcd.service doesn't exist
-// in their journal — so it's safe to leave in the shared DaemonSet config.
-loki.source.journal "etcd" {
-  path          = "/var/log/journal"
-  matches       = "_SYSTEMD_UNIT=etcd.service"
-  max_age       = "12h"
-  relabel_rules = loki.relabel.etcd.rules
-  forward_to    = [loki.write.default.receiver]
-
-  labels = {
-    job = "etcd",
-  }
-}
-
-loki.relabel "etcd" {
-  forward_to = []
-
-  rule {
-    source_labels = ["__journal__systemd_unit"]
-    target_label  = "unit"
-  }
-
-  rule {
-    source_labels = ["__journal__hostname"]
-    target_label  = "hostname"
-  }
-}
-
 
 local.file_match "system_logs" {
   path_targets = [
