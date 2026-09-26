@@ -31,9 +31,10 @@ juicefs-csi-driver:
     - resources:
         requests:
           cpu: 100m
-          memory: 256Mi
+          memory: 128Mi
         limits:
-          memory: 1Gi
+          cpu: 4000m
+          memory: 512Mi
   webhook:
     certManager:
       enabled: false

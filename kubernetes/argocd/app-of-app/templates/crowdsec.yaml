@@ -44,11 +44,11 @@ spec:
             replicas: 2
             resources:
               requests:
-                cpu: 500m
-                memory: 512Mi
+                cpu: 200m
+                memory: 128Mi
               limits:
-                cpu: 2
-                memory: 1Gi
+                cpu: 2000m
+                memory: 512Mi
             acquisitions:
               - source: appsec
                 listen_addr: "0.0.0.0:7422"
@@ -82,11 +82,11 @@ spec:
             replicas: 2
             resources:
               requests:
-                cpu: 0.2
+                cpu: 200m
                 memory: 128Mi
               limits:
-                cpu: 0.2
-                memory: 128Mi
+                cpu: 1000m
+                memory: 256Mi
             persistentVolume:
               data:
                 enabled: false
