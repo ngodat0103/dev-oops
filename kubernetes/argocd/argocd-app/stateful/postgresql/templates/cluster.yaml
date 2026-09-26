@@ -57,6 +57,7 @@ spec:
       track_io_timing: "on"
       track_functions: "pl"
       pg_stat_statements.track: "all"
+  priorityClassName: database-critical
   resources:
     requests:
       memory: 1Gi
@@ -64,6 +65,7 @@ spec:
     limits:
       memory: 1Gi
       cpu: 4000m
+
   enableSuperuserAccess: true
   superuserSecret:
     name: postgres-admin
