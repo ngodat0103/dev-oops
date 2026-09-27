@@ -140,8 +140,8 @@ module "k8s_workers" {
   tags              = ["production", "kubernetes-workers"]
   boot_disk_size    = 250
   gateway           = "192.168.1.1"
-  memory            = 1024 * 10
-  cpu_cores         = 10
+  memory            = 1024 * 8
+  cpu_cores         = 8
   cpu_type          = "host"
   node_name         = local.node_name
   datastore_id      = "local-lvm"
