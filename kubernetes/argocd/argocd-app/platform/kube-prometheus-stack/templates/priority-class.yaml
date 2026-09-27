@@ -1,0 +1,10 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: observability-critical
+  annotations:
+    argocd.argopro.io/sync-wave: "-1"
+value: 500000
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: "Monitoring stack (Prometheus, Alertmanager, Grafana, exporters). Above apps, below databases."
