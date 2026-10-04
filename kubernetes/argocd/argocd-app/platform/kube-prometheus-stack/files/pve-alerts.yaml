@@ -1,0 +1,151 @@
+groups:
+# ------------------------------------------------------------------
+# Scope: job="proxmox-node-exporter", instance="proxmox-server", nodename="pve-master"
+# nodename only exists on node_uname_info, so every rule joins it in via
+#   * on(instance) group_left(nodename) node_uname_info{...}
+# ------------------------------------------------------------------
+
+# Temperature: ALLOWLIST trusted chips only.
+# The Huananzhi X99 Super I/O (platform_nct6775_*) exposes unconnected thermistor
+# inputs with garbage values (temp4/temp5 ~105C, temp2 -125C, temp9 0C), so it is
+# deliberately excluded. Real sensors: coretemp (CPU, 1 chip per socket) + NVMe.
+- name: pve-master.temperature
+  rules:
+  # ---------------- CPU (coretemp, Tjmax/crit = 100C) ----------------
+  - alert: PveMasterCpuTemperatureWarning
+    expr: |
+      max by (instance, chip) (
+        node_hwmon_temp_celsius{job="proxmox-node-exporter", instance="proxmox-server", chip=~"platform_coretemp_.*"}
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info{job="proxmox-node-exporter", instance="proxmox-server", nodename="pve-master"}
+      > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "pve-master CPU {{ $labels.chip }} is hot"
+      description: "Hottest core/package on {{ $labels.chip }} is {{ $value | printf \"%.1f\" }}°C (> 80°C) for 5m on {{ $labels.nodename }}."
+
+  - alert: PveMasterCpuTemperatureCritical
+    expr: |
+      max by (instance, chip) (
+        node_hwmon_temp_celsius{job="proxmox-node-exporter", instance="proxmox-server", chip=~"platform_coretemp_.*"}
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info{job="proxmox-node-exporter", instance="proxmox-server", nodename="pve-master"}
+      > 90
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "pve-master CPU {{ $labels.chip }} is critically hot"
+      description: "Hottest core/package on {{ $labels.chip }} is {{ $value | printf \"%.1f\" }}°C (> 90°C, Tjmax 100°C) on {{ $labels.nodename }}. Thermal throttling imminent."
+
+  # ---------------- NVMe (crit ~85C) ----------------
+  - alert: PveMasterNvmeTemperatureWarning
+    expr: |
+      max by (instance, chip) (
+        node_hwmon_temp_celsius{job="proxmox-node-exporter", instance="proxmox-server", chip=~"nvme_.*"}
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info{job="proxmox-node-exporter", instance="proxmox-server", nodename="pve-master"}
+      > 70
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "pve-master NVMe {{ $labels.chip }} is hot"
+      description: "NVMe temperature is {{ $value | printf \"%.1f\" }}°C (> 70°C) for 5m on {{ $labels.nodename }}."
+
+  - alert: PveMasterNvmeTemperatureCritical
+    expr: |
+      (
+        max by (instance, chip) (
+          node_hwmon_temp_celsius{job="proxmox-node-exporter", instance="proxmox-server", chip=~"nvme_.*"}
+        )
+        >= on(instance, chip)
+        (
+          max by (instance, chip) (
+            node_hwmon_temp_crit_celsius{job="proxmox-node-exporter", instance="proxmox-server", chip=~"nvme_.*"}
+          ) - 5
+        )
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info{job="proxmox-node-exporter", instance="proxmox-server", nodename="pve-master"}
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "pve-master NVMe {{ $labels.chip }} is critically hot"
+      description: "NVMe temperature is {{ $value | printf \"%.1f\" }}°C (within 5°C of its critical threshold) on {{ $labels.nodename }}. Drive will throttle."
+
+- name: pve-master.cpu
+  rules:
+  - alert: PveMasterHighCpuWarning
+    expr: |
+      (
+        100 - avg by (instance) (
+          rate(node_cpu_seconds_total{job="proxmox-node-exporter", instance="proxmox-server", mode="idle"}[5m])
+        ) * 100
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info{job="proxmox-node-exporter", instance="proxmox-server", nodename="pve-master"}
+      > 85
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "pve-master CPU usage high"
+      description: "CPU usage is {{ $value | printf \"%.1f\" }}% (> 85%) for 10m on {{ $labels.nodename }}."
+
+  - alert: PveMasterHighCpuCritical
+    expr: |
+      (
+        100 - avg by (instance) (
+          rate(node_cpu_seconds_total{job="proxmox-node-exporter", instance="proxmox-server", mode="idle"}[5m])
+        ) * 100
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info{job="proxmox-node-exporter", instance="proxmox-server", nodename="pve-master"}
+      > 95
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "pve-master CPU usage critical"
+      description: "CPU usage is {{ $value | printf \"%.1f\" }}% (> 95%) for 5m on {{ $labels.nodename }}."
+
+- name: pve-master.memory
+  rules:
+  - alert: PveMasterHighMemoryWarning
+    expr: |
+      (
+        (1 - node_memory_MemAvailable_bytes{job="proxmox-node-exporter", instance="proxmox-server"}
+           / node_memory_MemTotal_bytes{job="proxmox-node-exporter", instance="proxmox-server"}) * 100
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info{job="proxmox-node-exporter", instance="proxmox-server", nodename="pve-master"}
+      > 85
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "pve-master memory usage high"
+      description: "Memory usage is {{ $value | printf \"%.1f\" }}% (> 85%) for 10m on {{ $labels.nodename }}."
+
+  - alert: PveMasterHighMemoryCritical
+    expr: |
+      (
+        (1 - node_memory_MemAvailable_bytes{job="proxmox-node-exporter", instance="proxmox-server"}
+           / node_memory_MemTotal_bytes{job="proxmox-node-exporter", instance="proxmox-server"}) * 100
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info{job="proxmox-node-exporter", instance="proxmox-server", nodename="pve-master"}
+      > 95
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "pve-master memory usage critical"
+      description: "Memory usage is {{ $value | printf \"%.1f\" }}% (> 95%) for 5m on {{ $labels.nodename }}. OOM risk for VMs."
