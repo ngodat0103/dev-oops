@@ -2,9 +2,9 @@ apiVersion: v2
 name: alloy
 description: A Helm chart for Kubernetes
 type: application
-version: 1.13.0
-appVersion: "1.20.0"
+version: 1.13.1
+appVersion: "1.20.1s"
 dependencies:
 - name: alloy
   repository: https://grafana.github.io/helm-charts
-  version: 1.13.0
+  version: 1.13.1
