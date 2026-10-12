@@ -57,22 +57,24 @@ The infrastructure follows a hybrid model in active transition: services are bei
 |  | Traefik, Docker services, Monitoring stack               |  |
 |  | GitLab, Agent DVR                  (the workhorse)       |  |
 |  +----------------------------------------------------------+  |
-|  +---------------------------+  +---------------------------+  |
-|  | vpn-server     .1.123     |  | teleport       .1.122     |  |
-|  | OpenVPN + OTP             |  | Zero-Trust Access         |  |
-|  +---------------------------+  +---------------------------+  |
+|  +---------------------------+                                 |
+|  | vpn-server     .1.123     |                                 |
+|  | OpenVPN + OTP             |                                 |
+|  +---------------------------+                                 |
 |                                                                |
 |  (No more LXC. The postgresql-16 container was evicted;        |
-|   CNPG in K8s does its job now and holds no grudges.)          |
+|   CNPG in K8s does its job now and holds no grudges.           |
+|   The Teleport VM followed it into the cluster.)               |
 |                                                                |
 |  Kubernetes Cluster (PRODUCTION — migration in progress)      |
 |  +----------------------------------------------------------+ |
 |  | Masters: .1.180-.182 (x3)  Workers: .1.190-.192 (x3)     | |
-|  | 13 vCPU / 13 GB RAM / 250 GB disk per worker (production) | |
+|  | 8 vCPU / 8 GB RAM / 250 GB disk per worker (production)  | |
 |  | ArgoCD, Traefik, MetalLB, OpenEBS, CloudNative-PG,       | |
 |  | Velero, kube-prometheus-stack, Loki, Alloy,              | |
 |  | qBittorrent, Jellyfin, Vaultwarden, Nextcloud, SonarQube | |
-|  | CrowdSec (WAF/IDS), Argus (SRE assistant, active dev)    | |
+|  | Teleport (zero-trust access), CrowdSec (WAF/IDS),        | |
+|  | Argus (SRE assistant, active dev)                        | |
 |  | "One day this will replace everything above.             | |
 |  |  That day has started. And it's tagged production."       | |
 |  +----------------------------------------------------------+ |
@@ -110,39 +112,43 @@ One server. Everything runs on one server. Yes, the "cluster" too. No, it's not 
 
 | Network              | Subnet             | Purpose                              |
 |----------------------|---------------------|--------------------------------------|
-| LAN                  | 192.168.1.0/24     | Primary network for all VMs and LXCs |
-| Private              | 192.168.99.0/24    | Isolated network for stateful LXCs -- now unused since the postgresql-16 LXC was removed, but kept around for the next thing that needs to hide from the outside |
+| LAN                  | 192.168.1.0/24     | Primary network for all VMs          |
 | Docker internal      | 192.168.30.0/24    | Bridge network for Docker containers on ubuntu-server |
-| MetalLB pool         | 192.168.1.230-240  | Kubernetes LoadBalancer IP range     |
+| MetalLB pool         | 192.168.1.230-250  | Kubernetes LoadBalancer IP range (K8s Traefik sits at `.230`) |
 
-DNS is managed via Cloudflare and Terraform.
+The old `192.168.99.0/24` private network was removed together with the last LXC.
 
-**Public DNS (proxied CNAME via Cloudflare):**
+DNS is managed via Cloudflare and Terraform (`tf/cloudflare/dns`).
+
+**Public DNS (CNAME → DDNS endpoint):**
 
 | Record                          | Type  | Proxied | Target        |
 |---------------------------------|-------|---------|---------------|
-| gitlab.datrollout.dev           | CNAME | Yes     | DDNS endpoint |
 | bitwarden.datrollout.dev        | CNAME | Yes     | DDNS endpoint |
 | sonarqube.datrollout.dev        | CNAME | Yes     | DDNS endpoint |
-| nextcloud.datrollout.dev        | CNAME | Yes     | DDNS endpoint |
+| argus.datrollout.dev            | CNAME | Yes     | DDNS endpoint |
+| nextcloud.datrollout.dev        | CNAME | No      | DDNS endpoint |
+| jellyfin.datrollout.dev         | CNAME | No      | DDNS endpoint |
+| teleport.datrollout.dev         | CNAME | No      | DDNS endpoint |
+| it-2003.datrollout.dev          | CNAME | No      | DDNS endpoint |
 | loki.datrollout.dev             | CNAME | Yes     | DDNS endpoint ¹ |
 | prometheus.datrollout.dev       | CNAME | Yes     | DDNS endpoint ¹ |
 | grafana.datrollout.dev          | CNAME | Yes     | DDNS endpoint ¹ |
 
 > ¹ `loki`, `prometheus`, and `grafana` DNS records are managed manually (not in Terraform). They are routed via Traefik on ubuntu-server to Docker-hosted services.
 
-**Direct-to-Traefik DNS (unproxied A records pointing to K8s Traefik at `192.168.1.232`):**
+**LAN-only DNS (unproxied A records pointing at private IPs):**
 
-| Record                          | Type | Proxied | Target          |
-|---------------------------------|------|---------|-----------------|
-| jellyfin.datrollout.dev         | A    | No      | 192.168.1.232   |
-| core-harbor.datrollout.dev      | A    | No      | 192.168.1.232   |
-| kafka-ui.datrollout.dev         | A    | No      | 192.168.1.232   |
-| pgadmin4.datrollout.dev         | A    | No      | 192.168.1.232   |
-| argocd.datrollout.dev           | A    | No      | 192.168.1.232   |
-| qbittorrent.datrollout.dev      | A    | No      | 192.168.1.232   |
+| Record                          | Type | Proxied | Target                              |
+|---------------------------------|------|---------|-------------------------------------|
+| pgadmin4.datrollout.dev         | A    | No      | 192.168.1.230 (K8s Traefik)         |
+| argocd.datrollout.dev           | A    | No      | 192.168.1.230 (K8s Traefik)         |
+| crowdsec-ui.datrollout.dev      | A    | No      | 192.168.1.230 (K8s Traefik)         |
+| juicefs.datrollout.dev          | A    | No      | 192.168.1.230 (K8s Traefik)         |
+| qbittorrent.datrollout.dev      | A    | No      | 192.168.1.230 (K8s Traefik)         |
+| gitlab.datrollout.dev           | A    | No      | 192.168.1.121 (Docker Traefik)      |
 
-Direct records resolve to the Kubernetes Traefik ingress (via MetalLB). Media-heavy services such as Jellyfin stay DNS-only to avoid Cloudflare media bandwidth limits and are protected at Traefik with CrowdSec.
+The A records resolve to private IPs, so they only work from the LAN or over VPN. Media-heavy and long-lived-connection services (Jellyfin, Nextcloud, Teleport) stay DNS-only to avoid Cloudflare media and bandwidth limits. They are protected at Traefik by CrowdSec.
 
 ---
 
@@ -153,15 +159,17 @@ Direct records resolve to the Kubernetes Traefik ingress (via MetalLB). Media-he
 | Host           | IP             | OS           | vCPU | RAM   | Role                                 |
 |----------------|----------------|--------------|------|-------|--------------------------------------|
 | pve-master     | 192.168.1.120  | Proxmox VE   | --   | --    | Hypervisor (the boss)                |
-| ubuntu-server  | 192.168.1.121  | Ubuntu 22.04 | 4    | 8 GB  | Docker host, Traefik, monitoring (the workhorse) |
-| teleport       | 192.168.1.122  | --           | --   | --    | Zero-trust access proxy              |
-| vpn-server     | 192.168.1.123  | Debian 13    | 1    | 2 GB  | OpenVPN with OTP (for remote chaos)  |
+| ubuntu-server  | 192.168.1.121  | Ubuntu 22.04 | 4    | 8 GB (2 GB balloon floor) | Docker host, Traefik, monitoring, NFS for the 2 HDDs (the workhorse) |
+| vpn-server     | 192.168.1.123  | Debian 13    | 2    | 1 GB (0.5 GB balloon floor) | OpenVPN with OTP (for remote chaos)  |
+
+Proxmox can optionally push host metrics to InfluxDB on ubuntu-server (`:8086`). This is only enabled when `influxdb_token` is set.
 
 #### Decommissioned VMs
 
 | Host           | IP             | OS           | Notes                                     |
 |----------------|----------------|--------------|-------------------------------------------|
 | hephaestus     | 192.168.1.124  | --           | Decommissioned 2026-04-27. Former self-hosted GitLab/GitHub runner. |
+| teleport       | 192.168.1.122  | --           | Replaced by the in-cluster Teleport Helm deployment (`argocd-app/stateless/teleport`). |
 
 ### LXC Containers
 
@@ -169,12 +177,14 @@ None. The lone `postgresql-16` LXC (`192.168.99.2`) was **removed** — producti
 
 ### Kubernetes Cluster (Production)
 
-Deployed via Kubespray (currently **v1.35.6**) and managed by ArgoCD app-of-apps. The repository currently includes a local Kubespray inventory under `ansible/kubernetes/kubespray/inventory/local/hosts.ini`; actual production node sizing/count may differ from this local inventory snapshot. See [The Kubernetes Situation](#the-kubernetes-situation) for migration status.
+Deployed via Kubespray (submodule at `v2.31.0`+, Kubernetes **v1.35.6**) and managed by ArgoCD app-of-apps. The production inventory is `ansible/kubernetes/production.ini`, with stacked etcd on the 3 masters. Group vars live in `ansible/kubernetes/group_vars/`. The VMs themselves are defined in `tf/proxmox/main.tf`. See [The Kubernetes Situation](#the-kubernetes-situation) for migration status.
 
 | Role    | Count | IP Range            | vCPU | RAM   | Disk   |
 |---------|-------|---------------------|------|-------|--------|
 | Master  | 3     | 192.168.1.180-182   | 2    | 6 GB  | 50 GB  |
-| Worker  | 3     | 192.168.1.190-192   | 13   | 13 GB | 250 GB |
+| Worker  | 3     | 192.168.1.190-192   | 8    | 8 GB  | 250 GB |
+
+Workers were downsized in September 2026 (from 13 vCPU / 13 GB) after a round of resource-request tuning across every app. `database` and `observability-critical` PriorityClasses make sure PostgreSQL and Prometheus are the last to be evicted when RAM runs short.
 
 ---
 
@@ -186,11 +196,12 @@ All infrastructure provisioning is managed through Terraform with reusable modul
 
 | Configuration           | Provider                  | Purpose                                       |
 |-------------------------|---------------------------|-----------------------------------------------|
-| `tf/proxmox`            | bpg/proxmox 0.92.0       | VMs, LXCs, networks, cloud-init images        |
+| `tf/proxmox`            | bpg/proxmox ~> 0.111.1   | VMs (ubuntu-server, vpn-server, K8s nodes), cloud-init images |
 | `tf/cloudflare/dns`     | cloudflare/cloudflare ~5  | DNS records, WAF firewall rules               |
 | `tf/cloudflare/storage` | cloudflare/cloudflare     | R2 object storage (Velero backend)            |
-| `tf/uptimerobot`        | vexxhost/uptimerobot      | External uptime monitoring (the 3 AM alarm)   |
-| `tf/openstack`          | openstack provider        | OpenStack resource provisioning               |
+| `tf/uptimerobot`        | vexxhost/uptimerobot      | External uptime monitoring for Vaultwarden and Nextcloud (the 3 AM alarm) |
+
+`tf/openstack` was removed (August 2026) because nothing used it.
 
 ### Ansible
 
@@ -198,14 +209,12 @@ Server configuration and application deployment for all non-Kubernetes workloads
 
 | Playbook Area                | Purpose                                               |
 |------------------------------|-------------------------------------------------------|
-| `ansible/core/ubuntu-server` | Docker host setup, app deployment, monitoring, cron   |
-| `ansible/core/teleport`      | Teleport access proxy installation                    |
-| `ansible/core/vpn-server`    | OpenVPN server with OTP                               |
-| `ansible/kubernetes`          | Kubespray inventory and cluster configuration         |
-| `ansible/kubernetes/rbac`    | Teleport RBAC configuration for Kubernetes            |
-| `ansible/proxmox`            | Proxmox host configuration (GRUB, power, firewall)   |
+| `ansible/core/ubuntu-server` | Docker host setup, app deployment (Traefik, GitLab, Agent DVR), monitoring, cron backups |
+| `ansible/core/vpn-server`    | OpenVPN server with OTP (`openvpn-role` submodule), swap config |
+| `ansible/kubernetes`         | Kubespray production inventory, group vars, NFS client install |
+| `ansible/proxmox`            | Proxmox host configuration (GRUB, power, firewall, apt repositories, node_exporter, disk metrics) |
 
-Legacy configurations from the old bare-metal era are preserved in `ansible/old-bare-metal/` for reference.
+The Teleport playbooks and the old bare-metal configs have been removed. Teleport is deployed by ArgoCD now.
 
 ### ArgoCD (Kubernetes)
 
@@ -217,10 +226,10 @@ GitOps deployment uses an app-of-apps chart at `kubernetes/argocd/app-of-app`. F
 - `metallb`, `traefik`, `openebs`, `postgresql`, `velero`, `kubePrometheusStack`
 - `customManifest`, `loki`, `alloy`, `pgadmin4`, `sonarqube`
 - `juicefs`, `vaultwarden`, `nextcloud`, `certManager`, `nfsCsiDriver`
-- `qbittorrent`, `jellyfin`, `argus`, `crowdsec`
+- `qbittorrent`, `jellyfin`, `argus`, `crowdsec`, `teleport`
 
 **Disabled right now:**
-- `mongoOperator`, `kafkaOperator`, `harbor`, `redis`, `agentDvr`
+- `mongo`, `kafkaOperator`, `harbor`, `redis`, `agentDvr`, `chaosMesh`, `eck`
 
 ---
 
@@ -232,7 +241,9 @@ Services still on Docker. GitLab migration is pending / possibly aborted due to 
 
 | Service       | Purpose                  | Exposed Domain              | Status        |
 |---------------|--------------------------|-----------------------------|---------------|
-| GitLab        | Source control and CI/CD | gitlab.datrollout.dev       | Docker (migration pending/aborted) |
+| Traefik       | Reverse proxy for Docker apps | --                     | Docker        |
+| Monitoring    | Prometheus, Grafana, Loki, InfluxDB, cAdvisor, node-exporter (Alloy runs as a systemd unit) | grafana / prometheus / loki | Docker |
+| GitLab        | Source control and CI/CD | gitlab.datrollout.dev (LAN only) | Docker (migration pending/aborted) |
 | Vaultwarden   | Password management      | bitwarden.datrollout.dev    | **Migrated → K8s** |
 | Nextcloud     | File synchronization     | nextcloud.datrollout.dev    | **Migrated → K8s** |
 | Jellyfin      | Media server             | jellyfin.datrollout.dev     | **Migrated → K8s** |
@@ -245,8 +256,9 @@ Services still on Docker. GitLab migration is pending / possibly aborted due to 
 
 | Service       | Host             | Purpose                           |
 |---------------|------------------|-----------------------------------|
-| Teleport      | 192.168.1.122    | Zero-trust infrastructure access  |
 | OpenVPN       | 192.168.1.123    | Remote VPN access with OTP        |
+
+> Teleport used to run on its own VM (`192.168.1.122`). It now runs in Kubernetes. See below.
 
 > The standalone `postgresql-16` LXC (`192.168.99.2`) has been **removed** (Terraform config dropped in `fad73ce`). Production PostgreSQL now runs on CloudNative-PG in the Kubernetes cluster, with continuous WAL archiving to Cloudflare R2 (see [Backup and Disaster Recovery](#backup-and-disaster-recovery)).
 
@@ -261,7 +273,8 @@ The cluster runtime is production-oriented, with staged migration from Docker wo
 | Observability           | kube-prometheus-stack, Loki, Alloy |
 | Data / app platform     | CloudNative-PG, cert-manager, pgadmin4 |
 | User services           | Vaultwarden, Nextcloud, SonarQube, qBittorrent, Jellyfin |
-| Security                | CrowdSec (LAPI + AppSec, Helm chart 0.24.0) |
+| Security                | CrowdSec (LAPI + AppSec, Helm chart 0.24.0) + CrowdSec UI (`stateful/crowdsec-ui`) |
+| Access                  | Teleport (chart 18.11.1, `teleport.datrollout.dev`) |
 | SRE / automation        | Argus (intelligent SRE assistant — K8s incident response and workload management; active development) |
 | Misc                    | custom-manifest |
 
@@ -461,6 +474,7 @@ Traffic goes through multiple layers before it reaches anything useful. I'd rath
 - All public traffic is proxied through Cloudflare
 - Geo-blocking: only traffic originating from Vietnam is permitted (sorry, rest of the world)
 - UptimeRobot health check IPs are explicitly whitelisted
+- GitHub webhooks (ASN 36459, `/webhook` path only) skip the geo-block
 - Vaultwarden `/admin` endpoint is blocked at the edge, because even I don't trust myself with that URL exposed
 
 ### Reverse Proxy (Traefik v3)
@@ -474,13 +488,13 @@ Traffic goes through multiple layers before it reaches anything useful. I'd rath
 
 Internal-only applications in the Kubernetes cluster stay behind Traefik and are restricted with an IP allowlist middleware.
 
-- Internal-only apps: `sonarqube`, `juicefs`, `grafana`, `alertmanager`, `pgadmin4`, `chaos-mesh`
+- Internal-only apps: `sonarqube`, `juicefs`, `grafana`, `alertmanager`, `pgadmin4`, `crowdsec-ui`, `chaos-mesh`
 - Harbor follows the same policy when enabled
 - Required ingress annotations for internal apps:
   - `traefik.ingress.kubernetes.io/router.entrypoints: "websecure"`
   - `traefik.ingress.kubernetes.io/router.middlewares: "traefik-allow-local-ip-only@kubernetescrd"`
 - Allowed LAN/VPN CIDRs are managed in:
-  - `kubernetes/argocd/argocd-app/stateless/traefik/middlewares/allow-local-ip-only.yaml`
+  - `kubernetes/argocd/argocd-app/platform/traefik/templates/middlewares/allow-local-ip-only.yaml`
 - Public apps must not use the local-only middleware
 
 ### Intrusion Detection (CrowdSec)
@@ -502,7 +516,7 @@ crowdsecAppsecFailureBlock: true
 
 | Tool       | Purpose                                        |
 |------------|------------------------------------------------|
-| Teleport   | Zero-trust access to SSH and internal services |
+| Teleport   | Zero-trust access to SSH, Kubernetes and internal services (runs in-cluster, `teleport.datrollout.dev`) |
 | OpenVPN    | Remote network access with OTP                 |
 
 ### Secret Management
@@ -574,15 +588,17 @@ Vaultwarden data is backed up via a scheduled script. Restore scripts and instru
 
 ### GitHub Actions
 
-| Workflow | Trigger | Purpose |
+> ⚠️ **Currently disabled.** `.github/workflows/` is empty. The workflow was parked in [`backlog/postgresql-backup-test.yml`](backlog/postgresql-backup-test.yml) (commit `7480409`). To re-enable it, move it back into `.github/workflows/`.
+
+| Workflow | Trigger (when enabled) | Purpose |
 |----------|---------|---------|
 | `postgresql-backup-test.yml` | Cron: 1st & 15th at 03:00 UTC + manual | End-to-end PostgreSQL backup verification on an ephemeral DOKS cluster |
 
-**PostgreSQL Backup Verification** (`postgresql-backup-test.yml`):
+**PostgreSQL Backup Verification** (`backlog/postgresql-backup-test.yml`):
 
 Spins up a throwaway DigitalOcean Kubernetes cluster, deploys the full PostgreSQL stack via ArgoCD at the pinned recovery tag, waits for the CloudNative-PG cluster to reach healthy state, then validates that expected databases and tables are present. The destroy step deletes the cluster first, then cleans up orphaned block storage volumes (by `k8s:<cluster-id>` CSI tag) and load balancers (by IP + tag).
 
-This runs automatically twice a month. If it fails, the backup is broken.
+When it is enabled it runs twice a month, and a failure means the backup is broken. While it is parked, nothing is verifying the backups automatically. Schrödinger's backup.
 
 ### GitLab CI
 
@@ -611,59 +627,60 @@ Key findings:
 ```
 .
 ├── .github/
-│   └── workflows/
-│       └── postgresql-backup-test.yml # Automated backup verification (runs 1st & 15th)
+│   └── workflows/                     # Empty for now — backup test is parked in backlog/
 │
 ├── .vscode/                           # VS Code workspace settings
 │
 ├── ansible/
 │   ├── core/                          # Production server configuration (the real stuff)
-│   │   ├── inventory.ini              # Ansible inventory (all hosts)
+│   │   ├── inventory.ini              # Ansible inventory (pve-master, ubuntu-server, vpn-server)
 │   │   ├── ubuntu-server/             # Docker host: apps, basic setup, monitoring, cron
-│   │   ├── teleport/                  # Zero-trust access proxy
-│   │   ├── vpn-server/                # OpenVPN configuration
-│   │   └── hephaestus/                # ⚰️ Decommissioned VM configs (2026-04-27)
+│   │   │   ├── apps/                  # Traefik, GitLab, Agent DVR
+│   │   │   ├── observation-and-monitoring/ # Prometheus, Grafana, Loki, InfluxDB, Alloy, cAdvisor, node-exporter
+│   │   │   └── system-cron/           # Backup cron jobs
+│   │   └── vpn-server/                # OpenVPN (openvpn-role submodule) + swap config
 │   ├── kubernetes/                    # Kubespray inventory and cluster configuration
+│   │   ├── production.ini             # Production Kubespray inventory (3 masters + 3 workers)
 │   │   ├── credentials/               # Kubeadm certificate key
 │   │   ├── docs/                      # Cluster screenshots
-│   │   ├── group_vars/                # Kubespray group variables
-│   │   ├── rbac/                      # Teleport RBAC for Kubernetes
+│   │   ├── group_vars/                # Kubespray group variables (kube_version, addons, ...)
 │   │   ├── kubespray/                 # Kubespray submodule (git)
-│   │   └── INCIDENT-0.md             # Full postmortem & lessons
-│   ├── old-bare-metal/                # Legacy configs from the pre-VM era
+│   │   ├── install-nfs-client.yaml    # NFS client on K8s nodes (for NFS CSI)
+│   │   └── INCIDENT-0.md              # Full postmortem & lessons
 │   └── proxmox/                       # Proxmox host configuration
 │       ├── firewall.yaml              # Firewall rules
 │       ├── grub.yaml                  # GRUB boot config
 │       ├── power.yaml                 # Power management
-│       └── node-exporter.yaml         # Node metrics export
+│       ├── repositories.yaml          # APT repositories
+│       ├── nodeExporter.yaml          # node_exporter for host metrics
+│       └── diskMetrics.yaml           # Disk / SMART metrics
 │
 ├── kubernetes/                        # Kubernetes cluster workloads
-│   ├── argocd/
-│   │   ├── argocd-crd/                # ArgoCD installation (Helm)
-│   │   ├── app-of-app/                # App-of-apps Helm chart (values.yaml toggles)
-│   │   ├── argocd-app/                # Per-application ArgoCD manifests and values
-│   │   │   ├── daemon/                # Cluster daemons (MetalLB and related)
-│   │   │   ├── stateful/              # Stateful apps (postgresql, qbittorrent, jellyfin, agent-dvr, ...)
-│   │   │   └── stateless/             # Stateless apps (traefik, vaultwarden, metric-server, ...)
-│   │   │       ├── vaultwarden/       # Vaultwarden Helm chart with SOPS-encrypted secrets
-│   │   │       │   ├── Chart.yaml
-│   │   │       │   ├── values.yaml
-│   │   │       │   ├── .helmignore
-│   │   │       │   ├── secret.enc.yaml    (SOPS/Age encrypted)
-│   │   │       │   └── templates/
-│   │   │       │       └── vaultwarden-db.yaml
-│   │   │       └── vaultwarden-backup/
-│   │   └── custom-manifest/           # Ad-hoc Kubernetes manifests
-│   └── charts/                        # Custom Helm charts (Kafka operator, Mongo operator)
+│   └── argocd/
+│       ├── argocd-crd/                # ArgoCD installation (Helm) + SOPS/Age config
+│       ├── app-of-app/                # App-of-apps Helm chart (values.yaml toggles)
+│       ├── argocd-app/                # Per-application ArgoCD manifests and values
+│       │   ├── platform/              # alloy, argus, cert-manager, eck, juicefs, kafka-operator,
+│       │   │                          # kube-prometheus-stack, loki, metallb, traefik
+│       │   ├── stateful/              # agent-dvr, chaos-mesh, crowdsec-ui, jellyfin, mongo,
+│       │   │                          # nextcloud, postgresql, qbittorrent, redis
+│       │   └── stateless/             # metric-server, teleport, vaultwarden
+│       │       ├── teleport/          # Teleport Helm chart with SOPS-encrypted secrets
+│       │       └── vaultwarden/       # Vaultwarden Helm chart with SOPS-encrypted secrets
+│       │           ├── Chart.yaml
+│       │           ├── values.yaml
+│       │           ├── secret.enc.yaml    (SOPS/Age encrypted)
+│       │           └── templates/
+│       │               └── vaultwarden-db.yaml
+│       └── custom-manifest/           # Ad-hoc Kubernetes manifests (CoreDNS override)
 │
 ├── tf/
-│   ├── proxmox/                       # VM/LXC provisioning, network, cloud-init
+│   ├── proxmox/                       # VM provisioning and cloud-init images
 │   ├── cloudflare/
 │   │   ├── dns/                       # DNS records and WAF firewall rules
 │   │   └── storage/                   # R2 bucket for Velero
 │   ├── uptimerobot/                   # External uptime monitors
-│   ├── openstack/                     # OpenStack resource provisioning
-│   └── terraform-module/              # Shared Terraform modules (submodule)
+│   └── terraform-module/              # Shared Terraform modules (local copy; the stacks pin the GitHub repo by ref)
 │
 ├── maintainPage/                      # Cloudflare maintenance mode tooling
 │   ├── index.html                     # Maintenance page (Cloudflare Workers)
@@ -671,14 +688,25 @@ Key findings:
 │
 ├── disaster-recovery/
 │   ├── postgresql/                    # PostgreSQL DR plan, restore procedure, CI docs
-│   └── vaultwarden/                   # Vaultwarden backup and restore scripts
+│   ├── vaultwarden/                   # Vaultwarden backup and restore scripts
+│   ├── dr-drill/                      # DR drill workspace (empty)
+│   ├── dev-minikube.sh                # Local minikube for DR testing
+│   └── on-demand-backup-pv-pvc.yaml   # One-off PV/PVC backup manifest
+│
+├── custom-image/
+│   └── cloudnative-pg16-with-wal2json # CNPG PostgreSQL 16 image with wal2json
+│
+├── backlog/
+│   └── postgresql-backup-test.yml     # Parked GitHub Actions workflow (currently disabled)
 │
 ├── findings/                          # Technical investigations & reports
 │   ├── juicefs-r2-high-write-report.md
 │   └── postgresql-latency-benchmark-report.md
 │
-└── proposed-automation/              # High-level automation proposals (not yet implemented)
-    └── readme-doc-sync.md            # Idea: scheduled agent that keeps this readme honest
+├── proposed-automation/               # High-level automation proposals (not yet implemented)
+│   └── readme-doc-sync.md             # Idea: scheduled agent that keeps this readme honest
+│
+└── TROUBLESHOOTING.md                 # Known issues and fixes
 ```
 
 ---
@@ -708,7 +736,7 @@ To work with this repository locally, you need:
 - **kubectl** — for interacting with the Kubernetes cluster
 - **Helm** — for managing Kubernetes charts
 - **argocd** CLI — for GitOps operations
-- **doctl** — for DigitalOcean API operations (backup testing)
+- **doctl** — for DigitalOcean API operations (only needed for the parked backup test)
 - Cloudflare API credentials for DNS management
 - Access to the target Proxmox host
 
@@ -737,7 +765,7 @@ To work with this repository locally, you need:
 4. **Deploy the Kubernetes cluster** (if not already running):
    ```bash
    cd ansible/kubernetes/kubespray
-   ansible-playbook -i inventory/local/hosts.ini cluster.yml
+   ansible-playbook -i ../production.ini cluster.yml
    ```
 
 5. **Access ArgoCD** to manage workloads:
