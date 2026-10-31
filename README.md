@@ -130,7 +130,6 @@ DNS is managed via Cloudflare and Terraform (`tf/cloudflare/dns`).
 | nextcloud.datrollout.dev        | CNAME | No      | DDNS endpoint |
 | jellyfin.datrollout.dev         | CNAME | No      | DDNS endpoint |
 | teleport.datrollout.dev         | CNAME | No      | DDNS endpoint |
-| it-2003.datrollout.dev          | CNAME | No      | DDNS endpoint |
 | loki.datrollout.dev             | CNAME | Yes     | DDNS endpoint ¹ |
 | prometheus.datrollout.dev       | CNAME | Yes     | DDNS endpoint ¹ |
 | grafana.datrollout.dev          | CNAME | Yes     | DDNS endpoint ¹ |
