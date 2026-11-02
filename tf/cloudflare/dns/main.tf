@@ -37,6 +37,11 @@ module "ddns_records" {
       type    = "CNAME"
       proxied = false
     }
+    vpn-server = {
+      type    = "CNAME"
+      proxied = false
+      ttl     = 1
+    }
     // Internal services
     pgadmin4 = {
       type    = "A"
