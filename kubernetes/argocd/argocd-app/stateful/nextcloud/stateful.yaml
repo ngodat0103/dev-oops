@@ -24,10 +24,14 @@ spec:
           claimName: nextcloud-mnt-pvc
       containers:
       - name: nextcloud
-        image: linuxserver/nextcloud:34.0.1@sha256:397d5e5bdf1d626ab3f160575f6b8415b6479f5f258607c902385e48c92f2045
+        image: linuxserver/nextcloud:35.0.2-ls461
         resources:
+          requests:
+            cpu: 1000m
+            memory: 1Gi
           limits:
-            memory: 512Mi
+            cpu: 4000m
+            memory: 1Gi
         ports:
         - name: http
           containerPort: 80
