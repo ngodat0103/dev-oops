@@ -1,0 +1,8 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: critical-personal-services
+value: 750000
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: "Personal services - below database-critical"
