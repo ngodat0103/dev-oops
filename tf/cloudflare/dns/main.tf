@@ -38,6 +38,10 @@ module "ddns_records" {
       type    = "CNAME"
       proxied = false
     }
+    projects = {
+      type    = "CNAME"
+      proxied = false
+    }
     teleport = {
       type    = "CNAME"
       proxied = false
