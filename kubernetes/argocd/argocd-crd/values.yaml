@@ -32,26 +32,30 @@ repoServer:
   # --- SOPS: init container installs sops + age + helm-secrets ---
   initContainers:
   - name: install-sops-tools
-    image: alpine:3.19
+    image: alpine:3.22
     command:
     - sh
     - -c
     - |
+      set -eo pipefail
       wget -O /custom-tools/sops \
-        https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.amd64
+        https://github.com/getsops/sops/releases/download/v3.13.3/sops-v3.13.3.linux.amd64
       chmod +x /custom-tools/sops
 
       wget -O /tmp/age.tar.gz \
-        https://github.com/FiloSottile/age/releases/download/v1.1.1/age-v1.1.1-linux-amd64.tar.gz
+        https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-linux-amd64.tar.gz
       tar xf /tmp/age.tar.gz -C /tmp
       mv /tmp/age/age /custom-tools/
       mv /tmp/age/age-keygen /custom-tools/
       chmod +x /custom-tools/age /custom-tools/age-keygen
 
+      HELM_SECRETS_VERSION=4.7.11
       mkdir -p /custom-tools/helm-plugins
-      wget -qO- https://github.com/jkroepke/helm-secrets/releases/download/v4.7.6/helm-secrets.tar.gz \
-        | tar -C /custom-tools/helm-plugins -xzf-
-      cp /custom-tools/helm-plugins/helm-secrets/scripts/wrapper/helm.sh /custom-tools/helm
+      for p in secrets secrets-getter secrets-post-renderer; do
+        wget -qO- "https://github.com/jkroepke/helm-secrets/releases/download/v${HELM_SECRETS_VERSION}/${p}-${HELM_SECRETS_VERSION}.tgz" \
+          | tar -C /custom-tools/helm-plugins -xzf-
+      done
+      cp /custom-tools/helm-plugins/secrets/scripts/wrapper/helm.sh /custom-tools/helm
       chmod +x /custom-tools/helm
     volumeMounts:
     - name: custom-tools
