@@ -272,7 +272,7 @@ The cluster runtime is production-oriented, with staged migration from Docker wo
 | Observability           | kube-prometheus-stack, Loki, Alloy |
 | Data / app platform     | CloudNative-PG, cert-manager, pgadmin4 |
 | User services           | Vaultwarden, Nextcloud, SonarQube, qBittorrent, Jellyfin |
-| Security                | CrowdSec (LAPI + AppSec, Helm chart 0.24.0) + CrowdSec UI (`stateful/crowdsec-ui`) |
+| Security                | CrowdSec (LAPI + AppSec, Helm chart 0.24.3) + CrowdSec UI (`platform/crowdsec`) |
 | Access                  | Teleport (chart 18.11.1, `teleport.datrollout.dev`) |
 | SRE / automation        | Argus (intelligent SRE assistant — K8s incident response and workload management; active development) |
 | Misc                    | custom-manifest |
@@ -498,7 +498,7 @@ Internal-only applications in the Kubernetes cluster stay behind Traefik and are
 
 ### Intrusion Detection (CrowdSec)
 
-Migrated from a standalone LXC (`192.168.1.127`) to an in-cluster Helm deployment (chart `0.24.0`) managed by ArgoCD. LAPI uses the existing CloudNative-PG PostgreSQL as its backend; Traefik bouncer middleware now routes to the in-cluster Services instead of a static IP.
+Migrated from a standalone LXC (`192.168.1.127`) to an in-cluster Helm deployment (chart `0.24.3`) managed by ArgoCD. LAPI uses the existing CloudNative-PG PostgreSQL as its backend; Traefik bouncer middleware now routes to the in-cluster Services instead of a static IP.
 
 - LAPI running on port 8080, AppSec engine on port 7422
 - Detection scenarios: HTTP path traversal, XSS probing, generic brute force
@@ -659,9 +659,9 @@ Key findings:
 │       ├── argocd-crd/                # ArgoCD installation (Helm) + SOPS/Age config
 │       ├── app-of-app/                # App-of-apps Helm chart (values.yaml toggles)
 │       ├── argocd-app/                # Per-application ArgoCD manifests and values
-│       │   ├── platform/              # alloy, argus, cert-manager, eck, juicefs, kafka-operator,
+│       │   ├── platform/              # alloy, argus, cert-manager, crowdsec, eck, juicefs, kafka-operator,
 │       │   │                          # kube-prometheus-stack, loki, metallb, traefik
-│       │   ├── stateful/              # agent-dvr, chaos-mesh, crowdsec-ui, jellyfin, mongo,
+│       │   ├── stateful/              # agent-dvr, chaos-mesh, jellyfin, mongo,
 │       │   │                          # nextcloud, postgresql, qbittorrent, redis
 │       │   └── stateless/             # metric-server, teleport, vaultwarden
 │       │       ├── teleport/          # Teleport Helm chart with SOPS-encrypted secrets

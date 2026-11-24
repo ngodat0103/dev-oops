@@ -1,0 +1,12 @@
+apiVersion: v2
+name: crowdsec
+description: A CrowdSec wrapper with CrowdSec web UI
+
+type: application
+version: 0.24.3
+
+appVersion: "v1.8.2"
+dependencies:
+- name: crowdsec
+  repository: https://crowdsecurity.github.io/helm-charts
+  version: 0.24.3
